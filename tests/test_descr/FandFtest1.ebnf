@@ -1,0 +1,29 @@
+# Test from Thain book
+# Expected:
+# P [( int] [$]
+# E [( int] [) $]
+# EP [+ EMPTY] [) $]
+# T [( int] [+ ) $]
+# TP [* EMPTY] [+ ) $]
+# F [( int] [+ * ) $]
+
+plus = '+';
+star = '*';
+open_p = '(';
+close_p = ')';
+int = 'int';
+
+P = E;
+E = T EP;
+
+EP = plus T EP;
+EP = EMPTY;
+
+T = F TP;
+
+TP = star F TP;
+TP = EMPTY;
+
+F = open_p E close_p;
+F = int;
+

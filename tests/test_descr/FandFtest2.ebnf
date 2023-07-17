@@ -1,0 +1,16 @@
+plus = '+';
+star = '*';
+open_p = '(';
+close_p = ')';
+int = 'int';
+
+E = T X;
+
+X = plus E;
+X = EMPTY;
+
+T = int Y;
+T = open_p E close_p;
+
+Y = star T;
+Y = EMPTY;

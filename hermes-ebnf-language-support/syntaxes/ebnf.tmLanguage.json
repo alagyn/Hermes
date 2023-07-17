@@ -1,0 +1,66 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "Hermes EBNF",
+    "patterns": [
+        {
+            "include": "#keywords"
+        },
+        {
+            "include": "#terminals"
+        },
+        {
+            "include": "#nonterminals"
+        },
+        {
+            "include": "#string-double"
+        },
+        {
+            "include": "#string-single"
+        },
+        {
+            "include": "#comment"
+        }
+    ],
+    "repository": {
+        "keywords": {
+            "name": "keyword.ebnf",
+            "match": "EMPTY|=|\\||;"
+        },
+        "terminals": {
+            "name": "entity.name.class.ebnf",
+            "match": "[A-Z_]+"
+        },
+        "nonterminals": {
+            "name": "entity.name.ebnf",
+            "match": "[a-z_]+"
+        },
+        "string-double": {
+            "name": "string.regexp.double.ebnf",
+            "begin": "\"",
+            "end": "\"",
+            "patterns": [
+                {
+                    "name": "constant.character.escape.ebnf",
+                    "match": "\\\\."
+                }
+            ]
+        },
+        "string-single": {
+            "name": "string.regexp.single.ebnf",
+            "begin": "'",
+            "end": "'",
+            "patterns": [
+                {
+                    "name": "constant.character.escape.ebnf",
+                    "match": "\\\\."
+                }
+            ]
+        },
+        "comment": {
+            "name": "comment.line.ebnf",
+            "begin": "#",
+            "end": "\n"
+        }
+    },
+    "scopeName": "source.ebnf"
+}

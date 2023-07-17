@@ -1,0 +1,24 @@
+%return int
+
+# Char declarations
+semicolon = ";";
+open_curly = "{";
+close_curly = "}";
+open_paren = "\(";
+close_paren =   "\)";
+# Operators
+equals_sign   = "="; # This is a comment
+pound = "#"; # this is also a comment
+
+name = "[a-zA-Z][a-zA-Z0-9_]*";
+integer = '[1-9][0-9]*';
+
+PROGRAM   = stmt;
+stmt =   name equals_sign integer # this is totally not a comment
+    semicolon
+    | open_curly integer   close_curly
+        {
+            this is some code;
+            "this is an inner string";
+        }
+    | EMPTY;

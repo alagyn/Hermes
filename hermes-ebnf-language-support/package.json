@@ -1,0 +1,37 @@
+{
+  "name": "hermes-ebnf-language-support",
+  "displayName": "Hermes EBNF Language Support",
+  "repository": {
+    "url": "https://github.com/alagyn/Hermes"
+  },
+  "description": "",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.79.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "ebnf",
+        "aliases": [
+          "Hermes EBNF",
+          "ebnf"
+        ],
+        "extensions": [
+          ".ebnf"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "ebnf",
+        "scopeName": "source.ebnf",
+        "path": "./syntaxes/ebnf.tmLanguage.json"
+      }
+    ]
+  }
+}
