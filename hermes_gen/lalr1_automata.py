@@ -2,10 +2,10 @@ from typing import Dict, List, Tuple, Optional, Set
 from collections import deque
 import itertools
 
-from hermes_gen.ebnf_grammer import Grammer, Rule
+from hermes_gen.ebnf_grammar import Grammar, Rule
 from hermes_gen.first_and_follow import FirstAndFollow
 from hermes_gen.consts import END, EMPTY
-from hermes_gen.errors import PTGError
+from hermes_gen.errors import HermesError
 
 
 class AnnotRule:
@@ -76,13 +76,13 @@ class AnnotRule:
         """
         return self.rule.symbols[self.parseIndex]
 
-    def getNewLA(self, g: Grammer, ff: FirstAndFollow) -> set[str]:
+    def getNewLA(self, g: Grammar, ff: FirstAndFollow) -> set[str]:
         """
         Returns the lookahead for closure rules generated from this rule
         Uses set of symbols that can be collapsed after the next symbol to be
         consumed (i.e. every symbol from idx + 1 up to and including
         the first that can't be null)
-        :param g: The grammer
+        :param g: The grammar
         :param ff: The first and follow sets
         :return: The lookahead
         """
@@ -161,7 +161,7 @@ class Node:
 
     def addTrans(self, nt: str, node: 'Node'):
         if nt in self.trans:
-            raise PTGError(
+            raise HermesError(
                 f"LALR: Node: {str(self)}\n"
                 f"Attempted to add duplicate transition on NT: {nt}\n"
                 f"Existing: {str(self.trans[nt])}\n"
@@ -173,13 +173,13 @@ class Node:
 
 class LALR1Automata:
 
-    def __init__(self, g: Grammer, ff: FirstAndFollow) -> None:
+    def __init__(self, g: Grammar, ff: FirstAndFollow) -> None:
         # Start node is ID 0
         self.start = Node(0)
         # start IDs at 1
         self.nodeIDs = 1
 
-        self.grammer = g
+        self.grammar = g
         self.ff = ff
 
         # Lookup rules for each nonterminal
@@ -236,11 +236,11 @@ class LALR1Automata:
                     continue
 
                 nextSym = annotRule.nextSymbol()
-                if nextSym in self.grammer.terminals:
+                if nextSym in self.grammar.terminals:
                     # the next symbol is a terminal, skip
                     continue
 
-                newLookAhead = annotRule.getNewLA(self.grammer, self.ff)
+                newLookAhead = annotRule.getNewLA(self.grammar, self.ff)
 
                 for rule in self.ruleLookup[nextSym]:
                     if node.addRule(rule, 0, newLookAhead.copy()):
@@ -304,7 +304,7 @@ TableType = List[RowType]
 class ParseTable:
 
     def _conflict(self, node: Node, symbol: str, first: ParseAction, second: ParseAction):
-        raise PTGError(
+        raise HermesError(
             f'Parse Table: Cannot build parse table, conflict: {node}, Symbol: {symbol}\n'
             f'\tA1: {first}\n'
             f'\tA2: {second}'
@@ -312,12 +312,12 @@ class ParseTable:
 
     def __init__(self, automata: LALR1Automata) -> None:
 
-        self.symbolList = []
+        self.symbolList = [automata.grammar.startSymbol]
         for x in sorted(automata.ruleLookup.keys()):
-            if x != automata.grammer.startSymbol:
+            if x != automata.grammar.startSymbol:
                 self.symbolList.append(x)
 
-        self.symbolList.extend([x[0] for x in automata.grammer.terminalList])
+        self.symbolList.extend([x[0] for x in automata.grammar.terminalList])
         self.symbolList.append(END)
 
         self.symbolIDs: Dict[str, int] = {
@@ -348,7 +348,7 @@ class ParseTable:
                 nextSymbolID = self.symbolIDs[nextSymbol]
                 nextNode = node.trans[nextSymbol].id
 
-                if nextSymbol in automata.grammer.terminals:
+                if nextSymbol in automata.grammar.terminals:
                     nextAction = Action.S
                 else:
                     nextAction = Action.G

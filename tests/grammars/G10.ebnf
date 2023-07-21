@@ -1,11 +1,11 @@
-# Grammer G10 From Thain book
+# Grammar G10 From Thain book
 id = '[a-z]+';
 plus = '\+';
 open_p = '\(';
 close_p = '\)';
 
-P = E;
-E = E plus T;
-E = T;
-T = id open_p E close_p;
-T = id;
+P = E {};
+E = E plus T {};
+E = T {};
+T = id open_p E close_p {};
+T = id {};

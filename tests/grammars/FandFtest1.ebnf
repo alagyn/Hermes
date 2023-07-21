@@ -13,17 +13,19 @@ open_p = '(';
 close_p = ')';
 int = 'int';
 
-P = E;
-E = T EP;
+P = E {};
+E = T EP {};
 
-EP = plus T EP;
-EP = EMPTY;
+EP = plus T EP {}
+    | EMPTY {}
+    ;
 
-T = F TP;
+T = F TP {};
 
-TP = star F TP;
-TP = EMPTY;
+TP = star F TP {}
+    | EMPTY {}
+    ;
 
-F = open_p E close_p;
-F = int;
+F = open_p E close_p {}
+    | int {};
 

@@ -11,19 +11,17 @@
 using namespace std;
 
 namespace hermes {
-Scanner::Scanner(string filename)
-    : handle(filename)
+
+std::shared_ptr<Scanner> Scanner::New(std::shared_ptr<std::istream> handle)
+{
+    return std::make_shared<Scanner>(handle);
+}
+
+Scanner::Scanner(std::shared_ptr<std::istream> handle)
+    : handle(handle)
     , curLineNum(1)
     , curCharNum(0)
 {
-}
-
-Scanner::~Scanner()
-{
-    if(handle.is_open())
-    {
-        handle.close();
-    }
 }
 
 void Scanner::consumeNewLine(char& nextChar)
@@ -31,11 +29,11 @@ void Scanner::consumeNewLine(char& nextChar)
     // Handle windows/mac line endings
     if(nextChar == '\r')
     {
-        nextChar = handle.get();
+        nextChar = handle->get();
         if(nextChar != '\n')
         {
             // If it wasn't actually \r\n, unget
-            handle.unget();
+            handle->unget();
             // Force to \n to for next if block
             nextChar = '\n';
         }
@@ -48,9 +46,9 @@ ParseToken Scanner::nextToken()
     out.lineNum = curLineNum;
     out.charNum = curCharNum;
 
-    if(handle.eof())
+    if(handle->eof())
     {
-        out.symbol = eofSymbol();
+        out.symbol = Symbol::__EOF__;
         return out;
     }
 
@@ -66,11 +64,11 @@ ParseToken Scanner::nextToken()
 
     // flag for if we have started having matches
     bool foundMatch = false;
-    while(!handle.eof())
+    while(!handle->eof())
     {
         char nextChar;
-        handle.get(nextChar);
-        if(handle.eof())
+        handle->get(nextChar);
+        if(handle->eof())
         {
             // If we are at EOF and we have found a match
             if(foundMatch)
@@ -96,7 +94,7 @@ ParseToken Scanner::nextToken()
         // Preprocess comments
         if(nextChar == '#')
         {
-            nextChar = handle.get();
+            nextChar = handle->get();
             // Handle multiline comments
             if(nextChar == '#')
             {
@@ -104,10 +102,10 @@ ParseToken Scanner::nextToken()
                 {
                     do
                     {
-                        nextChar = handle.get();
+                        nextChar = handle->get();
                     }
                     while(nextChar != '#');
-                    nextChar = handle.get();
+                    nextChar = handle->get();
                     if(nextChar == '#')
                     {
                         break;
@@ -119,7 +117,7 @@ ParseToken Scanner::nextToken()
             {
                 do
                 {
-                    nextChar = handle.get();
+                    nextChar = handle->get();
                 }
                 while(nextChar != '\r' && nextChar != '\n');
                 consumeNewLine(nextChar);
@@ -174,7 +172,7 @@ ParseToken Scanner::nextToken()
             // Therefore we have found the maximal-munch
             // We need to unget the last char so we don't consume it
             // we already skip whitespace
-            handle.unget();
+            handle->unget();
             out.text.pop_back();
 
             /*
@@ -199,7 +197,7 @@ ParseToken Scanner::nextToken()
     // We only got here if there was an EOF
     // Return EOF which will error later?
     // TODO make sure this is the case?
-    out.symbol = eofSymbol();
+    out.symbol = Symbol::__EOF__;
     return out;
 };
 } //namespace hermes

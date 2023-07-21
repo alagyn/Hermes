@@ -1,4 +1,5 @@
 %return int
+%include <iostream>
 
 INT = "[0-9]+";
 PLUS = "\+";
@@ -8,20 +9,37 @@ SLASH = "/";
 OPEN_PAREN = "\(";
 CLOSE_PAREN = "\)";
 
-P = expr;
+output = expr { return $0; };
 
 expr
-    = expr PLUS term { return $0 + $2; }
-    | expr MINUS term { return $0 - $2; }
-    | expr { return $0; }
+    = expr PLUS term
+    {
+        std::cout << $0 << " + " << $2 << "\n";
+        return $0 + $2;
+    }
+    | expr MINUS term
+    {
+        std::cout << $0 << " - " << $2 << "\n";
+        return $0 - $2;
+    }
+    | term { return $0; }
     ;
 
 term
-    = term STAR factor { return $0 * $2; }
-    | term SLASH factor { return $0 / $2; }
+    = term STAR factor
+    {
+        std::cout << $0 << " * " << $2 << "\n";
+        return $0 * $2;
+    }
+    | term SLASH factor
+    {
+        std::cout << $0 << " / " << $2 << "\n";
+        return $0 / $2;
+    }
+    | factor { return $0; }
     ;
 
 factor
-    = INT { return atoi($0); }
+    = INT { return std::stoi($0); }
     | OPEN_PAREN expr CLOSE_PAREN { return $1; }
     ;

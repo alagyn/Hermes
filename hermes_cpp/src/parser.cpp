@@ -1,25 +1,12 @@
 #include <hermes/errors.h>
 #include <hermes/parseTable.h>
 #include <hermes/parser.h>
+#include <hermes/stackItem.h>
 
 #include <iostream>
 #include <sstream>
 
 namespace hermes {
-
-class StackItem
-{
-public:
-    HState state;
-
-    StackItem(HState state)
-        : state(state)
-    {
-    }
-
-    virtual std::string t() = 0;
-    virtual HERMES_RETURN nt() = 0;
-};
 
 class StackToken : public StackItem
 {
@@ -103,13 +90,6 @@ HERMES_RETURN Parser::parse(std::shared_ptr<Scanner> scanner)
         }
         case R:
         {
-            if(nextAction.state == 0)
-            {
-                std::cout << "Reduce to ACCEPT\n";
-                // TODO ACCEPT
-                return nullptr;
-            }
-
             auto reduction = getReduction(nextAction.state);
             std::cout << "Reduce to \"" << symbolLookup(reduction.nonterm)
                       << "\""
@@ -125,6 +105,12 @@ HERMES_RETURN Parser::parse(std::shared_ptr<Scanner> scanner)
             }
 
             HERMES_RETURN hr = reduce(nextAction.state, items);
+
+            if(nextAction.state == 0)
+            {
+                // Accept
+                return hr;
+            }
 
             ParseAction nextGoto =
                 getAction(stack.back()->state, reduction.nonterm);

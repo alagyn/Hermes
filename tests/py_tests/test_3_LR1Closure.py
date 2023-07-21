@@ -4,8 +4,7 @@ from typing import List
 import utils
 
 from hermes_gen.lalr1_automata import Node, AnnotRule, LALR1Automata
-from hermes_gen.main import parse_ebnf_file
-from hermes_gen.ebnf_grammer import Grammer, Rule
+from hermes_gen.ebnf_grammar import Grammar, Rule, parse_grammar
 from hermes_gen.first_and_follow import FirstAndFollow
 from hermes_gen.consts import END
 
@@ -30,9 +29,9 @@ class TestLALRClosure(unittest.TestCase):
         a = 'a'
         b = 'b'
 
-        r0 = Rule(1, SP, [S], None)
-        r1 = Rule(2, S, [X, X], None)
-        r2 = Rule(3, X, [a, X], None)
+        r0 = Rule(1, SP, [S], "", 0)
+        r1 = Rule(2, S, [X, X], "", 0)
+        r2 = Rule(3, X, [a, X], "", 0)
 
         n0 = Node(0)
         n0.addRule(r0, 0, {END})
@@ -55,10 +54,10 @@ class TestLALRClosure(unittest.TestCase):
 
     def test_1_LALR1(self):
         testfile = utils.getTestFilename('LALR1Test.ebnf')
-        grammer = parse_ebnf_file(testfile)
-        ff = FirstAndFollow(grammer)
+        grammar = parse_grammar(testfile)
+        ff = FirstAndFollow(grammar)
 
-        lalr = LALR1Automata(grammer, ff)
+        lalr = LALR1Automata(grammar, ff)
 
         SP = 'S_PRIME'
         S = 'S'
@@ -66,10 +65,10 @@ class TestLALRClosure(unittest.TestCase):
         a = 'a'
         b = 'b'
 
-        r0 = Rule(1, SP, [S], None)
-        r1 = Rule(2, S, [X, X], None)
-        r2 = Rule(3, X, [a, X], None)
-        r3 = Rule(4, X, [b], None)
+        r0 = Rule(1, SP, [S], "", 0)
+        r1 = Rule(2, S, [X, X], "", 0)
+        r2 = Rule(3, X, [a, X], "", 0)
+        r3 = Rule(4, X, [b], "", 0)
 
         n0 = Node(0)
         n0.addRule(r0, 0, {END})
@@ -105,10 +104,10 @@ class TestLALRClosure(unittest.TestCase):
 
     def test_2_G10(self):
         testfile = utils.getTestFilename("G10.ebnf")
-        grammer = parse_ebnf_file(testfile)
-        ff = FirstAndFollow(grammer)
+        grammar = parse_grammar(testfile)
+        ff = FirstAndFollow(grammar)
 
-        lalr = LALR1Automata(grammer, ff)
+        lalr = LALR1Automata(grammar, ff)
 
         P = "P"
         E = "E"
@@ -118,11 +117,11 @@ class TestLALRClosure(unittest.TestCase):
         open_p = "open_p"
         close_p = "close_p"
 
-        r1 = Rule(1, P, [E], None)
-        r2 = Rule(2, E, [E, plus, T], None)
-        r3 = Rule(3, E, [T], None)
-        r4 = Rule(4, T, [_id, open_p, E, close_p], None)
-        r5 = Rule(5, T, [_id], None)
+        r1 = Rule(1, P, [E], "", 0)
+        r2 = Rule(2, E, [E, plus, T], "", 0)
+        r3 = Rule(3, E, [T], "", 0)
+        r4 = Rule(4, T, [_id, open_p, E, close_p], "", 0)
+        r5 = Rule(5, T, [_id], "", 0)
 
         n0 = Node(0)
         n0.addRule(r1, 0, {END})
@@ -190,9 +189,9 @@ class TestLALRClosure(unittest.TestCase):
 
     def test_3_epsilon(self):
         testfile = utils.getTestFilename("epsilon.ebnf")
-        grammer = parse_ebnf_file(testfile)
-        ff = FirstAndFollow(grammer)
-        lalr = LALR1Automata(grammer, ff)
+        grammar = parse_grammar(testfile)
+        ff = FirstAndFollow(grammar)
+        lalr = LALR1Automata(grammar, ff)
 
         S = "S"
         A = "A"
@@ -200,10 +199,10 @@ class TestLALRClosure(unittest.TestCase):
         a = "a"
         b = "b"
 
-        r0 = Rule(0, S, [A], None)
-        r1 = Rule(1, A, [B, b], None)
-        r2 = Rule(2, B, [B, a], None)
-        r3 = Rule(3, B, [], None)
+        r0 = Rule(0, S, [A], "", 0)
+        r1 = Rule(1, A, [B, b], "", 0)
+        r2 = Rule(2, B, [B, a], "", 0)
+        r3 = Rule(3, B, [], "", 0)
 
         n0 = Node(0)
         n0.addRule(r0, 0, {END})

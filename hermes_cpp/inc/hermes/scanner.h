@@ -1,9 +1,8 @@
 #pragma once
 
-#include <fstream>
+#include <istream>
+#include <memory>
 #include <string>
-
-#include <hermes/_defaults.h>
 
 namespace hermes {
 
@@ -21,14 +20,14 @@ class Scanner
 
 {
 public:
-    // TODO change this to istream
-    Scanner(std::string filename);
-    ~Scanner();
+    std::shared_ptr<Scanner> New(std::shared_ptr<std::istream> handle);
+
+    Scanner(std::shared_ptr<std::istream> handle);
 
     ParseToken nextToken();
 
 private:
-    std::fstream handle;
+    std::shared_ptr<std::istream> handle;
 
     int curLineNum;
     int curCharNum;

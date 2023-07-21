@@ -1,7 +1,8 @@
 b = "b";
 a = "a";
 
-S = A;
-A = B b;
-B = B a
-  | EMPTY;
+S = A {};
+A = B b {};
+B = B a {}
+  | EMPTY {}
+  ;

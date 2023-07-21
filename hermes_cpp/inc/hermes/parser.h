@@ -3,12 +3,10 @@
 #include <deque>
 #include <memory>
 
-#include <hermes/_defaults.h>
 #include <hermes/scanner.h>
+#include <hermes/symbol.h>
 
 namespace hermes {
-
-typedef unsigned HState;
 
 class StackItem;
 using StackItemPtr = std::shared_ptr<StackItem>;

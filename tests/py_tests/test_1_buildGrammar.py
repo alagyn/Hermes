@@ -1,8 +1,7 @@
 import unittest
-import os.path
 
-from hermes_gen.main import parse_ebnf_file
-from hermes_gen.ebnf_grammer import Rule
+from hermes_gen.main import parse_grammar
+from hermes_gen.ebnf_grammar import Rule
 from utils import getTestFilename
 
 
@@ -11,7 +10,7 @@ class TestBuildgrammar(unittest.TestCase):
     def test_buildgrammar1(self):
         testFile = getTestFilename('test.ebnf')
 
-        g = parse_ebnf_file(testFile)
+        g = parse_grammar(testFile)
 
         EXP_TERMS = {
             'semicolon': ';',
@@ -32,19 +31,26 @@ class TestBuildgrammar(unittest.TestCase):
             self.assertEqual(EXP_TERMS[key], val, 'Terminal definition is not expected')
 
         EXP_RULES = [
-            Rule(0, 'PROGRAM', ['stmt'], ""),
-            Rule(1, 'stmt', ['name', 'equals_sign', 'integer', 'semicolon'], ""),
-            Rule(2, 'stmt', ['open_curly', 'integer', 'close_curly'], ""),
-            Rule(3, "stmt", [], "")
+            Rule(0, 'PROGRAM', ['stmt'], "return $0;", 0),
+            Rule(1, 'stmt', ['name', 'equals_sign', 'integer', 'semicolon'], "return 0;", 0),
+            Rule(
+                2,
+                'stmt', ['open_curly', 'integer', 'close_curly'],
+                "#this is a preprocessor thing\n"
+                "    //this is some code;\n"
+                '//"this is an inner string";\n'
+                "return std::atoi($1);",
+                0
+            ),
+            Rule(3, "stmt", [], "return 0;", 0)
         ]
 
         self.assertEqual(len(EXP_RULES), len(g.rules), 'Len of rules not equal')
 
         for exp, act in zip(EXP_RULES, g.rules):
             self.assertEqual(exp, act, "Rule definition is not as expected")
+            self.assertEqual(exp.code, act.code)
 
-        self.assertEqual('this is some code; "this is an inner string";', g.rules[2].code)
-        self.assertEqual('int', g.directives['return'])
-        self.assertEqual("PROGRAM", g.startSymbol, "Start symbol not equal")
+        # TODO check nulls
 
-    # TODO invalid test files
+    # TODO invalid test files?

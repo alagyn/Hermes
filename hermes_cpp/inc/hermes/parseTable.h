@@ -1,6 +1,6 @@
 #pragma once
 
-#include <hermes/_defaults.h>
+#include <hermes/symbol.h>
 
 #include <map>
 #include <string>
@@ -54,8 +54,6 @@ typedef struct
 
 const ParseAction& getAction(unsigned state, unsigned symbol);
 const ParseAction& getAction(unsigned state, Symbol symbol);
-
-Symbol eofSymbol();
 
 class StackItem;
 HERMES_RETURN reduce(short rule, std::vector<std::shared_ptr<StackItem>>& items);

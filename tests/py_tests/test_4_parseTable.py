@@ -1,8 +1,7 @@
 import unittest
 
 import utils
-from hermes_gen.main import parse_ebnf_file
-from hermes_gen.ebnf_grammer import Grammer
+from hermes_gen.ebnf_grammar import Grammar, parse_grammar
 from hermes_gen.first_and_follow import FirstAndFollow
 from hermes_gen.lalr1_automata import LALR1Automata, ParseTable, Action, TableType, ParseAction
 
@@ -21,9 +20,9 @@ class TestParseTable(unittest.TestCase):
 
     def test_1_G10(self):
         testFile = utils.getTestFilename("G10.ebnf")
-        grammer = parse_ebnf_file(testFile)
-        ff = FirstAndFollow(grammer)
-        lalr = LALR1Automata(grammer, ff)
+        grammar = parse_grammar(testFile)
+        ff = FirstAndFollow(grammar)
+        lalr = LALR1Automata(grammar, ff)
         table = ParseTable(lalr)
 
         # symbol order
@@ -47,9 +46,9 @@ class TestParseTable(unittest.TestCase):
 
     def test_2_epsilon(self):
         testFile = utils.getTestFilename("epsilon.ebnf")
-        grammer = parse_ebnf_file(testFile)
-        ff = FirstAndFollow(grammer)
-        lalr = LALR1Automata(grammer, ff)
+        grammar = parse_grammar(testFile)
+        ff = FirstAndFollow(grammar)
+        lalr = LALR1Automata(grammar, ff)
         table = ParseTable(lalr)
 
         # symbol order S A B b a END

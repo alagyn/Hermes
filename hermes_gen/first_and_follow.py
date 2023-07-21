@@ -1,30 +1,32 @@
 from typing import Dict
 
-from hermes_gen.ebnf_grammer import Grammer
+from hermes_gen.ebnf_grammar import Grammar
 from hermes_gen.consts import EMPTY, END
 
+
 class FirstAndFollow:
-    def __init__(self, grammer: Grammer) -> None:
+
+    def __init__(self, grammar: Grammar) -> None:
         self.first: Dict[str, set[str]] = {}
-        for symbol in grammer.symbols:
+        for symbol in grammar.symbols:
             self.first[symbol] = set()
-            if symbol in grammer.nulls:
+            if symbol in grammar.nulls:
                 self.first[symbol].add(EMPTY)
 
         # Initialize the .irst set to contain the terminals
-        for term in grammer.terminals:
+        for term in grammar.terminals:
             self.first[term] = set([term])
 
         changed = True
         while changed:
             changed = False
-            for rule in grammer.rules:
+            for rule in grammar.rules:
                 curSet = self.first[rule.nonterm].copy()
 
                 nullable = True
                 for symbol in rule.symbols:
                     curSet.update(self.first[symbol])
-                    if symbol not in grammer.nulls:
+                    if symbol not in grammar.nulls:
                         nullable = False
                         break
 
@@ -37,16 +39,19 @@ class FirstAndFollow:
             # End for rule
         # End while changed
 
-        self.follow: Dict[str, set[str]] = {x.nonterm: set() for x in grammer.rules}
-        for x in grammer.terminals:
+        self.follow: Dict[str, set[str]] = {
+            x.nonterm: set()
+            for x in grammar.rules
+        }
+        for x in grammar.terminals:
             self.follow[x] = set()
 
-        self.follow[grammer.startSymbol] = {END}
+        self.follow[grammar.startSymbol] = {END}
 
         changed = True
         while changed:
             changed = False
-            for rule in grammer.rules:
+            for rule in grammar.rules:
                 left = self.follow[rule.nonterm]
                 # True if the previous symbol had EMPTy in their first set
                 lastEmpty = True
@@ -75,8 +80,5 @@ class FirstAndFollow:
             # End for rules
         # End while changed
 
-        for x in grammer.terminals:
+        for x in grammar.terminals:
             del self.follow[x]
-
-
-

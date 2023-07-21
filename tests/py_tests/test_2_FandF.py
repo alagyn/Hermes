@@ -2,7 +2,7 @@ import unittest
 from typing import Dict
 
 import utils
-from hermes_gen.main import parse_ebnf_file
+from hermes_gen.ebnf_grammar import parse_grammar
 from hermes_gen.first_and_follow import FirstAndFollow
 from hermes_gen.consts import EMPTY, END
 
@@ -23,8 +23,8 @@ class TestFirstAndFollow(unittest.TestCase):
         From compiler book by Thain
         """
         testFile = utils.getTestFilename("FandFtest1.ebnf")
-        grammer = parse_ebnf_file(testFile)
-        ff = FirstAndFollow(grammer)
+        grammar = parse_grammar(testFile)
+        ff = FirstAndFollow(grammar)
 
         EXP_FIRST = {
             'P': {'open_p', 'int'},
@@ -58,7 +58,7 @@ class TestFirstAndFollow(unittest.TestCase):
         Test from https://people.cs.pitt.edu/~jmisurda/teaching/cs1622/handouts/cs1622-first_and_follow.pdf
         """
         testFile = utils.getTestFilename('FandFtest2.ebnf')
-        g = parse_ebnf_file(testFile)
+        g = parse_grammar(testFile)
 
         ff = FirstAndFollow(g)
 
@@ -84,10 +84,10 @@ class TestFirstAndFollow(unittest.TestCase):
 
     def test_3_G10(self):
         """
-        Grammer G10 from Thain book
+        Grammar G10 from Thain book
         """
         testFile = utils.getTestFilename('G10.ebnf')
-        g = parse_ebnf_file(testFile)
+        g = parse_grammar(testFile)
 
         ff = FirstAndFollow(g)
 
@@ -111,7 +111,7 @@ class TestFirstAndFollow(unittest.TestCase):
 
     def test_4_epsilon(self):
         testFile = utils.getTestFilename('epsilon.ebnf')
-        g = parse_ebnf_file(testFile)
+        g = parse_grammar(testFile)
         ff = FirstAndFollow(g)
 
         # yapf: disable
