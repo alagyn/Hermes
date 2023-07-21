@@ -75,14 +75,18 @@ HERMES_RETURN Parser::parse(std::shared_ptr<Scanner> scanner)
     {
         ParseAction nextAction = getAction(stack.back()->state, token.symbol);
 
+#ifdef HERMES_PARSE_DEBUG
         std::cout << symbolLookup(token.symbol) << " " << token.lineNum << "."
                   << token.charNum << " " << token.text << " ";
+#endif
 
         switch(nextAction.action)
         {
         case S:
         {
+#ifdef HERMES_PARSE_DEBUG
             std::cout << "S" << nextAction.state << "\n";
+#endif
             stack.push_back(StackToken::New(nextAction.state, token));
             // We only get the next token after a shift
             token = scanner->nextToken();
@@ -91,12 +95,14 @@ HERMES_RETURN Parser::parse(std::shared_ptr<Scanner> scanner)
         case R:
         {
             auto reduction = getReduction(nextAction.state);
+
+#ifdef HERMES_PARSE_DEBUG
             std::cout << "Reduce to \"" << symbolLookup(reduction.nonterm)
                       << "\""
                       << " via rule: " << nextAction.state << " {"
                       << " pops: " << reduction.numPops << " goto idx: "
                       << static_cast<unsigned>(reduction.nonterm) << " }\n";
-
+#endif
             std::vector<StackItemPtr> items;
             for(int i = 0; i < reduction.numPops; ++i)
             {
@@ -121,6 +127,7 @@ HERMES_RETURN Parser::parse(std::shared_ptr<Scanner> scanner)
         }
         default:
         {
+            // TODO convert to an exception?
             std::cout << "\n";
             std::stringstream ss;
             ss << "Parse Error at line " << token.lineNum << " char "
