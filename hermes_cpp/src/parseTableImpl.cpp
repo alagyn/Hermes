@@ -24,7 +24,7 @@ const ParseAction& getAction(unsigned state, Symbol symbol)
 
 const ParseAction& getAction(unsigned state, unsigned symbol)
 {
-    return PARSE_TABLE[state][symbol];
+    return PARSE_TABLE[state][symbol - 1];
 }
 
 // Get Terminals

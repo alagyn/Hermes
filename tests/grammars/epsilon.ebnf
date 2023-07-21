@@ -1,3 +1,5 @@
+%return int
+
 b = "b";
 a = "a";
 

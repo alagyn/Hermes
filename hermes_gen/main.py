@@ -121,8 +121,10 @@ def main():
         f.write("}; // End TERMINALS\n\n")
 
         f.write("const std::vector<Reduction> REDUCTIONS = {\n")
+
         for idx, rule in enumerate(grammar.rules):
-            f.write(f'{{{len(rule.symbols)} , {table.symbolIDs[rule.nonterm]}}}')
+            # Plus 1 to re-offset for the start symbol
+            f.write(f'{{{len(rule.symbols)} , {table.symbolIDs[rule.nonterm] + 1}}}')
             if idx < len(grammar.rules) + 1:
                 f.write(',')
             f.write('\n')

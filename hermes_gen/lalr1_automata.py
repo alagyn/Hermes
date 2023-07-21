@@ -321,13 +321,14 @@ class ParseTable:
         self.symbolList.append(END)
 
         self.symbolIDs: Dict[str, int] = {
-            x: idx
+            x: idx - 1
             for idx, x in enumerate(self.symbolList)
         }
 
         self.table: TableType = []
         for node in automata.nodes:
-            curRow: RowType = [ParseAction() for _ in self.symbolIDs]
+            # -1 to remove start symbol
+            curRow: RowType = [ParseAction() for _ in range(len(self.symbolList) - 1)]
             self.table.append(curRow)
 
             for rule in node.rules:

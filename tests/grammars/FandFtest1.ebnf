@@ -6,6 +6,7 @@
 # T [( int] [+ ) $]
 # TP [* EMPTY] [+ ) $]
 # F [( int] [+ * ) $]
+%return int
 
 plus = '+';
 star = '*';

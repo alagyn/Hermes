@@ -1,3 +1,5 @@
+%return int
+
 plus = '+';
 star = '*';
 open_p = '(';

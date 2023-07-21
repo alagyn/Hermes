@@ -1,4 +1,6 @@
 # Grammar G10 From Thain book
+%return int
+
 id = '[a-z]+';
 plus = '\+';
 open_p = '\(';

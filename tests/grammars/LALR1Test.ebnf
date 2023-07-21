@@ -1,3 +1,5 @@
+%return int
+
 a = 'a';
 b = 'b';
 
