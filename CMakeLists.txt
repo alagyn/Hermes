@@ -15,8 +15,10 @@ find_package(Boost 1.82.0
 # This will let users specify their grammar and then add_subdiretory to this
 set(GRAMMAR ${GRAMMAR} CACHE FILEPATH "The input grammar file")
 
+set(HERMES_TEST OFF CACHE BOOL "Build tests")
+
 if(NOT EXISTS "${GRAMMAR}")
-    message(FATAL_ERROR "Grammer file: \"${GRAMMAR}\" not found")
+    message(FATAL_ERROR "Grammar file: \"${GRAMMAR}\" not found")
 endif()
 
 set(PARSE_TABLE_FILE ${CMAKE_CURRENT_BINARY_DIR}/src/parseTable.cpp)
@@ -71,5 +73,8 @@ target_include_directories(${CMAKE_PROJECT_NAME}
 target_link_libraries(${CMAKE_PROJECT_NAME}
     PRIVATE
         Boost::regex
-
 )
+
+if(${HERMES_TEST})
+    add_subdirectory(tets)
+endif()

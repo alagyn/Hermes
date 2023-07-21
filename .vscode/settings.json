@@ -17,5 +17,8 @@
         ".style.yapf": "properties",
         "iosfwd": "cpp"
     },
-    "cmake.generator": "Unix Makefiles"
+    "cmake.generator": "Unix Makefiles",
+    "cmake.configureArgs": [
+        "-DGRAMMAR=${workspaceRoot}/tests/grammars/calculator.ebnf"
+    ]
 }
