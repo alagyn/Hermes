@@ -1,35 +1,75 @@
-project(ParseTableGen)
+cmake_minimum_required(VERSION 3.26)
+
+project(hermes)
 
 find_package(Python3 
     REQUIRED 
-    COMPONENTS Interpreter
+        COMPONENTS Interpreter
 )
 
-#[[
-    Automatically regenerates ParseTable.h
-    whenever the python code or the chosen grammer file changes
-]]#
+find_package(Boost 1.82.0 
+    REQUIRED
+        COMPONENTS regex
+)
 
-set(GRAMMER_SOURCE_FILE ${CMAKE_SOURCE_DIR}/SigilCompiler/src/parseTable.cpp)
+# This will let users specify their grammar and then add_subdiretory to this
+set(GRAMMAR ${GRAMMAR} CACHE FILEPATH "The input grammar file")
+
+if(NOT EXISTS "${GRAMMAR}")
+    message(FATAL_ERROR "Grammer file: \"${GRAMMAR}\" not found")
+endif()
+
+set(PARSE_TABLE_FILE ${CMAKE_CURRENT_BINARY_DIR}/src/parseTable.cpp)
+set(TOKEN_FILE ${CMAKE_CURRENT_BINARY_DIR}/inc/token.h)
+
+set(HERMES_GEN_ROOT hermes_gen)
+set(HERMES_CPP_ROOT hermes_cpp)
 
 set(PY_FILES
-    parse_table_gen/consts.py
-    parse_table_gen/ebnf_grammer.py
-    parse_table_gen/first_and_follow.py
-    parse_table_gen/lalr1_automata.py
-    parse_table_gen/main.py
-    parse_table_gen/preprocessing.py
+    ${HERMES_GEN_ROOT}/consts.py
+    ${HERMES_GEN_ROOT}/ebnf_grammer.py
+    ${HERMES_GEN_ROOT}/errors.py
+    ${HERMES_GEN_ROOT}/first_and_follow.py
+    ${HERMES_GEN_ROOT}/lalr1_automata.py
+    ${HERMES_GEN_ROOT}/main.py
+    ${HERMES_GEN_ROOT}/preprocessing.py
+)
+
+set(CPP_FILES
+    ${HERMES_CPP_ROOT}/src/parser.cpp
+    ${HERMES_CPP_ROOT}/src/scanner.cpp
+    ${PARSE_TABLE_FILE}
 )
 
 # Custom command to generate the header
 add_custom_command(
-    OUTPUT ${GRAMMER_SOURCE_FILE}
+    OUTPUT ${PARSE_TABLE_FILE}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMAND ${Python3_EXECUTABLE} -m parse_table_gen.main ${GRAMMER_FILE} ${GRAMMER_SOURCE_FILE}
-    DEPENDS ${GRAMMER_FILE} ${PY_FILES}
+    COMMAND
+        ${Python3_EXECUTABLE} -m hermes_gen.main --code ${PARSE_TABLE_FILE} --token ${TOKEN_FILE} ${GRAMMAR}
+    DEPENDS ${GRAMMAR} ${PY_FILES}
 )
 
-# Custom target that depends on the output so that we can specify it as a dependency
-add_custom_target(${PROJECT_NAME}
-    DEPENDS ${GRAMMER_SOURCE_FILE} ${GRAMMER_FILE} ${PY_FILES}
+# Add target to generate parse table
+add_custom_target(parse_table
+    DEPENDS ${PARSE_TABLE_FILE} ${GRAMMAR} ${PY_FILES}
+)
+
+# Add library
+add_library(${CMAKE_PROJECT_NAME} SHARED
+    ${CPP_FILES}
+)
+
+# Add dependency on parse_table
+add_dependencies(${CMAKE_PROJECT_NAME} parse_table)
+
+target_include_directories(${CMAKE_PROJECT_NAME}
+    PUBLIC
+        hermes_cpp/inc
+)
+
+target_link_libraries(${CMAKE_PROJECT_NAME}
+    PRIVATE
+        Boost::regex
+
 )

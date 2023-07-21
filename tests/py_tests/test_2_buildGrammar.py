@@ -1,8 +1,8 @@
 import unittest
 import os.path
 
-from hermes.main import parse_ebnf_file
-from hermes.ebnf_grammer import Rule
+from hermes_gen.main import parse_ebnf_file
+from hermes_gen.ebnf_grammer import Rule
 from utils import getTestFilename
 
 

@@ -1,0 +1,27 @@
+%return int
+
+INT = "[0-9]+";
+PLUS = "\+";
+MINUS = "-";
+STAR = "\*";
+SLASH = "/";
+OPEN_PAREN = "\(";
+CLOSE_PAREN = "\)";
+
+P = expr;
+
+expr
+    = expr PLUS term { return $0 + $2; }
+    | expr MINUS term { return $0 - $2; }
+    | expr { return $0; }
+    ;
+
+term
+    = term STAR factor { return $0 * $2; }
+    | term SLASH factor { return $0 / $2; }
+    ;
+
+factor
+    = INT { return atoi($0); }
+    | OPEN_PAREN expr CLOSE_PAREN { return $1; }
+    ;

@@ -2,10 +2,10 @@ from typing import Dict, List, Tuple, Optional, Set
 from collections import deque
 import itertools
 
-from hermes.ebnf_grammer import Grammer, Rule
-from hermes.first_and_follow import FirstAndFollow
-from hermes.consts import END, EMPTY
-from hermes.errors import PTGError
+from hermes_gen.ebnf_grammer import Grammer, Rule
+from hermes_gen.first_and_follow import FirstAndFollow
+from hermes_gen.consts import END, EMPTY
+from hermes_gen.errors import PTGError
 
 
 class AnnotRule:

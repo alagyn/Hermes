@@ -16,9 +16,13 @@ integer = '[1-9][0-9]*';
 PROGRAM   = stmt;
 stmt =   name equals_sign integer # this is totally not a comment
     semicolon
+    { return 0; }
     | open_curly integer   close_curly
         {
-            this is some code;
-            "this is an inner string";
+            #this is a preprocessor thing
+            //this is some code;
+            //"this is an inner string";
+            return std::atoi($1);
         }
-    | EMPTY;
+    | EMPTY { return 0; }
+    ;

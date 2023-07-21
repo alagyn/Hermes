@@ -3,7 +3,7 @@
     "python.testing.unittestArgs": [
         "-v",
         "-s",
-        "tests",
+        "tests/py_tests",
         "-p",
         "test_*.py"
     ],
@@ -12,5 +12,10 @@
     "python.testing.unittestEnabled": true,
     "python.analysis.typeCheckingMode": "basic",
     "python.linting.cwd": "${workspaceRoot}",
-    "python.formatting.provider": "yapf"
+    "python.formatting.provider": "yapf",
+    "files.associations": {
+        ".style.yapf": "properties",
+        "iosfwd": "cpp"
+    },
+    "cmake.generator": "Unix Makefiles"
 }

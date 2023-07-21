@@ -1,12 +1,12 @@
 from typing import List, Dict, Set, Tuple, Optional
 import re
 
-from hermes.errors import PTGError
+from hermes_gen.errors import PTGError
 
 
 class Rule:
 
-    def __init__(self, id: int, nonterm: str, symbols: List[str], code: Optional[str]) -> None:
+    def __init__(self, id: int, nonterm: str, symbols: List[str], code: str) -> None:
         self.id = id
         self.nonterm = nonterm
         self.symbols = symbols
@@ -166,7 +166,11 @@ def parse_grammer(lines: List[str]) -> Grammer:
 
                 nonterminals.add(nonterm)
                 code = rule.group('code')
-                if code is not None:
+                if code is None:
+                    print("Grammer: Invalid line, missing action block:", line)
+                    error = True
+                    continue
+                else:
                     code = code.strip()
                 rules.append(Rule(ruleId, nonterm, symbols, code))
                 ruleId += 1

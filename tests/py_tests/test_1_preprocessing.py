@@ -1,7 +1,7 @@
 import unittest
 import os.path
 
-import hermes.preprocessing as preprocess
+import hermes_gen.preprocessing as preprocess
 
 import utils
 
@@ -21,8 +21,9 @@ EXPECTED_CLEAN = [
     'semicolon',
     '| open_curly integer   close_curly',
     '{',
-    'this is some code;',
-    '"this is an inner string";',
+    '//this is some code;',
+    '//"this is an inner string";',
+    'return std::atoi($1);'
     '}',
     "| EMPTY;"
 ]

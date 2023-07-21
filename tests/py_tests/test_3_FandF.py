@@ -2,9 +2,9 @@ import unittest
 from typing import Dict
 
 import utils
-from hermes.main import parse_ebnf_file
-from hermes.first_and_follow import FirstAndFollow
-from hermes.consts import EMPTY, END
+from hermes_gen.main import parse_ebnf_file
+from hermes_gen.first_and_follow import FirstAndFollow
+from hermes_gen.consts import EMPTY, END
 
 
 class TestFirstAndFollow(unittest.TestCase):

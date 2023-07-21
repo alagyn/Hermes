@@ -1,6 +1,6 @@
 from typing import List
 
-from hermes.lalr1_automata import LALR1Automata, Node
+from hermes_gen.lalr1_automata import LALR1Automata, Node
 
 
 class IELRAutomata:

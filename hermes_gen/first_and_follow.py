@@ -1,7 +1,7 @@
 from typing import Dict
 
-from hermes.ebnf_grammer import Grammer
-from hermes.consts import EMPTY, END
+from hermes_gen.ebnf_grammer import Grammer
+from hermes_gen.consts import EMPTY, END
 
 class FirstAndFollow:
     def __init__(self, grammer: Grammer) -> None:

@@ -1,10 +1,10 @@
 import unittest
 
 import utils
-from hermes.main import parse_ebnf_file
-from hermes.ebnf_grammer import Grammer
-from hermes.first_and_follow import FirstAndFollow
-from hermes.lalr1_automata import LALR1Automata, ParseTable, Action, TableType, ParseAction
+from hermes_gen.main import parse_ebnf_file
+from hermes_gen.ebnf_grammer import Grammer
+from hermes_gen.first_and_follow import FirstAndFollow
+from hermes_gen.lalr1_automata import LALR1Automata, ParseTable, Action, TableType, ParseAction
 
 PA = ParseAction
 
