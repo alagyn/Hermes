@@ -5,9 +5,9 @@
 A Context-Free-Grammar parser generator for C++ written in Python.
 It's like Bison's estranged younger brother.
 
-## More docs coming soon
+### [Read the docs](docs)
 
-### Compiling and linking to your app
+## Compiling and linking to your app
 
 ```cmake
 
@@ -18,7 +18,7 @@ target_link_libraries(yourTarget hermes)
 
 ```
 
-### A minimal example: The amazing calculator
+## A minimal example: The amazing calculator
 
 Grammer:
 ```
