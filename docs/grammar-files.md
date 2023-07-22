@@ -8,7 +8,7 @@ They have three main components:
 
 All three of these can be defined in an arbitrary order and interleaving, but the key thing to note is that __tokens have precedence based upon the order they are defined in.__ I.E. in case of a tie, the token that is defined first will win.
 
-Hermes grammers can contain line comments starting with # anywhere except code blocks.
+__Hermes grammers can contain line comments starting with # anywhere except code blocks. Pounds are safe to use within regex.__
 
 ### Tokens
 Tokens are defined as name+regex tuple. By convention, tokens are usually named with full uppercase, but they can be any combination of letters and underscores.
