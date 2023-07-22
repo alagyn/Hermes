@@ -1,7 +1,7 @@
 import unittest
 
 import utils
-from hermes_gen.ebnf_grammar import Grammar, parse_grammar
+from hermes_gen.grammar import Grammar, parse_grammar
 from hermes_gen.first_and_follow import FirstAndFollow
 from hermes_gen.lalr1_automata import LALR1Automata, ParseTable, Action, TableType, ParseAction
 
@@ -19,7 +19,7 @@ class TestParseTable(unittest.TestCase):
         self.assertEqual(len(exp), len(act), f"Table not of equal size")
 
     def test_1_G10(self):
-        testFile = utils.getTestFilename("G10.ebnf")
+        testFile = utils.getTestFilename("G10.hm")
         grammar = parse_grammar(testFile)
         ff = FirstAndFollow(grammar)
         lalr = LALR1Automata(grammar, ff)
@@ -45,7 +45,7 @@ class TestParseTable(unittest.TestCase):
         self._checkTable(EXP_TABLE, table.table)
 
     def test_2_epsilon(self):
-        testFile = utils.getTestFilename("epsilon.ebnf")
+        testFile = utils.getTestFilename("epsilon.hm")
         grammar = parse_grammar(testFile)
         ff = FirstAndFollow(grammar)
         lalr = LALR1Automata(grammar, ff)

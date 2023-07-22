@@ -21,7 +21,7 @@
           "ebnf"
         ],
         "extensions": [
-          ".ebnf"
+          ".hm"
         ],
         "configuration": "./language-configuration.json"
       }

@@ -6,6 +6,7 @@
 
 #include <boost/regex.h>
 
+#include <hermes/errors.h>
 #include <hermes/parseTable.h>
 
 using namespace std;
@@ -190,7 +191,7 @@ ParseToken Scanner::nextToken()
             // If we got here something bad happened and nothing matched
             std::stringstream ss;
             ss << "Bad token: '" << out.text << "'";
-            throw std::runtime_error(ss.str());
+            throw HermesError(ss.str());
         }
     }
 

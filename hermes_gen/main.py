@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 from datetime import datetime
 import os
 
-from hermes_gen.ebnf_grammar import parse_grammar, Grammar
+from hermes_gen.grammar import parse_grammar, Grammar
 from hermes_gen.first_and_follow import FirstAndFollow
 from hermes_gen.lalr1_automata import LALR1Automata, ParseTable, Action
 from hermes_gen.consts import ARG_VECTOR

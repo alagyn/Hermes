@@ -2,7 +2,7 @@ import unittest
 from typing import Dict
 
 import utils
-from hermes_gen.ebnf_grammar import parse_grammar
+from hermes_gen.grammar import parse_grammar
 from hermes_gen.first_and_follow import FirstAndFollow
 from hermes_gen.consts import EMPTY, END
 
@@ -22,7 +22,7 @@ class TestFirstAndFollow(unittest.TestCase):
         """
         From compiler book by Thain
         """
-        testFile = utils.getTestFilename("FandFtest1.ebnf")
+        testFile = utils.getTestFilename("FandFtest1.hm")
         grammar = parse_grammar(testFile)
         ff = FirstAndFollow(grammar)
 
@@ -57,7 +57,7 @@ class TestFirstAndFollow(unittest.TestCase):
         """
         Test from https://people.cs.pitt.edu/~jmisurda/teaching/cs1622/handouts/cs1622-first_and_follow.pdf
         """
-        testFile = utils.getTestFilename('FandFtest2.ebnf')
+        testFile = utils.getTestFilename('FandFtest2.hm')
         g = parse_grammar(testFile)
 
         ff = FirstAndFollow(g)
@@ -86,7 +86,7 @@ class TestFirstAndFollow(unittest.TestCase):
         """
         Grammar G10 from Thain book
         """
-        testFile = utils.getTestFilename('G10.ebnf')
+        testFile = utils.getTestFilename('G10.hm')
         g = parse_grammar(testFile)
 
         ff = FirstAndFollow(g)
@@ -110,7 +110,7 @@ class TestFirstAndFollow(unittest.TestCase):
         self._checkSet("Follow", EXP_FOLLOW, ff.follow)
 
     def test_4_epsilon(self):
-        testFile = utils.getTestFilename('epsilon.ebnf')
+        testFile = utils.getTestFilename('epsilon.hm')
         g = parse_grammar(testFile)
         ff = FirstAndFollow(g)
 

@@ -1,6 +1,7 @@
 %return int
 %include <iostream>
 
+# Declare our tokens
 INT = "[0-9]+";
 PLUS = "\+";
 MINUS = "-";
@@ -9,6 +10,8 @@ SLASH = "/";
 OPEN_PAREN = "\(";
 CLOSE_PAREN = "\)";
 
+# This is the starting rule, it is usually best to only have one possible
+# way to produce your starting rule
 output = expr { return $0; };
 
 expr

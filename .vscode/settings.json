@@ -19,7 +19,7 @@
     },
     "cmake.generator": "Unix Makefiles",
     "cmake.configureArgs": [
-        "-DGRAMMAR=${workspaceRoot}/tests/grammars/calculator.ebnf"
+        "-DGRAMMAR=${workspaceRoot}/tests/grammars/calculator.hm"
     ],
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
 }

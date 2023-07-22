@@ -4,7 +4,7 @@ from typing import List
 import utils
 
 from hermes_gen.lalr1_automata import Node, AnnotRule, LALR1Automata
-from hermes_gen.ebnf_grammar import Grammar, Rule, parse_grammar
+from hermes_gen.grammar import Grammar, Rule, parse_grammar
 from hermes_gen.first_and_follow import FirstAndFollow
 from hermes_gen.consts import END
 
@@ -53,7 +53,7 @@ class TestLALRClosure(unittest.TestCase):
         self.assertEqual(expNode, n0)
 
     def test_1_LALR1(self):
-        testfile = utils.getTestFilename('LALR1Test.ebnf')
+        testfile = utils.getTestFilename('LALR1Test.hm')
         grammar = parse_grammar(testfile)
         ff = FirstAndFollow(grammar)
 
@@ -103,7 +103,7 @@ class TestLALRClosure(unittest.TestCase):
         self._checkNodes(EXP_NODES, lalr.nodes)
 
     def test_2_G10(self):
-        testfile = utils.getTestFilename("G10.ebnf")
+        testfile = utils.getTestFilename("G10.hm")
         grammar = parse_grammar(testfile)
         ff = FirstAndFollow(grammar)
 
@@ -188,7 +188,7 @@ class TestLALRClosure(unittest.TestCase):
         self._checkTransitions(EXP_NODES, lalr.nodes)
 
     def test_3_epsilon(self):
-        testfile = utils.getTestFilename("epsilon.ebnf")
+        testfile = utils.getTestFilename("epsilon.hm")
         grammar = parse_grammar(testfile)
         ff = FirstAndFollow(grammar)
         lalr = LALR1Automata(grammar, ff)

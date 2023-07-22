@@ -259,10 +259,16 @@ def parse_grammar(filename: str) -> Grammar:
             name = m.group('name')
             if name is not None:
                 try:
-                    if rule.symbols.count(name) > 0:
+                    count = rule.symbols.count(name)
+                    if count > 1:
                         raise HermesError(
                             f"{f.filename} Cannot substitue symbol '${name}', symbol is repeated in rule, use index instead, {rule}"
                         )
+                    elif count == 0:
+                        raise HermesError(
+                            f"{f.filename} Cannot substitute symbol '${name}', symbol not in rule, {rule}"
+                        )
+
                     sIdx = rule.symbols.index(name)
                 except ValueError:
                     raise HermesError(
@@ -338,7 +344,7 @@ def parse_directive(f: _Reader) -> Tuple[str, str]:
 
 
 def parse_terminal(f: _Reader, quoteType: str) -> str:
-    out = ''
+    out = []
 
     while True:
         nextChar = f.get()
@@ -351,8 +357,11 @@ def parse_terminal(f: _Reader, quoteType: str) -> str:
             # check for escaped quote
             if out[-1] != '\\':
                 break
+            # Else it is escaped, replace the backslash with the quote
+            out[-1] = nextChar
+            continue
 
-        out += nextChar
+        out.append(nextChar)
 
     while True:
         nextChar = f.get()
@@ -361,7 +370,7 @@ def parse_terminal(f: _Reader, quoteType: str) -> str:
         if nextChar not in ' \t\n':
             raise HermesError(f"{f} Invalid character '{nextChar}', expected ';'")
 
-    return out
+    return "".join(out)
 
 
 def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:

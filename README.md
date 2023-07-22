@@ -11,7 +11,7 @@ It's like Bison's estranged younger brother.
 
 ```cmake
 
-set(GRAMMAR "yourGrammerFile.ebnf")
+set(GRAMMAR "yourGrammerFile.hm")
 add_subdirectory(hermes)
 
 target_link_libraries(yourTarget hermes)

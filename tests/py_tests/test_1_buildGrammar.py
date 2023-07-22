@@ -1,14 +1,14 @@
 import unittest
 
 from hermes_gen.main import parse_grammar
-from hermes_gen.ebnf_grammar import Rule
+from hermes_gen.grammar import Rule
 from utils import getTestFilename
 
 
 class TestBuildgrammar(unittest.TestCase):
 
     def test_buildgrammar1(self):
-        testFile = getTestFilename('test.ebnf')
+        testFile = getTestFilename('test.hm')
 
         g = parse_grammar(testFile)
 
@@ -22,6 +22,7 @@ class TestBuildgrammar(unittest.TestCase):
             'pound': "#",
             'name': "[a-zA-Z][a-zA-Z0-9_]*",
             'integer': '[1-9][0-9]*',
+            "quote": '"'
         }
 
         self.assertEqual(len(EXP_TERMS), len(g.terminals), 'Len of terminal definitions not equal')

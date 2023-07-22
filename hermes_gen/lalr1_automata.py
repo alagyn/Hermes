@@ -2,7 +2,7 @@ from typing import Dict, List, Tuple, Optional, Set
 from collections import deque
 import itertools
 
-from hermes_gen.ebnf_grammar import Grammar, Rule
+from hermes_gen.grammar import Grammar, Rule
 from hermes_gen.first_and_follow import FirstAndFollow
 from hermes_gen.consts import END, EMPTY
 from hermes_gen.errors import HermesError

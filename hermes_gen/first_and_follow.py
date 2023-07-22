@@ -1,6 +1,6 @@
 from typing import Dict
 
-from hermes_gen.ebnf_grammar import Grammar
+from hermes_gen.grammar import Grammar
 from hermes_gen.consts import EMPTY, END
 
 

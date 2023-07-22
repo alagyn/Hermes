@@ -9,6 +9,7 @@ close_paren =   "\)";
 # Operators
 equals_sign   = "="; # This is a comment
 pound = "#"; # this is also a comment
+quote = "\"";
 
 name = "[a-zA-Z][a-zA-Z0-9_]*";
 integer = '[1-9][0-9]*';
@@ -22,7 +23,7 @@ stmt =   name equals_sign integer # this is totally not a comment
 #this is a preprocessor thing
     //this is some code;
 //"this is an inner string";
-return std::atoi($1);
+return std::atoi($integer);
         }
     | EMPTY { return 0; }
     ;
