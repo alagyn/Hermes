@@ -19,3 +19,5 @@ __Parser__:
 The parser takes in a stream of tokens, and performs a number of actions as defined by a *Deterministic Finite Automata*. This automata is created from your input grammar. In particular, Hermes consumes a *Context Free Grammar* (CFG) and produces an LALR(1) Automata (More automata flavors may come later).  
 `LALR(1) => Look-Ahead Left-To-Right with 1 token look ahead.`  
 What this exactly means is mostly unimportant, but know that it means that there are some CFGs that cannot be parsed by Hermes. Sometimes this can be solved with a bit of grammar massaging, but hopefully you aren't creating monster grammars that will cause parse table conflicts.
+
+## [Grammer File Documentation](grammar-files.md)
