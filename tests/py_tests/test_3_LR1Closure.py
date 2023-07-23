@@ -5,7 +5,6 @@ import utils
 
 from hermes_gen.lalr1_automata import Node, AnnotRule, LALR1Automata
 from hermes_gen.grammar import Grammar, Rule, parse_grammar
-from hermes_gen.first_and_follow import FirstAndFollow
 from hermes_gen.consts import END
 
 
@@ -55,9 +54,8 @@ class TestLALRClosure(unittest.TestCase):
     def test_1_LALR1(self):
         testfile = utils.getTestFilename('LALR1Test.hm')
         grammar = parse_grammar(testfile)
-        ff = FirstAndFollow(grammar)
 
-        lalr = LALR1Automata(grammar, ff)
+        lalr = LALR1Automata(grammar)
 
         SP = 'S_PRIME'
         S = 'S'
@@ -105,9 +103,8 @@ class TestLALRClosure(unittest.TestCase):
     def test_2_G10(self):
         testfile = utils.getTestFilename("G10.hm")
         grammar = parse_grammar(testfile)
-        ff = FirstAndFollow(grammar)
 
-        lalr = LALR1Automata(grammar, ff)
+        lalr = LALR1Automata(grammar)
 
         P = "P"
         E = "E"
@@ -190,8 +187,7 @@ class TestLALRClosure(unittest.TestCase):
     def test_3_epsilon(self):
         testfile = utils.getTestFilename("epsilon.hm")
         grammar = parse_grammar(testfile)
-        ff = FirstAndFollow(grammar)
-        lalr = LALR1Automata(grammar, ff)
+        lalr = LALR1Automata(grammar)
 
         S = "S"
         A = "A"

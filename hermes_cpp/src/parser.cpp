@@ -141,8 +141,10 @@ HERMES_RETURN Parser::parse(std::shared_ptr<Scanner> scanner)
             ss << "Expected one of: ";
             for(int i = 0; i < numCols(); ++i)
             {
-                auto x = getAction(stack.back()->state, i);
-                if(x.action != E)
+                HState state = stack.back()->state;
+                // Have to offset i here for the start symbol
+                auto x = getAction(stack.back()->state, i + 1);
+                if(x.action == S)
                 {
                     ss << symbolLookup(i) << " ";
                 }
@@ -150,7 +152,7 @@ HERMES_RETURN Parser::parse(std::shared_ptr<Scanner> scanner)
 
             ss << "\n";
 
-            throw std::runtime_error(ss.str());
+            throw HermesError(ss.str());
         }
         }
     }

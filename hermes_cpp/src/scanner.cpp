@@ -18,34 +18,63 @@ std::shared_ptr<Scanner> Scanner::New(std::shared_ptr<std::istream> handle)
     return std::make_shared<Scanner>(handle);
 }
 
-Scanner::Scanner(std::shared_ptr<std::istream> handle)
-    : handle(handle)
-    , curLineNum(1)
-    , curCharNum(0)
+char Scanner::get()
 {
-}
-
-void Scanner::consumeNewLine(char& nextChar)
-{
+    char out = handle->get();
     // Handle windows/mac line endings
-    if(nextChar == '\r')
+    if(out == '\r')
     {
-        nextChar = handle->get();
-        if(nextChar != '\n')
+        out = handle->get();
+        if(out != '\n')
         {
             // If it wasn't actually \r\n, unget
             handle->unget();
             // Force to \n to for next if block
-            nextChar = '\n';
+            out = '\n';
         }
     }
+
+    if(out == '\n')
+    {
+        ++lineNum;
+        lastLineLength = charNum;
+        charNum = 0;
+    }
+    else
+    {
+        ++charNum;
+    }
+
+    return out;
+}
+
+void Scanner::unget()
+{
+    handle->unget();
+    if(handle->peek() == '\n')
+    {
+        --lineNum;
+        charNum = lastLineLength;
+    }
+    else
+    {
+        --charNum;
+    }
+}
+
+Scanner::Scanner(std::shared_ptr<std::istream> handle)
+    : handle(handle)
+    , lineNum(1)
+    , charNum(0)
+    , lastLineLength(0)
+{
 }
 
 ParseToken Scanner::nextToken()
 {
     ParseToken out;
-    out.lineNum = curLineNum;
-    out.charNum = curCharNum;
+    out.lineNum = lineNum;
+    out.charNum = charNum;
 
     if(handle->eof())
     {
@@ -89,8 +118,6 @@ ParseToken Scanner::nextToken()
                 break;
             }
         }
-        ++curCharNum;
-        ++out.charNum;
 
         // Preprocess comments
         if(nextChar == '#')
@@ -120,14 +147,11 @@ ParseToken Scanner::nextToken()
                 {
                     nextChar = handle->get();
                 }
-                while(nextChar != '\r' && nextChar != '\n');
-                consumeNewLine(nextChar);
+                while(nextChar != '\n');
             }
 
             continue;
         }
-
-        consumeNewLine(nextChar);
 
         if(nextChar == ' ' || nextChar == '\t' || nextChar == '\n')
         {
@@ -152,13 +176,6 @@ ParseToken Scanner::nextToken()
                 // Short circuit. We only need to see if a single one matches
                 break;
             }
-        }
-
-        if(nextChar == '\n')
-        {
-            ++curLineNum;
-            ++out.lineNum;
-            curCharNum = 0;
         }
 
         // If we haven't gotten a match yet and we just found a new one
@@ -190,15 +207,16 @@ ParseToken Scanner::nextToken()
 
             // If we got here something bad happened and nothing matched
             std::stringstream ss;
-            ss << "Bad token: '" << out.text << "'";
+            ss << "Bad token: " << out.lineNum << ":" << out.charNum << "'"
+               << out.text << " '";
             throw HermesError(ss.str());
         }
     }
 
-    // We only got here if there was an EOF
-    // Return EOF which will error later?
-    // TODO make sure this is the case?
-    out.symbol = Symbol::__EOF__;
-    return out;
+    // We only got here if we hit EOF and didn't have a match
+    std::stringstream ss;
+    ss << "Bad token: " << out.lineNum << ":" << out.charNum << " '" << out.text
+       << "'";
+    throw HermesError(ss.str());
 };
 } //namespace hermes

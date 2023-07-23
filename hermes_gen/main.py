@@ -5,7 +5,6 @@ from datetime import datetime
 import os
 
 from hermes_gen.grammar import parse_grammar, Grammar
-from hermes_gen.first_and_follow import FirstAndFollow
 from hermes_gen.lalr1_automata import LALR1Automata, ParseTable, Action
 from hermes_gen.consts import ARG_VECTOR
 from hermes_gen.errors import HermesError
@@ -37,13 +36,7 @@ def main():
         exit(1)
 
     try:
-        ff = FirstAndFollow(grammar)
-    except HermesError as err:
-        print("Unable to compute first-and-follow:", err)
-        exit(1)
-
-    try:
-        lalr = LALR1Automata(grammar, ff)
+        lalr = LALR1Automata(grammar)
     except HermesError as err:
         print("Unable to compute LALR(1) Automata:", err)
         exit(1)

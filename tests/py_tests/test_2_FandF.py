@@ -3,7 +3,6 @@ from typing import Dict
 
 import utils
 from hermes_gen.grammar import parse_grammar
-from hermes_gen.first_and_follow import FirstAndFollow
 from hermes_gen.consts import EMPTY, END
 
 
@@ -24,7 +23,6 @@ class TestFirstAndFollow(unittest.TestCase):
         """
         testFile = utils.getTestFilename("FandFtest1.hm")
         grammar = parse_grammar(testFile)
-        ff = FirstAndFollow(grammar)
 
         EXP_FIRST = {
             'P': {'open_p', 'int'},
@@ -40,7 +38,7 @@ class TestFirstAndFollow(unittest.TestCase):
             'int': {'int'}
         }
 
-        self._checkSet("First", EXP_FIRST, ff.first)
+        self._checkSet("First", EXP_FIRST, grammar.first)
 
         EXP_FOLLOW = {
             'P': {END},
@@ -51,7 +49,7 @@ class TestFirstAndFollow(unittest.TestCase):
             'F': {'plus', 'star', 'close_p', END}
         }
 
-        self._checkSet("Follow", EXP_FOLLOW, ff.follow)
+        self._checkSet("Follow", EXP_FOLLOW, grammar.follow)
 
     def test_2_FandFtest2(self):
         """
@@ -59,8 +57,6 @@ class TestFirstAndFollow(unittest.TestCase):
         """
         testFile = utils.getTestFilename('FandFtest2.hm')
         g = parse_grammar(testFile)
-
-        ff = FirstAndFollow(g)
 
         EXP_FIRST = {
             'Y': {'star', EMPTY},
@@ -74,13 +70,13 @@ class TestFirstAndFollow(unittest.TestCase):
             'int': {'int'}
         }
 
-        self._checkSet("First", EXP_FIRST, ff.first)
+        self._checkSet("First", EXP_FIRST, g.first)
 
         EXP_FOLLOW = {
             'Y': {'close_p', END, 'plus'}, 'X': {'close_p', END}, 'T': {'close_p', END, 'plus'}, 'E': {'close_p', END}
         }
 
-        self._checkSet("Follow", EXP_FOLLOW, ff.follow)
+        self._checkSet("Follow", EXP_FOLLOW, g.follow)
 
     def test_3_G10(self):
         """
@@ -88,8 +84,6 @@ class TestFirstAndFollow(unittest.TestCase):
         """
         testFile = utils.getTestFilename('G10.hm')
         g = parse_grammar(testFile)
-
-        ff = FirstAndFollow(g)
 
         EXP_FIRST = {
             "id": {"id"},
@@ -101,18 +95,17 @@ class TestFirstAndFollow(unittest.TestCase):
             "T": {"id"}
         }
 
-        self._checkSet("First", EXP_FIRST, ff.first)
+        self._checkSet("First", EXP_FIRST, g.first)
 
         EXP_FOLLOW = {
             "P": {END}, "E": {"plus", END, "close_p"}, "T": {"close_p", "plus", END}
         }
 
-        self._checkSet("Follow", EXP_FOLLOW, ff.follow)
+        self._checkSet("Follow", EXP_FOLLOW, g.follow)
 
     def test_4_epsilon(self):
         testFile = utils.getTestFilename('epsilon.hm')
         g = parse_grammar(testFile)
-        ff = FirstAndFollow(g)
 
         # yapf: disable
         EXP_FIRST = {
@@ -124,7 +117,7 @@ class TestFirstAndFollow(unittest.TestCase):
         }
         # yapf: enable
 
-        self._checkSet("First", EXP_FIRST, ff.first)
+        self._checkSet("First", EXP_FIRST, g.first)
 
         # yapf: disable
         EXP_FOLLOW = {
@@ -134,4 +127,4 @@ class TestFirstAndFollow(unittest.TestCase):
         }
         # yapf: enable
 
-        self._checkSet("Follow", EXP_FOLLOW, ff.follow)
+        self._checkSet("Follow", EXP_FOLLOW, g.follow)

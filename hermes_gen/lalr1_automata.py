@@ -3,7 +3,6 @@ from collections import deque
 import itertools
 
 from hermes_gen.grammar import Grammar, Rule
-from hermes_gen.first_and_follow import FirstAndFollow
 from hermes_gen.consts import END, EMPTY
 from hermes_gen.errors import HermesError
 
@@ -76,21 +75,20 @@ class AnnotRule:
         """
         return self.rule.symbols[self.parseIndex]
 
-    def getNewLA(self, g: Grammar, ff: FirstAndFollow) -> set[str]:
+    def getNewLA(self, g: Grammar) -> set[str]:
         """
         Returns the lookahead for closure rules generated from this rule
         Uses set of symbols that can be collapsed after the next symbol to be
         consumed (i.e. every symbol from idx + 1 up to and including
         the first that can't be null)
         :param g: The grammar
-        :param ff: The first and follow sets
         :return: The lookahead
         """
 
         out = set()
         for i in range(self.parseIndex + 1, len(self.rule.symbols)):
             symbol = self.rule.symbols[i]
-            out.update(ff.first[symbol])
+            out.update(g.first[symbol])
             if symbol not in g.nulls:
                 return out
 
@@ -173,14 +171,13 @@ class Node:
 
 class LALR1Automata:
 
-    def __init__(self, g: Grammar, ff: FirstAndFollow) -> None:
+    def __init__(self, g: Grammar) -> None:
         # Start node is ID 0
         self.start = Node(0)
         # start IDs at 1
         self.nodeIDs = 1
 
         self.grammar = g
-        self.ff = ff
 
         # Lookup rules for each nonterminal
         self.ruleLookup: Dict[str, List[Rule]] = {}
@@ -240,7 +237,7 @@ class LALR1Automata:
                     # the next symbol is a terminal, skip
                     continue
 
-                newLookAhead = annotRule.getNewLA(self.grammar, self.ff)
+                newLookAhead = annotRule.getNewLA(self.grammar)
 
                 for rule in self.ruleLookup[nextSym]:
                     if node.addRule(rule, 0, newLookAhead.copy()):

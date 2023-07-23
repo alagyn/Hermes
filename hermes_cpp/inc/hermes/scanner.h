@@ -17,7 +17,6 @@ typedef struct
 } ParseToken;
 
 class Scanner
-
 {
 public:
     std::shared_ptr<Scanner> New(std::shared_ptr<std::istream> handle);
@@ -27,12 +26,13 @@ public:
     ParseToken nextToken();
 
 private:
+    char get();
+    void unget();
+
     std::shared_ptr<std::istream> handle;
-
-    int curLineNum;
-    int curCharNum;
-
-    void consumeNewLine(char& nextChar);
+    unsigned lineNum;
+    unsigned charNum;
+    unsigned lastLineLength;
 };
 
 } //namespace hermes
