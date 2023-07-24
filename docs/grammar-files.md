@@ -93,6 +93,14 @@ Available directives:
 ...
 ```
 
+`%ignore`: This directive creates a hidden token type that is parsed and ignored by the scanner. This is primarily useful for creating comments in your language.
+```
+# C style line comments
+%ignore "//[^\n]*\n?"
+# C style block comments
+%ignore "/\*((?!\*/)(.|\n))*?\*/"
+```
+
 ### Code blocks
 A code block __must__ be defined for every rule. This code block contains a c++ function that is executed whenever its rule is matched. This function's return type is defined by the `%return` directive and is the same for every function. In your code, you can access the data for each of the symbols in the rule. They can accessed in one of two ways: via the index of the symbol `$0`, or the symbol name `$name`. However, you can only reference them by name if the symbol does not appear more than once in the rule. When you reference a terminal, you are given a `std::string`, if you reference a nonterminal, you are given evaluated value of the nonterminal determined by your `%return` type.
 ```

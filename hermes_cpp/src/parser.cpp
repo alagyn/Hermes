@@ -90,6 +90,7 @@ HERMES_RETURN Parser::parse(std::shared_ptr<Scanner> scanner)
             stack.push_back(StackToken::New(nextAction.state, token));
             // We only get the next token after a shift
             token = scanner->nextToken();
+
             break;
         }
         case R:
@@ -131,7 +132,8 @@ HERMES_RETURN Parser::parse(std::shared_ptr<Scanner> scanner)
             std::cout << "\n";
             std::stringstream ss;
             ss << "Parse Error at line " << token.lineNum << " char "
-               << token.charNum << " token: " << token.text << "\n";
+               << token.charNum << " token: " << symbolLookup(token.symbol)
+               << " text:\n'" << token.text << "'\n";
             ss << "Stack: ";
             for(auto& x : stack)
             {

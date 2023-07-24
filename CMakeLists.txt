@@ -36,7 +36,6 @@ set(PY_FILES
     ${HERMES_GEN_ROOT}/consts.py
     ${HERMES_GEN_ROOT}/grammar.py
     ${HERMES_GEN_ROOT}/errors.py
-    ${HERMES_GEN_ROOT}/first_and_follow.py
     ${HERMES_GEN_ROOT}/lalr1_automata.py
     ${HERMES_GEN_ROOT}/main.py
 )

@@ -144,7 +144,7 @@ class Grammar:
                 left = self.follow[rule.nonterm]
                 # True if the previous symbol had EMPTy in their first set
                 lastEmpty = True
-                # Iterate backwards so to keep track of when the next symbol can be empty
+                # Iterate backwards to keep track of when the next symbol can be empty
                 for i in reversed(range(len(rule.symbols))):
                     curSymbol = rule.symbols[i]
                     if curSymbol == EMPTY:
@@ -341,6 +341,21 @@ def parse_grammar(filename: str) -> Grammar:
         raise HermesError(f"{f.filename} Missing {Directive.return_} directive")
     if len(directives[Directive.return_]) > 1:
         raise HermesError(f'{f.filename} More than one {Directive.return_} directive provided')
+
+    if Directive.ignore in directives:
+        processedIgnores = []
+        for ignore in directives[Directive.ignore]:
+            if len(ignore) <= 2:
+                raise HermesError(f"Invalid %ignore, regex cannot be empty")
+            if ignore[0] not in "\"'" or ignore[0] != ignore[-1] or ignore[-2] == "\\":
+                raise HermesError(f"Invalid %ignore, regex must be quoted")
+            quoteType = ignore[0]
+            # Strip quotes
+            regex = ignore[1:-1]
+            # Replace escaped quotes
+            processedIgnores.append(regex.replace(f"\\{quoteType}", quoteType))
+        # Replace the ignores list
+        directives[Directive.ignore] = processedIgnores
 
     for rule in rules:
 

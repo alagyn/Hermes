@@ -38,7 +38,7 @@ char Scanner::get()
     {
         ++lineNum;
         lastLineLength = charNum;
-        charNum = 0;
+        charNum = 1;
     }
     else
     {
@@ -65,12 +65,24 @@ void Scanner::unget()
 Scanner::Scanner(std::shared_ptr<std::istream> handle)
     : handle(handle)
     , lineNum(1)
-    , charNum(0)
+    , charNum(1)
     , lastLineLength(0)
 {
 }
 
 ParseToken Scanner::nextToken()
+{
+    ParseToken out = _nextToken();
+    while(out.symbol == Symbol::__IGNORE__)
+    {
+        out = _nextToken();
+    }
+    return out;
+}
+
+const auto match_flags = boost::match_default | boost::match_partial;
+
+ParseToken Scanner::_nextToken()
 {
     ParseToken out;
     out.lineNum = lineNum;
@@ -94,24 +106,37 @@ ParseToken Scanner::nextToken()
 
     // flag for if we have started having matches
     bool foundMatch = false;
+    bool foundPartial = false;
     while(!handle->eof())
     {
-        char nextChar;
-        handle->get(nextChar);
+        char nextChar = get();
         if(handle->eof())
         {
             // If we are at EOF and we have found a match
             if(foundMatch)
             {
+                bool found = false;
                 for(auto& x : getTerminals())
                 {
+                    // Not using the partial match flag here
                     if(boost::regex_match(out.text, x.re))
                     {
                         // Take the first that matches
                         out.symbol = x.id;
+                        found = true;
+                        break;
                     }
                 }
-                return out;
+                // Return if we found a match
+                if(found)
+                {
+                    return out;
+                }
+                // Else throw an error
+                std::stringstream ss;
+                ss << "Bad token: " << out.lineNum << ":" << out.charNum << " '"
+                   << out.text << "'";
+                throw HermesError(ss.str());
             }
             else
             {
@@ -119,48 +144,14 @@ ParseToken Scanner::nextToken()
             }
         }
 
-        // Preprocess comments
-        if(nextChar == '#')
+        if(out.text.empty()
+           && (nextChar == ' ' || nextChar == '\t' || nextChar == '\n'))
         {
-            nextChar = handle->get();
-            // Handle multiline comments
-            if(nextChar == '#')
-            {
-                while(true)
-                {
-                    do
-                    {
-                        nextChar = handle->get();
-                    }
-                    while(nextChar != '#');
-                    nextChar = handle->get();
-                    if(nextChar == '#')
-                    {
-                        break;
-                    }
-                }
-            }
-            // Handle line comments
-            else
-            {
-                do
-                {
-                    nextChar = handle->get();
-                }
-                while(nextChar != '\n');
-            }
-
+            /* Ignore leading whitespace
+                We can't ignore all whitespace otherwise we break any tokens
+               that can contain it, like strings
+            */
             continue;
-        }
-
-        if(nextChar == ' ' || nextChar == '\t' || nextChar == '\n')
-        {
-            // Ignore leading whitespace
-            // We can't ignore all whitespace otherwise we break strings
-            if(!out.text.empty())
-            {
-                out.text.push_back(nextChar);
-            }
         }
         else
         {
@@ -168,13 +159,23 @@ ParseToken Scanner::nextToken()
         }
 
         bool foundNewMatch = false;
+        foundPartial = false;
         for(auto& t : getTerminals())
         {
-            if(boost::regex_match(out.text, t.re))
+            boost::match_results<std::string::const_iterator> match;
+            if(boost::regex_match(out.text, match, t.re, match_flags))
             {
-                foundNewMatch = true;
-                // Short circuit. We only need to see if a single one matches
-                break;
+                if(match[0].matched)
+                {
+                    foundNewMatch = true;
+                    continue;
+                }
+                auto size = match[0].second - match[0].first;
+                // Only take partials if it partially matches the whole string
+                if(size == out.text.size())
+                {
+                    foundPartial = true;
+                }
             }
         }
 
@@ -184,13 +185,14 @@ ParseToken Scanner::nextToken()
             // Set foundMatch to true
             foundMatch = true;
         }
-        // Else if we previously found a match and then stopped or we hit whitespace
-        else if(foundMatch && !foundNewMatch)
+        // Else if we previously found a match and then stopped
+        // And we don't have a partial still going
+        else if(foundMatch && !foundNewMatch && !foundPartial)
         {
             // Therefore we have found the maximal-munch
             // We need to unget the last char so we don't consume it
             // we already skip whitespace
-            handle->unget();
+            unget();
             out.text.pop_back();
 
             /*
@@ -207,8 +209,8 @@ ParseToken Scanner::nextToken()
 
             // If we got here something bad happened and nothing matched
             std::stringstream ss;
-            ss << "Bad token: " << out.lineNum << ":" << out.charNum << "'"
-               << out.text << " '";
+            ss << "Bad token: " << out.lineNum << ":" << out.charNum << " '"
+               << out.text << "'";
             throw HermesError(ss.str());
         }
     }

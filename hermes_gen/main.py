@@ -95,23 +95,29 @@ def main():
                 "\n")
 
         f.write("const std::vector<std::string> SYMBOL_LOOKUP = {\n")
-        for idx, symbol in enumerate(table.symbolList):
-            f.write(f'   "{symbol}"')
-            if idx < len(table.symbolList) - 1:
-                f.write(',')
-            f.write("\n")
+        for symbol in table.symbolList:
+            f.write(f'   "{symbol}",\n')
+        f.write('    "__IGNORE__"\n')
         f.write("}; // End SYMBOL_LOOKUP\n\n")
 
         f.write("const std::vector<Terminal> TERMINALS = {\n")
 
-        for idx, terminal in enumerate(grammar.terminalList):
-            regex = re.sub(r"\\", r"\\\\", terminal[1])
+        def escape_regex(r: str) -> str:
+            regex = re.sub(r"\\", r"\\\\", r)
             regex = re.sub(r'"', r'\\"', regex)
+            return regex
+
+        for idx, terminal in enumerate(grammar.terminalList):
+            regex = escape_regex(terminal[1])
             f.write(f'    {{Symbol::{terminal[0]}, boost::regex("{regex}")}}')
             if idx < len(grammar.terminalList) - 1:
-                f.write(",")
-            f.write("\n")
-        f.write("}; // End TERMINALS\n\n")
+                f.write(",\n")
+        # Write ignored terminals
+        if Directive.ignore in grammar.directives:
+            for ignore in grammar.directives[Directive.ignore]:
+                regex = escape_regex(ignore)
+                f.write(f',\n    {{Symbol::__IGNORE__, boost::regex("{regex}")}}')
+        f.write("\n}; // End TERMINALS\n\n")
 
         f.write("const std::vector<Reduction> REDUCTIONS = {\n")
 
@@ -175,11 +181,9 @@ def write_symbolFile(f: TextIO, table: ParseTable, grammar: Grammar):
             'enum class Symbol\n'
             '{\n')
 
-    for idx, terminal in enumerate(table.symbolList):
-        f.write(f"    {terminal}")
-        if idx < len(table.symbolList) - 1:
-            f.write(",")
-        f.write("\n")
+    for terminal in table.symbolList:
+        f.write(f"    {terminal},\n")
+    f.write("    __IGNORE__\n")
     f.write("};\n\n")  # End enum Symbol
 
     # This is error checked in ebnf_grammer.py

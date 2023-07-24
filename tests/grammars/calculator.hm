@@ -1,6 +1,13 @@
 %return int
 %include <iostream>
 
+# Ignore line comments
+%ignore "//[^\n]*\n?"
+# Ignore block comments
+# This regex is finicky to get right
+%ignore "/\*((?!\*/)(.|\n))*?\*/"
+
+
 # Declare our tokens
 INT = "[0-9]+";
 PLUS = "\+";

@@ -26,6 +26,8 @@ public:
     ParseToken nextToken();
 
 private:
+    ParseToken _nextToken();
+
     char get();
     void unget();
 
