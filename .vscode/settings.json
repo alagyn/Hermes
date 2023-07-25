@@ -15,7 +15,8 @@
     "python.formatting.provider": "yapf",
     "files.associations": {
         ".style.yapf": "properties",
-        "iosfwd": "cpp"
+        "iosfwd": "cpp",
+        "numeric": "cpp"
     },
     "cmake.generator": "Unix Makefiles",
     "cmake.configureArgs": [

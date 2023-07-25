@@ -13,7 +13,7 @@ find_package(Boost 1.82.0
 )
 
 # This will let users specify their grammar and then add_subdiretory to this
-set(GRAMMAR ${GRAMMAR} CACHE FILEPATH "The input grammar file")
+set(HERMES_GRAMMAR ${HERMES_GRAMMAR} CACHE FILEPATH "The input grammar file")
 
 set(HERMES_TEST OFF CACHE BOOL "Build tests")
 
@@ -22,12 +22,12 @@ if(NOT EXISTS "${GRAMMAR}")
 endif()
 
 # Hidden generated include files
-set(HIDDEN_INC ${CMAKE_CURRENT_BINARY_DIR}/hidden)
+set(HERMES_HIDDEN_INC ${CMAKE_CURRENT_BINARY_DIR}/hidden)
 # Public generated include files
-set(PUBLIC_INC ${CMAKE_CURRENT_BINARY_DIR}/inc)
+set(HERMES_PUBLIC_INC ${CMAKE_CURRENT_BINARY_DIR}/inc)
 
-set(PARSE_TABLE_FILE ${HIDDEN_INC}/hermes/_parseTable.h)
-set(SYMBOL_FILE ${PUBLIC_INC}/hermes/symbol.h)
+set(HERMES_PARSE_TABLE_FILE ${HERMES_HIDDEN_INC}/hermes/_parseTable.h)
+set(HERMES_SYMBOL_FILE ${HERMES_PUBLIC_INC}/hermes/symbol.h)
 
 set(HERMES_GEN_ROOT hermes_gen)
 set(HERMES_CPP_ROOT hermes_cpp)
@@ -48,16 +48,16 @@ set(CPP_FILES
 
 # Custom command to generate the header
 add_custom_command(
-    OUTPUT ${PARSE_TABLE_FILE}
+    OUTPUT ${HERMES_PARSE_TABLE_FILE}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND
-        ${Python3_EXECUTABLE} -m hermes_gen.main --table ${PARSE_TABLE_FILE} --symbol ${SYMBOL_FILE} ${GRAMMAR}
+        ${Python3_EXECUTABLE} -m hermes_gen.main --table ${HERMES_PARSE_TABLE_FILE} --symbol ${HERMES_SYMBOL_FILE} ${GRAMMAR}
     DEPENDS ${GRAMMAR} ${PY_FILES}
 )
 
 # Add target to generate parse table
 add_custom_target(parse_table
-    DEPENDS ${PARSE_TABLE_FILE} ${GRAMMAR} ${PY_FILES}
+    DEPENDS ${HERMES_PARSE_TABLE_FILE} ${GRAMMAR} ${PY_FILES}
 )
 
 # Add library
@@ -71,9 +71,10 @@ add_dependencies(${CMAKE_PROJECT_NAME} parse_table)
 target_include_directories(${CMAKE_PROJECT_NAME}
     PUBLIC
         hermes_cpp/inc
-        ${PUBLIC_INC}
+        ${HERMES_PUBLIC_INC}
     PRIVATE
-        ${HIDDEN_INC}
+        ${HERMES_HIDDEN_INC}
+        ${HERMES_ADDITIONAL_INCLUDES}
 )
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
