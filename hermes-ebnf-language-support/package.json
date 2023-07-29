@@ -30,7 +30,10 @@
       {
         "language": "ebnf",
         "scopeName": "source.ebnf",
-        "path": "./syntaxes/ebnf.tmLanguage.json"
+        "path": "./syntaxes/ebnf.tmLanguage.json",
+        "embeddedLanguages": {
+          "source.cpp": "cpp"
+        }
       }
     ]
   }

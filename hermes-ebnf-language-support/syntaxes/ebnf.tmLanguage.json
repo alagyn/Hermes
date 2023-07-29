@@ -19,6 +19,9 @@
         },
         {
             "include": "#comment"
+        },
+        {
+            "include": "#code"
         }
     ],
     "repository": {
@@ -28,7 +31,7 @@
         },
         "terminals": {
             "name": "entity.name.class.ebnf",
-            "match": "[A-Z_]+"
+            "match": "\\b[A-Z_]+\\b"
         },
         "nonterminals": {
             "name": "entity.name.ebnf",
@@ -60,6 +63,16 @@
             "name": "comment.line.ebnf",
             "begin": "#",
             "end": "\n"
+        },
+        "code": {
+            "name": "ebnf.cpp",
+            "begin": "{",
+            "end": "}",
+            "patterns": [
+                {
+                    "include": "source.cpp"
+                }
+            ]
         }
     },
     "scopeName": "source.ebnf"
