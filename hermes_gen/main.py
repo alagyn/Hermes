@@ -84,7 +84,7 @@ def main():
             usings = grammar.directives[Directive.using]
             f.write("// Begin user defined using")
             for x in usings:
-                f.write(f'using namespace {x}')
+                f.write(f'using namespace {x};')
             f.write("// End user defined using")
         except KeyError:
             pass
