@@ -548,6 +548,13 @@ def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
             if nextChar == ';':
                 hitSemi = True
                 break
+            if nextChar == '#':
+                while True:
+                    nextChar = f.get()
+                    if nextChar == '\n':
+                        break
+                continue
+
             raise HermesError(f"{f} Invalid char '{nextChar}', expected ';' or '|'")
 
         if hitSemi:

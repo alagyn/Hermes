@@ -25,5 +25,5 @@ stmt =   name equals_sign integer # this is totally not a comment
 //"this is an inner string";
 return std::atoi($integer);
         }
-    | EMPTY { return 0; }
+    | EMPTY { return 0; } # this is another comment
     ;
