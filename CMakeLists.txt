@@ -17,8 +17,8 @@ set(HERMES_GRAMMAR ${HERMES_GRAMMAR} CACHE FILEPATH "The input grammar file")
 
 set(HERMES_TEST OFF CACHE BOOL "Build tests")
 
-if(NOT EXISTS "${GRAMMAR}")
-    message(FATAL_ERROR "Grammar file: \"${GRAMMAR}\" not found")
+if(NOT EXISTS "${HERMES_GRAMMAR}")
+    message(FATAL_ERROR "Grammar file: \"${HERMES_GRAMMAR}\" not found")
 endif()
 
 # Hidden generated include files
@@ -51,13 +51,13 @@ add_custom_command(
     OUTPUT ${HERMES_PARSE_TABLE_FILE}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND
-        ${Python3_EXECUTABLE} -m hermes_gen.main --table ${HERMES_PARSE_TABLE_FILE} --symbol ${HERMES_SYMBOL_FILE} ${GRAMMAR}
-    DEPENDS ${GRAMMAR} ${PY_FILES}
+        ${Python3_EXECUTABLE} -m hermes_gen.main --table ${HERMES_PARSE_TABLE_FILE} --symbol ${HERMES_SYMBOL_FILE} ${HERMES_GRAMMAR}
+    DEPENDS ${HERMES_GRAMMAR} ${PY_FILES}
 )
 
 # Add target to generate parse table
 add_custom_target(parse_table
-    DEPENDS ${HERMES_PARSE_TABLE_FILE} ${GRAMMAR} ${PY_FILES}
+    DEPENDS ${HERMES_PARSE_TABLE_FILE} ${HERMES_GRAMMAR} ${PY_FILES}
 )
 
 # Add library
