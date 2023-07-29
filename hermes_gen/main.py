@@ -80,16 +80,6 @@ def main():
             "\n"
         )
 
-        try:
-            includes = grammar.directives[Directive.include]
-            f.write("// Begin user directed includes\n")
-            for inc in includes:
-                f.write(f"#include {inc}\n")
-            f.write('// End user directed includes\n\n')
-
-        except KeyError:
-            pass
-
         f.write("namespace hermes\n"
                 "{\n"
                 "\n")
@@ -174,8 +164,19 @@ def main():
 
 
 def write_symbolFile(f: TextIO, table: ParseTable, grammar: Grammar):
-    f.write('#pragma once\n'
-            'namespace hermes\n'
+    f.write('#pragma once\n')
+
+    try:
+        includes = grammar.directives[Directive.include]
+        f.write("// Begin user directed includes\n")
+        for inc in includes:
+            f.write(f"#include {inc}\n")
+        f.write('// End user directed includes\n\n')
+
+    except KeyError:
+        pass
+
+    f.write('namespace hermes\n'
             '{\n'
             '\n'
             'enum class Symbol\n'
