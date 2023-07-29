@@ -28,9 +28,9 @@ class TestLALRClosure(unittest.TestCase):
         a = 'a'
         b = 'b'
 
-        r0 = Rule(1, SP, [S], "", 0)
-        r1 = Rule(2, S, [X, X], "", 0)
-        r2 = Rule(3, X, [a, X], "", 0)
+        r0 = Rule(1, SP, [S], "", 0, 0)
+        r1 = Rule(2, S, [X, X], "", 0, 0)
+        r2 = Rule(3, X, [a, X], "", 0, 0)
 
         n0 = Node(0)
         n0.addRule(r0, 0, {END})
@@ -63,10 +63,10 @@ class TestLALRClosure(unittest.TestCase):
         a = 'a'
         b = 'b'
 
-        r0 = Rule(1, SP, [S], "", 0)
-        r1 = Rule(2, S, [X, X], "", 0)
-        r2 = Rule(3, X, [a, X], "", 0)
-        r3 = Rule(4, X, [b], "", 0)
+        r0 = Rule(1, SP, [S], "", 0, 0)
+        r1 = Rule(2, S, [X, X], "", 0, 0)
+        r2 = Rule(3, X, [a, X], "", 0, 0)
+        r3 = Rule(4, X, [b], "", 0, 0)
 
         n0 = Node(0)
         n0.addRule(r0, 0, {END})
@@ -114,11 +114,11 @@ class TestLALRClosure(unittest.TestCase):
         open_p = "open_p"
         close_p = "close_p"
 
-        r1 = Rule(1, P, [E], "", 0)
-        r2 = Rule(2, E, [E, plus, T], "", 0)
-        r3 = Rule(3, E, [T], "", 0)
-        r4 = Rule(4, T, [_id, open_p, E, close_p], "", 0)
-        r5 = Rule(5, T, [_id], "", 0)
+        r1 = Rule(1, P, [E], "", 0, 0)
+        r2 = Rule(2, E, [E, plus, T], "", 0, 0)
+        r3 = Rule(3, E, [T], "", 0, 0)
+        r4 = Rule(4, T, [_id, open_p, E, close_p], "", 0, 0)
+        r5 = Rule(5, T, [_id], "", 0, 0)
 
         n0 = Node(0)
         n0.addRule(r1, 0, {END})
@@ -195,10 +195,10 @@ class TestLALRClosure(unittest.TestCase):
         a = "a"
         b = "b"
 
-        r0 = Rule(0, S, [A], "", 0)
-        r1 = Rule(1, A, [B, b], "", 0)
-        r2 = Rule(2, B, [B, a], "", 0)
-        r3 = Rule(3, B, [], "", 0)
+        r0 = Rule(0, S, [A], "", 0, 0)
+        r1 = Rule(1, A, [B, b], "", 0, 0)
+        r2 = Rule(2, B, [B, a], "", 0, 0)
+        r3 = Rule(3, B, [], "", 0, 0)
 
         n0 = Node(0)
         n0.addRule(r0, 0, {END})

@@ -32,8 +32,8 @@ class TestBuildgrammar(unittest.TestCase):
             self.assertEqual(EXP_TERMS[key], val, 'Terminal definition is not expected')
 
         EXP_RULES = [
-            Rule(0, 'PROGRAM', ['stmt'], "return values[0]->nt();", 0),
-            Rule(1, 'stmt', ['name', 'equals_sign', 'integer', 'semicolon'], "return 0;", 0),
+            Rule(0, 'PROGRAM', ['stmt'], "return values[0]->nt();", 0, 0),
+            Rule(1, 'stmt', ['name', 'equals_sign', 'integer', 'semicolon'], "return 0;", 0, 0),
             Rule(
                 2,
                 'stmt', ['open_curly', 'integer', 'close_curly'],
@@ -41,9 +41,10 @@ class TestBuildgrammar(unittest.TestCase):
                 "    //this is some code;\n"
                 '//"this is an inner string";\n'
                 "return std::atoi(values[1]->t());",
+                0,
                 0
             ),
-            Rule(3, "stmt", [], "return 0;", 0)
+            Rule(3, "stmt", [], "return 0;", 0, 0)
         ]
 
         self.assertEqual(len(EXP_RULES), len(g.rules), 'Len of rules not equal')
