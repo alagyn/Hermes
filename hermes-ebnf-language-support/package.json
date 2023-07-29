@@ -4,6 +4,7 @@
   "repository": {
     "url": "https://github.com/alagyn/Hermes"
   },
+  "icon": "hermes-logo-128.png",
   "description": "",
   "version": "0.0.1",
   "engines": {
@@ -12,6 +13,7 @@
   "categories": [
     "Programming Languages"
   ],
+  "publisher": "Ben \"alagyn\" Kimbrough",
   "contributes": {
     "languages": [
       {
