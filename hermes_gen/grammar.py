@@ -11,12 +11,13 @@ EMPTY_STR = "EMPTY"
 
 class Rule:
 
-    def __init__(self, id: int, nonterm: str, symbols: List[str], code: str, lineNum: int) -> None:
+    def __init__(self, id: int, nonterm: str, symbols: List[str], code: str, lineNum: int, codeLine: int) -> None:
         self.id = id
         self.nonterm = nonterm
         self.symbols = symbols
         self.code = code
         self.lineNum = lineNum
+        self.codeLine = codeLine
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Rule):
@@ -498,6 +499,9 @@ def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
         curSymbol = ''
         curCode = ''
         startingLine = f.lineNum
+
+        curCodeStart = 0
+
         while True:
             nextChar = f.get()
             if len(nextChar) == 0:
@@ -507,6 +511,7 @@ def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
                 if len(curSymbol) > 0:
                     curSymbolList.append(curSymbol)
                     curSymbol = ''
+                curCodeStart = f.lineNum
                 break
 
             if nextChar in NAME_CHARS:
@@ -546,7 +551,7 @@ def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
         curCode = curCode.strip()
 
         nextID = len(rules)
-        rules.append(Rule(nextID, lhs, curSymbolList, curCode, startingLine))
+        rules.append(Rule(nextID, lhs, curSymbolList, curCode, startingLine, curCodeStart))
 
         hitSemi = False
         while True:

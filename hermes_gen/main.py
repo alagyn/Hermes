@@ -156,10 +156,13 @@ def main():
         f.write("using reductionFunc = HERMES_RETURN (*)(std::vector<StackItemPtr>);\n")
 
         for idx, rule in enumerate(grammar.rules):
-            f.write(f"HERMES_RETURN r{idx}(std::vector<StackItemPtr> {ARG_VECTOR})\n"
-                    "{\n"
-                    f"    {rule.code}\n"
-                    "}\n")
+            f.write(
+                f"HERMES_RETURN r{idx}(std::vector<StackItemPtr> {ARG_VECTOR})\n"
+                "{\n"
+                f'#line {rule.codeLine} "{grammar_file}"\n'
+                f"    {rule.code}\n"
+                "}\n"
+            )
 
         f.write("const std::vector<reductionFunc> reductionFuncs = {\n")
         for idx, rule in enumerate(grammar.rules):
