@@ -218,6 +218,14 @@ class _Reader:
         else:
             self.charNum -= 1
 
+    def skipComment(self):
+        while True:
+            nextChar = self.get()
+            if len(nextChar) == 0:
+                break
+            if nextChar == '\n':
+                break
+
 
 NAME_CHARS = set('abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ')
 H_ARG_RE = re.compile(r'\$((?P<idx>\d+)|(?P<name>\w+))')
@@ -254,8 +262,7 @@ def parse_grammar(filename: str) -> Grammar:
 
         # Skip comments
         if nextChar == '#':
-            while nextChar != '\n':
-                nextChar = f.get()
+            f.skipComment()
             continue
 
         if nextChar not in NAME_CHARS:
@@ -287,6 +294,10 @@ def parse_grammar(filename: str) -> Grammar:
 
             if nextChar == '=':
                 break
+
+            if nextChar == '#':
+                f.skipComment()
+                continue
 
             if nextChar not in ' \t\n':
                 raise HermesError(f"{f} Invalid character '{nextChar}', expected '='")
@@ -509,8 +520,7 @@ def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
                 continue
 
             if nextChar == '#':
-                while nextChar != '\n':
-                    nextChar = f.get()
+                f.skipComment()
                 continue
 
             raise HermesError(f"{f} Invalid char '{nextChar}' in rule definition, expected symbol or code block")
@@ -549,10 +559,7 @@ def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
                 hitSemi = True
                 break
             if nextChar == '#':
-                while True:
-                    nextChar = f.get()
-                    if nextChar == '\n':
-                        break
+                f.skipComment()
                 continue
 
             raise HermesError(f"{f} Invalid char '{nextChar}', expected ';' or '|'")
