@@ -19,7 +19,7 @@ typedef struct
 class Scanner
 {
 public:
-    std::shared_ptr<Scanner> New(std::shared_ptr<std::istream> handle);
+    static std::shared_ptr<Scanner> New(std::shared_ptr<std::istream> handle);
 
     Scanner(std::shared_ptr<std::istream> handle);
 
