@@ -61,14 +61,14 @@ add_custom_target(parse_table
 )
 
 # Add library
-add_library(${CMAKE_PROJECT_NAME} SHARED
+add_library(${PROJECT_NAME} SHARED
     ${CPP_FILES}
 )
 
 # Add dependency on parse_table
-add_dependencies(${CMAKE_PROJECT_NAME} parse_table)
+add_dependencies(${PROJECT_NAME} parse_table)
 
-target_include_directories(${CMAKE_PROJECT_NAME}
+target_include_directories(${PROJECT_NAME}
     PUBLIC
         hermes_cpp/inc
         ${HERMES_PUBLIC_INC}
@@ -77,7 +77,7 @@ target_include_directories(${CMAKE_PROJECT_NAME}
         ${HERMES_ADDITIONAL_INCLUDES}
 )
 
-target_link_libraries(${CMAKE_PROJECT_NAME}
+target_link_libraries(${PROJECT_NAME}
     PRIVATE
         Boost::regex
 )
