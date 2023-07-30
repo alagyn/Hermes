@@ -551,10 +551,17 @@ def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
 
         curCodeStart = f.lineNum
 
-        while nextChar != '}':
+        numOpenBrackets = 1
+
+        while True:
             nextChar = f.get()
-            if nextChar != '}':
-                curCode += nextChar
+            if nextChar == '{':
+                numOpenBrackets += 1
+            elif nextChar == '}':
+                numOpenBrackets -= 1
+                if numOpenBrackets == 0:
+                    break
+            curCode += nextChar
         curCode = curCode.strip()
 
         nextID = len(rules)
