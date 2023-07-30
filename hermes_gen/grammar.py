@@ -511,7 +511,6 @@ def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
                 if len(curSymbol) > 0:
                     curSymbolList.append(curSymbol)
                     curSymbol = ''
-                curCodeStart = f.lineNum
                 break
 
             if nextChar in NAME_CHARS:
@@ -543,6 +542,14 @@ def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
         # Do this after to not potentially bork the iteration
         if newNull:
             curSymbolList = []
+
+        while True:
+            nextChar = f.get()
+            if nextChar not in ' \t\n':
+                f.unget()
+                break
+
+        curCodeStart = f.lineNum
 
         while nextChar != '}':
             nextChar = f.get()
