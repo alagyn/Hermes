@@ -21,3 +21,9 @@ The parser takes in a stream of tokens, and performs a number of actions as defi
 What this exactly means is mostly unimportant, but know that it means that there are some CFGs that cannot be parsed by Hermes. Sometimes this can be solved with a bit of grammar massaging, but hopefully you aren't creating monster grammars that will cause parse table conflicts.
 
 ## [Grammer File Documentation](grammar-files.md)
+
+## CMake Stuff
+
+Variables:
+- Set `HERMES_DEBUG` to `ON` to enable a lot of parser debug output. May or may not be useful if you don't know the parse algorithm
+- Set `HERMES_DESC_FILE` to a file path to have Hermes generate a detailed description of the automata's rules and states.
