@@ -35,6 +35,18 @@ set(HERMES_GEN_ROOT hermes_gen)
 set(HERMES_CPP_ROOT hermes_cpp)
 
 
+if(NOT HERMES_DESC_FILE STREQUAL "")
+    # Make the desc file relative to the source root
+    if(NOT IS_ABSOLUTE ${HERMES_DESC_FILE})
+    cmake_path(ABSOLUTE_PATH HERMES_DESC_FILE
+        BASE_DIRECTORY ${CMAKE_SOURCE_DIR}
+        NORMALIZE
+        OUTPUT_VARIABLE _HERMES_DESC_FILE 
+        )
+    else()
+        set(_HERMES_DESC_FILE ${HERMES_DESC_FILE})
+    endif()
+endif()
 
 set(PY_FILES
     ${HERMES_GEN_ROOT}/consts.py
@@ -58,8 +70,9 @@ add_custom_command(
         ${Python3_EXECUTABLE} -m hermes_gen.main
             --table ${HERMES_PARSE_TABLE_FILE}
             --symbol ${HERMES_SYMBOL_FILE}
-            --automata ${HERMES_DESC_FILE}
+            --automata "${_HERMES_DESC_FILE}"
             ${HERMES_GRAMMAR}
+    VERBATIM
     DEPENDS ${HERMES_GRAMMAR} ${PY_FILES}
 )
 
