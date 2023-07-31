@@ -76,8 +76,9 @@ HERMES_RETURN Parser::parse(std::shared_ptr<Scanner> scanner)
         ParseAction nextAction = getAction(stack.back()->state, token.symbol);
 
 #ifdef HERMES_PARSE_DEBUG
-        std::cout << symbolLookup(token.symbol) << " " << token.lineNum << "."
-                  << token.charNum << " " << token.text << " ";
+        std::cout << "S" << stack.back()->state << " "
+                  << symbolLookup(token.symbol) << " Loc:" << token.lineNum
+                  << ":" << token.charNum << " '" << token.text << "' ";
 #endif
 
         switch(nextAction.action)
