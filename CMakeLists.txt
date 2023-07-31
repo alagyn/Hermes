@@ -16,6 +16,7 @@ find_package(Boost 1.82.0
 set(HERMES_GRAMMAR ${HERMES_GRAMMAR} CACHE FILEPATH "The input grammar file")
 
 set(HERMES_TEST OFF CACHE BOOL "Build tests")
+set(HERMES_DEBUG OFF CACHE BOOL "Enable Parser debug statements")
 
 if(NOT EXISTS "${HERMES_GRAMMAR}")
     message(FATAL_ERROR "Grammar file: \"${HERMES_GRAMMAR}\" not found")
@@ -31,6 +32,8 @@ set(HERMES_SYMBOL_FILE ${HERMES_PUBLIC_INC}/hermes/symbol.h)
 
 set(HERMES_GEN_ROOT hermes_gen)
 set(HERMES_CPP_ROOT hermes_cpp)
+
+
 
 set(PY_FILES
     ${HERMES_GEN_ROOT}/consts.py
@@ -81,6 +84,13 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE
         Boost::regex
 )
+
+if(${HERMES_DEBUG})
+target_compile_definitions(${PROJECT_NAME}
+    PRIVATE
+        HERMES_PARSER_DEBUG
+)
+endif()
 
 if(${HERMES_TEST})
     add_subdirectory(tests)
