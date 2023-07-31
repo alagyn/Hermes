@@ -151,6 +151,8 @@ ParseToken Scanner::_nextToken()
                 We can't ignore all whitespace otherwise we break any tokens
                that can contain it, like strings
             */
+            out.lineNum = lineNum;
+            out.charNum = charNum;
             continue;
         }
         else
