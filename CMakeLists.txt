@@ -88,7 +88,7 @@ target_link_libraries(${PROJECT_NAME}
 if(${HERMES_DEBUG})
 target_compile_definitions(${PROJECT_NAME}
     PRIVATE
-        HERMES_PARSER_DEBUG
+        HERMES_PARSE_DEBUG
 )
 endif()
 
