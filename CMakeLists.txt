@@ -17,6 +17,7 @@ set(HERMES_GRAMMAR ${HERMES_GRAMMAR} CACHE FILEPATH "The input grammar file")
 
 set(HERMES_TEST OFF CACHE BOOL "Build tests")
 set(HERMES_DEBUG OFF CACHE BOOL "Enable Parser debug statements")
+set(HERMES_DESC_FILE "" CACHE PATH "Optional automata description output file")
 
 if(NOT EXISTS "${HERMES_GRAMMAR}")
     message(FATAL_ERROR "Grammar file: \"${HERMES_GRAMMAR}\" not found")
@@ -54,7 +55,11 @@ add_custom_command(
     OUTPUT ${HERMES_PARSE_TABLE_FILE}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND
-        ${Python3_EXECUTABLE} -m hermes_gen.main --table ${HERMES_PARSE_TABLE_FILE} --symbol ${HERMES_SYMBOL_FILE} ${HERMES_GRAMMAR}
+        ${Python3_EXECUTABLE} -m hermes_gen.main
+            --table ${HERMES_PARSE_TABLE_FILE}
+            --symbol ${HERMES_SYMBOL_FILE}
+            --automata ${HERMES_DESC_FILE}
+            ${HERMES_GRAMMAR}
     DEPENDS ${HERMES_GRAMMAR} ${PY_FILES}
 )
 

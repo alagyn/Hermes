@@ -23,7 +23,13 @@ class AnnotRule:
         self.lookAhead = lookAhead
 
     def __str__(self) -> str:
-        out = f'AnnotRule: {self.rule.nonterm} ='
+        out = f'AnnotRule: {self.strRule}'
+        out += f"  LA: {self.lookAhead}"
+
+        return out
+
+    def strRule(self) -> str:
+        out = f'{self.rule.nonterm} ='
 
         for i in range(self.parseIndex):
             out += " " + self.rule.symbols[i]
@@ -32,8 +38,6 @@ class AnnotRule:
 
         for i in range(self.parseIndex, len(self.rule.symbols)):
             out += " " + self.rule.symbols[i]
-
-        out += f"  LA: {self.lookAhead}"
 
         return out
 
@@ -375,3 +379,22 @@ class ParseTable:
                     print(f'{x.action}{x.state}        ', end="")
             print("")
         print("")
+
+
+def writeDescription(filename: str, lalr: LALR1Automata):
+    with open(filename, mode='w') as f:
+        for node in lalr.nodes:
+            f.write(str(node))
+            f.write("\n  Rules:\n")
+
+            for rule in node.rules:
+                f.write(f"    {rule.strRule()}\n"
+                        f"    LA: {rule.lookAhead}\n\n")
+
+            if len(node.trans) > 0:
+                f.write('\n  Transitions:\n')
+
+                for key, val in node.trans.items():
+                    f.write(f"    Symbol: {key} -> {val}\n")
+
+            f.write("\n")

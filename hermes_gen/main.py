@@ -5,7 +5,7 @@ from datetime import datetime
 import os
 
 from hermes_gen.grammar import parse_grammar, Grammar
-from hermes_gen.lalr1_automata import LALR1Automata, ParseTable, Action
+from hermes_gen.lalr1_automata import LALR1Automata, ParseTable, Action, writeDescription
 from hermes_gen.consts import ARG_VECTOR
 from hermes_gen.errors import HermesError
 from hermes_gen.directives import Directive
@@ -19,6 +19,9 @@ def main():
     )
     parser.add_argument(
         "-t", '--table', default="_parseTable.h", help="Override the table filename, defaults to _parseTable.h"
+    )
+    parser.add_argument(
+        "-a", "--automata", default="", help="Write a full description of the generated automata to the specified file"
     )
 
     args = parser.parse_args()
@@ -40,6 +43,9 @@ def main():
     except HermesError as err:
         print("Unable to compute LALR(1) Automata:", err)
         exit(1)
+
+    if len(args.automata) > 0:
+        writeDescription(args.automata, lalr)
 
     try:
         table = ParseTable(lalr)
