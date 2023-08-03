@@ -220,12 +220,21 @@ class _Reader:
             self.charNum -= 1
 
     def skipComment(self):
-        while True:
-            nextChar = self.get()
-            if len(nextChar) == 0:
-                break
-            if nextChar == '\n':
-                break
+        nextChar = self.get()
+        if nextChar == '#':
+            while True:
+                nextChar = self.get()
+                if nextChar == '#':
+                    nextChar = self.get()
+                    if nextChar == '#':
+                        break
+        else:
+            while True:
+                if len(nextChar) == 0:
+                    break
+                if nextChar == '\n':
+                    break
+                nextChar = self.get()
 
 
 NAME_CHARS = set('abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
