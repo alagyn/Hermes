@@ -228,7 +228,7 @@ class _Reader:
                 break
 
 
-NAME_CHARS = set('abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+NAME_CHARS = set('abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
 H_ARG_RE = re.compile(r'\$((?P<idx>\d+)|(?P<name>\w+))')
 
 
