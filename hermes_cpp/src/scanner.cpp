@@ -217,6 +217,12 @@ ParseToken Scanner::_nextToken()
         }
     }
 
+    if(out.text.empty())
+    {
+        out.symbol = Symbol::__EOF__;
+        return out;
+    }
+
     // We only got here if we hit EOF and didn't have a match
     std::stringstream ss;
     ss << "Bad token: " << out.lineNum << ":" << out.charNum << " '" << out.text
