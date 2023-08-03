@@ -34,11 +34,11 @@
         },
         "terminals": {
             "name": "entity.name.class.ebnf",
-            "match": "\\b[A-Z_]+\\b"
+            "match": "\\b[A-Z_0-9]+\\b"
         },
         "nonterminals": {
             "name": "entity.name.ebnf",
-            "match": "[a-z_]+"
+            "match": "[a-z_0-9]+"
         },
         "string-double": {
             "name": "string.regexp.double.ebnf",
