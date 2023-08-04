@@ -21,7 +21,7 @@ multiline comment
 
 PROGRAM   
     # here is another comment
-    = stmt { return $0; };
+    = stmt;
 stmt =   name equals_sign integer # this is totally not a comment
     semicolon
     { return 0; }

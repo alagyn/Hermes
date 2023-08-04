@@ -539,6 +539,9 @@ def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
 
             if nextChar in '|;':
                 curCodeStart = -1
+                if len(curSymbol) > 0:
+                    curSymbolList.append(curSymbol)
+                    curSymbol = ''
                 break
 
             raise HermesError(f"{f} Invalid char '{nextChar}' in rule definition, expected symbol or code block")
