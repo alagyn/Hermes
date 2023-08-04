@@ -25,6 +25,9 @@
         },
         {
             "include": "#code"
+        },
+        {
+            "include": "#directives"
         }
     ],
     "repository": {
@@ -81,6 +84,11 @@
                     "include": "source.cpp"
                 }
             ]
+        },
+        "directives": {
+            "name": "meta.preprocessor",
+            "begin": "%",
+            "end": "\\s"
         }
     },
     "scopeName": "source.ebnf"

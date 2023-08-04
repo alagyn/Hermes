@@ -112,19 +112,30 @@ HERMES_RETURN Parser::parse(std::shared_ptr<Scanner> scanner)
                 stack.pop_back();
             }
 
-            HERMES_RETURN hr = reduce(nextAction.state, items);
-
-            if(nextAction.state == 0)
+            try
             {
-                // Accept
-                return hr;
+                HERMES_RETURN hr = reduce(nextAction.state, items);
+
+                if(nextAction.state == 0)
+                {
+                    // Accept
+                    return hr;
+                }
+
+                ParseAction nextGoto =
+                    getAction(stack.back()->state, reduction.nonterm);
+
+                stack.push_back(StackNonTerm::New(nextGoto.state, hr));
             }
-
-            ParseAction nextGoto =
-                getAction(stack.back()->state, reduction.nonterm);
-
-            stack.push_back(StackNonTerm::New(nextGoto.state, hr));
-
+            catch(const std::exception& err)
+            {
+                std::stringstream ss;
+                ss << "Reduce Error at " << token.lineNum << ":"
+                   << token.charNum << " token: " << token.text;
+                ss << "\nThis token may/or may ne=it be the issue\nError:\n"
+                   << err.what();
+                throw HermesError(ss.str());
+            }
             break;
         }
         default:
