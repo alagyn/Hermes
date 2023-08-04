@@ -509,6 +509,7 @@ def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
         curCode = ''
         startingLine = f.lineNum
 
+        # set to -1 if not code block
         curCodeStart = 0
 
         while True:
@@ -536,6 +537,10 @@ def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
                 f.skipComment()
                 continue
 
+            if nextChar in '|;':
+                curCodeStart = -1
+                break
+
             raise HermesError(f"{f} Invalid char '{nextChar}' in rule definition, expected symbol or code block")
 
         # Check for null
@@ -552,26 +557,33 @@ def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
         if newNull:
             curSymbolList = []
 
-        while True:
-            nextChar = f.get()
-            if nextChar not in ' \t\n':
-                f.unget()
-                break
-
-        curCodeStart = f.lineNum
-
-        numOpenBrackets = 1
-
-        while True:
-            nextChar = f.get()
-            if nextChar == '{':
-                numOpenBrackets += 1
-            elif nextChar == '}':
-                numOpenBrackets -= 1
-                if numOpenBrackets == 0:
+        if curCodeStart >= 0:
+            while True:
+                nextChar = f.get()
+                if nextChar not in ' \t\n':
+                    f.unget()
                     break
-            curCode += nextChar
-        curCode = curCode.strip()
+
+            curCodeStart = f.lineNum
+
+            numOpenBrackets = 1
+
+            while True:
+                nextChar = f.get()
+                if nextChar == '{':
+                    numOpenBrackets += 1
+                elif nextChar == '}':
+                    numOpenBrackets -= 1
+                    if numOpenBrackets == 0:
+                        break
+                curCode += nextChar
+            curCode = curCode.strip()
+        else:
+            # TODO this is C++ specific
+            curCode = "return $0;"
+            curCodeStart = f.lineNum
+            # unget so the next bit of code can grab the | or ;
+            f.unget()
 
         nextID = len(rules)
         rules.append(Rule(nextID, lhs, curSymbolList, curCode, startingLine, curCodeStart))
