@@ -132,7 +132,7 @@ HERMES_RETURN Parser::parse(std::shared_ptr<Scanner> scanner)
                 std::stringstream ss;
                 ss << "Reduce Error at " << token.lineNum << ":"
                    << token.charNum << " token: " << token.text;
-                ss << "\nThis token may/or may ne=it be the issue\nError:\n"
+                ss << "\nThis token may/or may not be the issue\nError:\n"
                    << err.what();
                 throw HermesError(ss.str());
             }
