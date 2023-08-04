@@ -146,12 +146,14 @@ HERMES_RETURN Parser::parse(std::shared_ptr<Scanner> scanner)
             ss << "Parse Error at line " << token.lineNum << " char "
                << token.charNum << " token: " << symbolLookup(token.symbol)
                << " text:\n'" << token.text << "'\n";
+#ifdef HERMES_PARSE_DEBUG
             ss << "Stack: ";
+
             for(auto& x : stack)
             {
                 ss << x->state << " ";
             }
-
+#endif
             ss << "Expected one of: ";
             for(int i = 0; i < numCols(); ++i)
             {
