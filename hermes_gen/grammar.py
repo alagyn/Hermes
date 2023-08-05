@@ -331,6 +331,10 @@ def parse_grammar(filename: str) -> Grammar:
                 f.unget()
                 break
 
+            if nextChar == '#':
+                f.skipComment()
+                continue
+
             raise HermesError(f"{f} Invalid character '{nextChar}', expected terminal or symbol list")
 
         if isTerminal:
