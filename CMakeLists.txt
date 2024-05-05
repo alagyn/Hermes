@@ -7,11 +7,6 @@ find_package(Python3
         COMPONENTS Interpreter
 )
 
-find_package(Boost 1.82.0 
-    REQUIRED
-        COMPONENTS regex
-)
-
 # This will let users specify their grammar and then add_subdiretory to this
 set(HERMES_GRAMMAR ${HERMES_GRAMMAR} CACHE FILEPATH "The input grammar file")
 
@@ -60,6 +55,9 @@ set(CPP_FILES
     ${HERMES_CPP_ROOT}/src/parser.cpp
     ${HERMES_CPP_ROOT}/src/scanner.cpp
     ${HERMES_CPP_ROOT}/src/parseTableImpl.cpp
+    ${HERMES_CPP_ROOT}/src/regex/node.cpp
+    ${HERMES_CPP_ROOT}/src/regex/regex.cpp
+    ${HERMES_CPP_ROOT}/src/regex/rparser.cpp
 )
 
 # Custom command to generate the header
@@ -100,7 +98,6 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
-        Boost::regex
 )
 
 if(${HERMES_DEBUG})
