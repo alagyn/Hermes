@@ -1,16 +1,16 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace hermes {
 
-using StrType = const std::string&;
-
 class Node
 {
 public:
-    virtual bool match(StrType str, int& pos) = 0;
+    virtual bool match(const char* str, int& pos) = 0;
+    virtual std::string toStr() = 0;
 };
 
 using NodePtr = std::shared_ptr<Node>;
@@ -21,17 +21,20 @@ public:
     const char sym;
 
     LiteralNode(char sym);
-    bool match(StrType str, int& pos) override;
+    bool match(const char* str, int& pos) override;
+    std::string toStr() override;
 };
 
 class CharClassNode : public Node
 {
 public:
     std::vector<char> syms;
-    const bool invert;
+    bool invert;
 
-    CharClassNode(const std::vector<char>& syms, bool invert);
-    bool match(StrType str, int& pos) override;
+    CharClassNode();
+    bool match(const char* str, int& pos) override;
+    void pushRange(char s, char e);
+    std::string toStr() override;
 };
 
 // Accepts any char
@@ -39,7 +42,8 @@ class DotNode : public Node
 {
 public:
     DotNode();
-    bool match(StrType str, int& pos) override;
+    bool match(const char* str, int& pos) override;
+    std::string toStr() override;
 };
 
 class ConcatNode : public Node
@@ -49,7 +53,8 @@ public:
     const NodePtr p2;
 
     ConcatNode(NodePtr p1, NodePtr p2);
-    bool match(StrType str, int& pos) override;
+    bool match(const char* str, int& pos) override;
+    std::string toStr() override;
 };
 
 class AlterationNode : public Node
@@ -59,7 +64,8 @@ public:
     const NodePtr p2;
 
     AlterationNode(NodePtr p1, NodePtr p2);
-    bool match(StrType str, int& pos) override;
+    bool match(const char* str, int& pos) override;
+    std::string toStr() override;
 };
 
 // star, plus, question, and curly brackets
@@ -70,7 +76,8 @@ public:
     const int min;
     const int max;
     RepetitionNode(NodePtr p, int min, int max);
-    bool match(StrType str, int& pos) override;
+    bool match(const char* str, int& pos) override;
+    std::string toStr() override;
 };
 
 // Parenthesis
@@ -80,7 +87,19 @@ public:
     const NodePtr p;
 
     GroupNode(NodePtr p);
-    bool match(StrType str, int& pos) override;
+    bool match(const char* str, int& pos) override;
+    std::string toStr() override;
+};
+
+class LookAheadNode : public Node
+{
+public:
+    const NodePtr p;
+    const bool negative;
+
+    LookAheadNode(NodePtr p, bool negative);
+    bool match(const char* str, int& pos) override;
+    std::string toStr() override;
 };
 
 /*
@@ -88,14 +107,14 @@ class LineStartNode : public Node
 {
 public:
     LineStartNode();
-    bool match(StrType str, int& pos) override;
+    bool match(const char* str, int& pos) override;
 };
 
 class LineEndNode : public Node
 {
 public:
     LineEndNode();
-    bool match(StrType str, int& pos) override;
+    bool match(const char* str, int& pos) override;
 };
 */
 

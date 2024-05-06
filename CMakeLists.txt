@@ -10,7 +10,8 @@ find_package(Python3
 # This will let users specify their grammar and then add_subdiretory to this
 set(HERMES_GRAMMAR ${HERMES_GRAMMAR} CACHE FILEPATH "The input grammar file")
 
-set(HERMES_TEST OFF CACHE BOOL "Build tests")
+OPTION(HERMES_TEST "Build tests" OFF)
+
 set(HERMES_DEBUG OFF CACHE BOOL "Enable Parser debug statements")
 set(HERMES_DESC_FILE "" CACHE PATH "Optional automata description output file")
 
@@ -26,8 +27,8 @@ set(HERMES_PUBLIC_INC ${CMAKE_CURRENT_BINARY_DIR}/inc)
 set(HERMES_PARSE_TABLE_FILE ${HERMES_HIDDEN_INC}/hermes/_parseTable.h)
 set(HERMES_SYMBOL_FILE ${HERMES_PUBLIC_INC}/hermes/symbol.h)
 
-set(HERMES_GEN_ROOT hermes_gen)
-set(HERMES_CPP_ROOT hermes_cpp)
+set(HERMES_GEN_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/hermes_gen)
+set(HERMES_CPP_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/hermes_cpp)
 
 
 if(NOT HERMES_DESC_FILE STREQUAL "")
@@ -43,6 +44,20 @@ if(NOT HERMES_DESC_FILE STREQUAL "")
     endif()
 endif()
 
+
+## Regex Lib
+add_library(hermes_regex SHARED
+    ${HERMES_CPP_ROOT}/src/regex/node.cpp
+    ${HERMES_CPP_ROOT}/src/regex/regex.cpp
+    ${HERMES_CPP_ROOT}/src/regex/rparser.cpp
+)
+
+target_include_directories(hermes_regex
+    PUBLIC
+        hermes_cpp/inc
+)
+
+
 set(PY_FILES
     ${HERMES_GEN_ROOT}/consts.py
     ${HERMES_GEN_ROOT}/grammar.py
@@ -55,14 +70,15 @@ set(CPP_FILES
     ${HERMES_CPP_ROOT}/src/parser.cpp
     ${HERMES_CPP_ROOT}/src/scanner.cpp
     ${HERMES_CPP_ROOT}/src/parseTableImpl.cpp
-    ${HERMES_CPP_ROOT}/src/regex/node.cpp
-    ${HERMES_CPP_ROOT}/src/regex/regex.cpp
-    ${HERMES_CPP_ROOT}/src/regex/rparser.cpp
 )
+
+#message("PT: ${HERMES_PARSE_TABLE_FILE}")
+#message("ST: ${HERMES_SYMBOL_FILE}")
+#message("DF: ${HERMES_DESC_FILE}")
 
 # Custom command to generate the header
 add_custom_command(
-    OUTPUT ${HERMES_PARSE_TABLE_FILE}
+    OUTPUT ${HERMES_PARSE_TABLE_FILE} ${HERMES_SYMBOL_FILE} ${_HERMES_DESC_FILE}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND
         ${Python3_EXECUTABLE} -m hermes_gen.main
@@ -71,6 +87,7 @@ add_custom_command(
             --automata "${_HERMES_DESC_FILE}"
             ${HERMES_GRAMMAR}
     VERBATIM
+    COMMENT "Generating ${HERMES_PARSE_TABLE_FILE}"
     DEPENDS ${HERMES_GRAMMAR} ${PY_FILES}
 )
 
@@ -98,6 +115,7 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
+        hermes_regex
 )
 
 if(${HERMES_DEBUG})
@@ -108,5 +126,6 @@ target_compile_definitions(${PROJECT_NAME}
 endif()
 
 if(${HERMES_TEST})
+    add_subdirectory(third-party)
     add_subdirectory(tests)
 endif()

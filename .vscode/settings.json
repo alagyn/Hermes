@@ -16,11 +16,17 @@
     "files.associations": {
         ".style.yapf": "properties",
         "iosfwd": "cpp",
-        "numeric": "cpp"
+        "numeric": "cpp",
+        "sstream": "cpp",
+        "regex": "cpp",
+        "chrono": "cpp",
+        "random": "cpp",
+        "limits": "cpp",
+        "string": "cpp"
     },
-    "cmake.generator": "Unix Makefiles",
-    "cmake.configureArgs": [
-        "-DGRAMMAR=${workspaceRoot}/tests/grammars/calculator.hm"
-    ],
-    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "C_Cpp.codeAnalysis.exclude": {
+        "${workspaceFolder}/third-party/**": true
+    },
+    "python.analysis.exclude": ["third-party"]
 }
