@@ -4,10 +4,9 @@
 #include <list>
 #include <sstream>
 
-#include <boost/regex.h>
-
 #include <hermes/errors.h>
 #include <hermes/parseTable.h>
+#include <hermes/regex/regex.h>
 
 using namespace std;
 
@@ -80,8 +79,6 @@ ParseToken Scanner::nextToken()
     return out;
 }
 
-const auto match_flags = boost::match_default | boost::match_partial;
-
 ParseToken Scanner::_nextToken()
 {
     ParseToken out;
@@ -118,8 +115,8 @@ ParseToken Scanner::_nextToken()
                 bool found = false;
                 for(auto& x : getTerminals())
                 {
-                    // Not using the partial match flag here
-                    if(boost::regex_match(out.text, x.re))
+                    Match m = x.re.match(out.text);
+                    if(m.match)
                     {
                         // Take the first that matches
                         out.symbol = x.id;
@@ -164,20 +161,15 @@ ParseToken Scanner::_nextToken()
         foundPartial = false;
         for(auto& t : getTerminals())
         {
-            boost::match_results<std::string::const_iterator> match;
-            if(boost::regex_match(out.text, match, t.re, match_flags))
+            Match m = t.re.match(out.text);
+            if(m.match)
             {
-                if(match[0].matched)
-                {
-                    foundNewMatch = true;
-                    continue;
-                }
-                auto size = match[0].second - match[0].first;
-                // Only take partials if it partially matches the whole string
-                if(size == out.text.size())
-                {
-                    foundPartial = true;
-                }
+                foundNewMatch = true;
+                continue;
+            }
+            else if(m.partial)
+            {
+                foundPartial = true;
             }
         }
 
@@ -202,7 +194,8 @@ ParseToken Scanner::_nextToken()
             */
             for(auto& term : getTerminals())
             {
-                if(boost::regex_match(out.text, term.re))
+                Match m = term.re.match(out.text);
+                if(m.match)
                 {
                     out.symbol = term.id;
                     return out;

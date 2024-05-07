@@ -1,12 +1,11 @@
 #pragma once
 
+#include <hermes/regex/regex.h>
 #include <hermes/symbol.h>
 
 #include <map>
 #include <string>
 #include <vector>
-
-#include <boost/regex.hpp>
 
 namespace hermes {
 
@@ -27,7 +26,7 @@ const std::string& symbolLookup(Symbol symbol);
 typedef struct
 {
     Symbol id;
-    boost::regex re;
+    Regex re;
 } Terminal;
 
 const Terminal& getTerminal(Symbol symbol);

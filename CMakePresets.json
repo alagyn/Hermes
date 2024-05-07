@@ -1,0 +1,25 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "default",
+            "generator": "Ninja Multi-Config",
+            "binaryDir": "${sourceDir}/build",
+            
+            "cacheVariables": {
+                "HERMES_TEST": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "HERMES_GRAMMAR": "${sourceDir}/tests/grammars/calculator.hm"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "tests",
+            "configurePreset": "default",
+            "targets": ["tests"]
+        }
+    ]
+}

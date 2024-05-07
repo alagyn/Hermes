@@ -77,12 +77,11 @@ def main():
             "#include <hermes/parseTable.h>\n"
             "#include <hermes/parser.h>\n"
             "#include <hermes/stackItem.h>\n"
+            "#include <hermes/regex/regex.h>\n"
             "\n"
             "#include <vector>\n"
             "#include <string>\n"
             "#include <map>\n"
-            "\n"
-            "#include <boost/regex.hpp>\n"
             "\n"
         )
 
@@ -114,14 +113,14 @@ def main():
 
         for idx, terminal in enumerate(grammar.terminalList):
             regex = escape_regex(terminal[1])
-            f.write(f'    {{Symbol::{terminal[0]}, boost::regex("{regex}")}}')
+            f.write(f'    {{Symbol::{terminal[0]}, hermes::Regex("{regex}")}}')
             if idx < len(grammar.terminalList) - 1:
                 f.write(",\n")
         # Write ignored terminals
         if Directive.ignore in grammar.directives:
             for ignore in grammar.directives[Directive.ignore]:
                 regex = escape_regex(ignore)
-                f.write(f',\n    {{Symbol::__IGNORE__, boost::regex("{regex}")}}')
+                f.write(f',\n    {{Symbol::__IGNORE__, hermes::Regex("{regex}")}}')
         f.write("\n}; // End TERMINALS\n\n")
 
         f.write("const std::vector<Reduction> REDUCTIONS = {\n")
