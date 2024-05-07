@@ -115,7 +115,8 @@ ParseToken Scanner::_nextToken()
                 bool found = false;
                 for(auto& x : getTerminals())
                 {
-                    if(x.re.match(out.text))
+                    Match m = x.re.match(out.text);
+                    if(m.match)
                     {
                         // Take the first that matches
                         out.symbol = x.id;
@@ -160,14 +161,13 @@ ParseToken Scanner::_nextToken()
         foundPartial = false;
         for(auto& t : getTerminals())
         {
-            bool partial = false;
-            bool match = t.re.match(out.text, partial);
-            if(match)
+            Match m = t.re.match(out.text);
+            if(m.match)
             {
                 foundNewMatch = true;
                 continue;
             }
-            else if(partial)
+            else if(m.partial)
             {
                 foundPartial = true;
             }
@@ -194,7 +194,8 @@ ParseToken Scanner::_nextToken()
             */
             for(auto& term : getTerminals())
             {
-                if(term.re.match(out.text))
+                Match m = term.re.match(out.text);
+                if(m.match)
                 {
                     out.symbol = term.id;
                     return out;

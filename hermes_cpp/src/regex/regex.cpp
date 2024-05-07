@@ -1,5 +1,6 @@
 #include <hermes/regex/regex.h>
 
+#include <hermes/errors.h>
 #include <hermes/regex/rparser.h>
 
 using namespace hermes;
@@ -14,30 +15,26 @@ Regex::Regex(const char* pattern)
 {
 }
 
-bool Regex::match(const std::string& str) const
+Match Regex::match(const std::string& str) const
 {
     return match(str.c_str());
 }
 
-bool Regex::match(const char* str) const
+Match Regex::match(const char* str) const
 {
     int pos = 0;
-    bool good = root->match(str, pos);
-    // make sure we matched the full string
-    return good && str[pos] == 0;
-}
+    if(str[pos] == 0)
+    {
+        throw HermesError("Regex::match() Cannot match empty string");
+    }
+    Match out;
+    bool fullmatch = root->match(str, out);
 
-bool Regex::match(const std::string& str, bool& partial) const
-{
-    return match(str.c_str(), partial);
-}
+    out.match = fullmatch;
+    // unset partial if we matched the whole thing
+    out.partial = !fullmatch && out.partial;
 
-bool Regex::match(const char* str, bool& partial) const
-{
-    int pos = 0;
-    bool good = root->match(str, pos);
-    partial = str[pos] == 0;
-    return good;
+    return out;
 }
 
 std::string Regex::toStr() const

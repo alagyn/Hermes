@@ -5,80 +5,103 @@
 #include <iostream>
 #include <vector>
 
-TEST_CASE("Regex +", "[regex]")
+void check(
+    const hermes::Regex& r,
+    const char* str,
+    bool fullmatch = true,
+    bool partial = false
+)
 {
-    {
-        hermes::Regex r("ab+");
+    INFO("Regex: " << r.toStr());
+    INFO("Input: '" << str << "'");
+    INFO("Expected: full=" << fullmatch << " partial=" << partial);
 
-        INFO(r.toStr());
+    hermes::Match m = r.match(str);
 
-        CHECK(r.match("ab"));
-        CHECK_FALSE(r.match("b"));
-        CHECK(r.match("abb"));
-        CHECK_FALSE(r.match("aab"));
-    }
+    INFO(
+        "Actual:    full=" << m.match << " partial=" << m.partial
+                           << " pos=" << m.pos
+    );
 
-    {
-        hermes::Regex r("a(ab)+");
-        INFO(r.toStr());
+    CHECK(fullmatch == m.match);
+    CHECK(partial == m.partial);
+}
 
-        CHECK(r.match("aab"));
-        CHECK(r.match("aabab"));
-        CHECK(r.match("aababab"));
-        CHECK_FALSE(r.match("aa"));
-        CHECK_FALSE(r.match("aaba"));
-        CHECK_FALSE(r.match("aabb"));
-    }
+TEST_CASE("Regex + #1", "[regex]")
+{
+    hermes::Regex r("ab+");
+
+    check(r, "ab");
+    check(r, "b", false, false);
+    check(r, "abb");
+    check(r, "aab", false, false);
+
+    CHECK_THROWS(r.match(""));
+}
+
+TEST_CASE("Regex + #2", "[regex]")
+{
+    hermes::Regex r("a(ab)+");
+
+    check(r, "aab");
+    check(r, "aabab");
+    check(r, "aababab");
+    check(r, "aa", false, true);
+    check(r, "aaba", false, true);
+    check(r, "aabb", false, false);
+}
+
+TEST_CASE("Regex + #3")
+{
+    hermes::Regex r("[0-9]+");
+    check(r, "2");
+    check(r, "2 ", false, false);
 }
 
 TEST_CASE("Regex *", "[regex]")
 {
     hermes::Regex r1("a[ba]*");
 
-    CHECK_FALSE(r1.match(""));
-    CHECK(r1.match("a"));
-    CHECK(r1.match("aa"));
-    CHECK(r1.match("ab"));
-    CHECK(r1.match("abba"));
-    CHECK(r1.match("aaaab"));
-    CHECK(r1.match("ababab"));
-    CHECK_FALSE(r1.match("abc"));
-    CHECK_FALSE(r1.match("ac"));
-    CHECK_FALSE(r1.match("aaaaaac"));
-    CHECK_FALSE(r1.match("aabaacbab"));
-    CHECK_FALSE(r1.match("acaaba"));
+    check(r1, "a");
+    check(r1, "aa");
+    check(r1, "ab");
+    check(r1, "abba");
+    check(r1, "aaaab");
+    check(r1, "ababab");
+    check(r1, "abc", false, false);
+    check(r1, "ac", false, false);
+    check(r1, "aaaaaac", false, false);
+    check(r1, "aabaacbab", false, false);
+    check(r1, "acaaba", false, false);
 
     hermes::Regex r2("a(ba)*");
 
-    CHECK_FALSE(r2.match(""));
-    CHECK_FALSE(r2.match("aab"));
-    CHECK(r2.match("a"));
-    CHECK(r2.match("aba"));
-    CHECK(r2.match("ababa"));
-    CHECK_FALSE(r2.match("abaa"));
-    CHECK_FALSE(r2.match("ababb"));
+    check(r2, "aab", false);
+    check(r2, "a");
+    check(r2, "aba");
+    check(r2, "ababa");
+    check(r2, "abaa", false);
+    check(r2, "ababb", false);
 }
 
 TEST_CASE("Regex ?", "[regex]")
 {
     {
         hermes::Regex r("ab?");
-        INFO(r.toStr());
-        CHECK(r.match("a"));
-        CHECK(r.match("ab"));
-        CHECK_FALSE(r.match("abb"));
-        CHECK_FALSE(r.match("ac"));
+        check(r, "a");
+        check(r, "ab");
+        check(r, "abb", false);
+        check(r, "ac", false);
     }
 
     {
         hermes::Regex r("a(ab)?");
-        INFO(r.toStr());
-        CHECK(r.match("a"));
-        CHECK(r.match("aab"));
-        CHECK_FALSE(r.match("ab"));
-        CHECK_FALSE(r.match("aa"));
-        CHECK_FALSE(r.match("aaba"));
-        CHECK_FALSE(r.match("aac"));
+        check(r, "a");
+        check(r, "aab");
+        check(r, "ab", false);
+        check(r, "aa", false, true);
+        check(r, "aaba", false);
+        check(r, "aac", false);
     }
 }
 
@@ -91,10 +114,10 @@ TEST_CASE("Regex CC Number", "[regex]")
 
     INFO("Regex->toStr(): " << xx);
 
-    REQUIRE(r1.match("0000111122223333"));
-    REQUIRE(r1.match("0000 1111 2222 3333"));
-    REQUIRE(r1.match("0000-1111-2222-3333"));
-    REQUIRE(r1.match("000-1111-2222-3333"));
+    check(r1, "0000111122223333");
+    check(r1, "0000 1111 2222 3333");
+    check(r1, "0000-1111-2222-3333");
+    check(r1, "000-1111-2222-3333");
 }
 
 void tryConstr(const char* str)
@@ -144,52 +167,52 @@ TEST_CASE("Char Class", "[regex]")
 {
     {
         hermes::Regex r("[[\\]]");
-        CHECK(r.match("["));
-        CHECK(r.match("]"));
+        check(r, "[");
+        check(r, "]");
     }
 
     {
         hermes::Regex r("\\[]");
-        CHECK(r.match("[]"));
+        check(r, "[]");
     }
 
     {
         hermes::Regex r("[asdf]+");
-        CHECK(r.match("asdf"));
-        CHECK(r.match("aaaa"));
-        CHECK(r.match("afff"));
-        CHECK(r.match("afda"));
-        CHECK_FALSE(r.match("b"));
-        CHECK_FALSE(r.match("basdf"));
-        CHECK_FALSE(r.match("asdfb"));
-        CHECK_FALSE(r.match("asdb"));
+        check(r, "asdf");
+        check(r, "aaaa");
+        check(r, "afff");
+        check(r, "afda");
+        check(r, "b", false, false);
+        check(r, "basdf", false, false);
+        check(r, "asdfb", false, false);
+        check(r, "asdb", false, false);
     }
 
     {
         hermes::Regex r("[-]");
-        CHECK(r.match("-"));
+        check(r, "-");
     }
 
     {
         hermes::Regex r("[0-]");
-        CHECK(r.match("0"));
-        CHECK(r.match("-"));
+        check(r, "0");
+        check(r, "-");
     }
 
     {
         hermes::Regex r("[0-a]");
-        CHECK(r.match("0"));
-        CHECK(r.match("-"));
-        CHECK(r.match("a"));
+        check(r, "0");
+        check(r, "-");
+        check(r, "a");
     }
 
     {
         hermes::Regex r("[0-9]");
-        CHECK(r.match("0"));
-        CHECK(r.match("1"));
-        CHECK(r.match("2"));
-        CHECK(r.match("8"));
-        CHECK(r.match("9"));
+        check(r, "0");
+        check(r, "1");
+        check(r, "2");
+        check(r, "8");
+        check(r, "9");
     }
 }
 
@@ -199,23 +222,12 @@ TEST_CASE("Partial Matches", "[regex]")
 
     bool partial = false;
 
-    CHECK(r.match("abbbb", partial));
-    CHECK(partial);
-
-    CHECK_FALSE(r.match("abbb", partial));
-    CHECK(partial);
-
-    CHECK_FALSE(r.match("abb", partial));
-    CHECK(partial);
-
-    CHECK_FALSE(r.match("ab", partial));
-    CHECK(partial);
-
-    CHECK_FALSE(r.match("a", partial));
-    CHECK(partial);
-
-    CHECK_FALSE(r.match("b", partial));
-    CHECK_FALSE(partial);
+    check(r, "abbbb");
+    check(r, "abbb", false, true);
+    check(r, "abb", false, true);
+    check(r, "ab", false, true);
+    check(r, "a", false, true);
+    check(r, "b", false, false);
 }
 
 TEST_CASE("Lookahead", "[regex]")
@@ -223,22 +235,18 @@ TEST_CASE("Lookahead", "[regex]")
     {
         hermes::Regex r("ab((?!ba)[abcd])*");
 
-        INFO(r.toStr());
-
-        CHECK(r.match("ab"));
-        CHECK(r.match("abcd"));
-        CHECK_FALSE(r.match("abcba"));
-        CHECK_FALSE(r.match("abcdba"));
-        CHECK_FALSE(r.match("abbacc"));
+        check(r, "ab");
+        check(r, "abcd");
+        check(r, "abcba", false, false);
+        check(r, "abcdba", false, false);
+        check(r, "abbacc", false, false);
     }
 
     {
         hermes::Regex r("/\\*((?!\\*/)(.|\n))*?\\*/");
 
-        INFO(r.toStr());
-
-        CHECK(r.match("/* asdf */"));
-        CHECK(r.match("/*a*s\nd/f*/"));
-        CHECK_FALSE(r.match("/*asdf/"));
+        check(r, "/* asdf */");
+        check(r, "/*a*s\nd/f*/");
+        check(r, "/*asdf/", false, true);
     }
 }

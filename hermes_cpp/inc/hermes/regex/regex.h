@@ -1,5 +1,7 @@
 #pragma once
 
+#include <hermes/regex/match.h>
+
 #include <memory>
 #include <string>
 
@@ -13,10 +15,8 @@ public:
     explicit Regex(const std::string& pattern);
     explicit Regex(const char* pattern);
 
-    bool match(const std::string& str) const;
-    bool match(const char* str) const;
-    bool match(const std::string& str, bool& partial) const;
-    bool match(const char* str, bool& partial) const;
+    Match match(const std::string& str) const;
+    Match match(const char* str) const;
 
     std::string toStr() const;
 

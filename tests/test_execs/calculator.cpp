@@ -8,47 +8,11 @@
 
 using namespace std;
 
-void usage()
+void parse(const std::string& str)
 {
-    cout << "Usage: \n";
-    cout << "    calculator -e \"expr\"\n";
-    cout << "    calculator -f [filename]\n";
-}
-
-int main(int argc, char** argv)
-{
-    if(argc != 3)
-    {
-        usage();
-        return 1;
-    }
-
-    string type(argv[1]);
-
-    std::shared_ptr<istream> input;
-
-    // Create input stream, pass our cmd line arg to it
-    if(type == "-e")
-    {
-        input = std::make_shared<stringstream>(argv[2]);
-    }
-    else if(type == "-f")
-    {
-        input = std::make_shared<ifstream>(argv[2]);
-        if(!input->good())
-        {
-            cout << "Cannot open file\n";
-            usage();
-            return 2;
-        }
-    }
-    else
-    {
-        usage();
-    }
-
     // Create a scanner for the stream
-    auto scanner = std::make_shared<hermes::Scanner>(input);
+    auto input = std::make_shared<stringstream>(str);
+    auto scanner = hermes::Scanner::New(input);
     // Create the parser
     hermes::Parser parser;
     // Parse the stream
@@ -62,4 +26,17 @@ int main(int argc, char** argv)
     {
         cout << "Error: " << err.what() << "\n";
     }
+}
+
+int main(int argc, char** argv)
+{
+    while(true)
+    {
+        char str[256];
+        std::cout << "> ";
+        cin.getline(str, 256);
+        parse(std::string(str));
+    }
+
+    return 0;
 }

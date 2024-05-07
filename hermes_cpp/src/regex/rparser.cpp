@@ -41,7 +41,7 @@ NodePtr hermes::parseRegexPattern(const char* str)
     }
     NodePtr regex = parseAlternation(str, pos);
 
-    if(!regex || str[pos] != 0)
+    if(!regex || pos != -1)
     {
         THROW(
             "rparser::parseRegexPattern()",
@@ -58,7 +58,7 @@ NodePtr parseAlternation(const char* str, int& pos)
     NodePtr p1 = parseConcat(str, pos);
 
     // Check for additional alternations
-    while(p1 && str[pos] == '|')
+    while(p1 && pos >= 0 && str[pos] == '|')
     {
         // inc past the bar
         ++pos;
@@ -91,7 +91,7 @@ NodePtr parseConcat(const char* str, int& pos)
 {
     NodePtr p1 = parseRepetition(str, pos);
 
-    while(p1 && str[pos] != 0 && str[pos] != '|' && str[pos] != ')')
+    while(p1 && pos >= 0 && str[pos] != '|' && str[pos] != ')')
     {
         NodePtr p2 = parseRepetition(str, pos);
         p1 = std::make_shared<ConcatNode>(p1, p2);
@@ -143,7 +143,7 @@ NodePtr parseRepetition(const char* str, int& pos)
 {
     NodePtr p = parseAtomicNode(str, pos);
 
-    if(p && str[pos] != 0)
+    if(p && pos >= 0)
     {
         // attempt to parse repetition marks
         p = recurseRepetition(str, pos, p);
@@ -158,7 +158,8 @@ NodePtr parseAtomicNode(const char* str, int& pos)
 
     if(c == 0)
     {
-        return std::shared_ptr<Node>();
+        pos = -1;
+        return std::make_shared<EndOfStringNode>();
     }
 
     if(c == '\\')
@@ -254,7 +255,7 @@ NodePtr parseGroup(const char* str, int& pos)
         ++pos;
     }
     NodePtr internal = parseAlternation(str, pos);
-    if(!internal)
+    if(!internal || pos == -1)
     {
         THROW("rparser::parseGroup()", "Empty parenthesis is not allowed");
     }

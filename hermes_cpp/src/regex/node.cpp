@@ -9,17 +9,18 @@ LiteralNode::LiteralNode(char sym)
 {
 }
 
-bool LiteralNode::match(const char* str, int& pos)
+bool LiteralNode::match(const char* str, Match& m)
 {
-    if(str[pos] == 0)
+    if(str[m.pos] == 0)
     {
+        m.partial = true;
         return false;
     }
 
-    bool out = str[pos] == sym;
+    bool out = str[m.pos] == sym;
     if(out)
     {
-        ++pos;
+        ++m.pos;
     }
     return out;
 }
@@ -63,14 +64,15 @@ CharClassNode::CharClassNode()
 {
 }
 
-bool CharClassNode::match(const char* str, int& pos)
+bool CharClassNode::match(const char* str, Match& m)
 {
-    if(str[pos] == 0)
+    if(str[m.pos] == 0)
     {
+        m.partial = true;
         return false;
     }
 
-    const char val = str[pos];
+    const char val = str[m.pos];
 
     bool found = false;
     for(const char x : syms)
@@ -85,7 +87,7 @@ bool CharClassNode::match(const char* str, int& pos)
     bool out = found ^ invert;
     if(out)
     {
-        ++pos;
+        ++m.pos;
     }
     return out;
 }
@@ -123,14 +125,15 @@ DotNode::DotNode()
 {
 }
 
-bool DotNode::match(const char* str, int& pos)
+bool DotNode::match(const char* str, Match& m)
 {
-    if(str[pos] == 0)
+    if(str[m.pos] == 0)
     {
+        m.partial = true;
         return false;
     }
 
-    ++pos;
+    ++m.pos;
     return true;
 }
 
@@ -145,11 +148,11 @@ ConcatNode::ConcatNode(NodePtr p1, NodePtr p2)
 {
 }
 
-bool ConcatNode::match(const char* str, int& pos)
+bool ConcatNode::match(const char* str, Match& m)
 {
-    if(p1->match(str, pos))
+    if(p1->match(str, m))
     {
-        return p2->match(str, pos);
+        return p2->match(str, m);
     }
 
     return false;
@@ -169,13 +172,13 @@ AlterationNode::AlterationNode(NodePtr p1, NodePtr p2)
 {
 }
 
-bool AlterationNode::match(const char* str, int& pos)
+bool AlterationNode::match(const char* str, Match& m)
 {
-    if(p1->match(str, pos))
+    if(p1->match(str, m))
     {
         return true;
     }
-    if(p2->match(str, pos))
+    if(p2->match(str, m))
     {
         return true;
     }
@@ -199,19 +202,19 @@ RepetitionNode::RepetitionNode(NodePtr p, int min, int max)
 {
 }
 
-bool RepetitionNode::match(const char* str, int& pos)
+bool RepetitionNode::match(const char* str, Match& m)
 {
     int matches = 0;
 
     // Loop until max matches, or maybe forever
     while(max == -1 || matches < max)
     {
-        int curPos = pos;
+        int curPos = m.pos;
         // Break when we don't get a match
-        if(!p->match(str, pos))
+        if(!p->match(str, m))
         {
-            // reset back to the start of the current match
-            pos = curPos;
+            // reset back to the prev match
+            m.pos = curPos;
             break;
         }
 
@@ -262,9 +265,9 @@ GroupNode::GroupNode(NodePtr p)
 {
 }
 
-bool GroupNode::match(const char* str, int& pos)
+bool GroupNode::match(const char* str, Match& m)
 {
-    return p->match(str, pos);
+    return p->match(str, m);
 }
 
 std::string GroupNode::toStr()
@@ -280,11 +283,14 @@ LookAheadNode::LookAheadNode(NodePtr p, bool negative)
 {
 }
 
-bool LookAheadNode::match(const char* str, int& pos)
+bool LookAheadNode::match(const char* str, Match& m)
 {
-    int startPos = pos;
-    bool good = p->match(str, pos);
-    pos = startPos;
+    // copy the current state
+    Match start = m;
+    // pass copy instead of m
+    // this is so we don't accidentally set the partial flag
+    // and that none of the str is consumed
+    bool good = p->match(str, start);
     return good ^ negative;
 }
 
@@ -304,4 +310,18 @@ std::string LookAheadNode::toStr()
     ss << p->toStr() << ")";
 
     return ss.str();
+}
+
+EndOfStringNode::EndOfStringNode()
+{
+}
+
+bool EndOfStringNode::match(const char* str, Match& m)
+{
+    return str[m.pos] == 0;
+}
+
+std::string EndOfStringNode::toStr()
+{
+    return "$";
 }
