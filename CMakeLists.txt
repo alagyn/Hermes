@@ -136,5 +136,6 @@ endfunction()
 option(HERMES_TESTS "Enable Hermes Test builds" OFF)
 
 if(${HERMES_TESTS})
+    add_subdirectory(third-party)
     add_subdirectory(tests)
 endif()

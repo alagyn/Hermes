@@ -7,11 +7,10 @@
             "binaryDir": "${sourceDir}/build",
             
             "cacheVariables": {
-                "HERMES_TEST": {
+                "HERMES_TESTS": {
                     "type": "BOOL",
                     "value": "ON"
-                },
-                "HERMES_GRAMMAR": "${sourceDir}/tests/grammars/calculator.hm"
+                }
             }
         }
     ],

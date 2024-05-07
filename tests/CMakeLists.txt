@@ -9,7 +9,7 @@ target_link_libraries(tests
     hermes_regex
 )
 
-add_executable(calculator cpp_tests/calculator.cpp)
+add_executable(calculator test_execs/calculator.cpp)
 
 add_hermes_grammer(
     DEBUG
