@@ -1,10 +1,6 @@
-#include <hermes/errors.h>
-#include <hermes/parser.h>
-#include <hermes/scanner.h>
-
 #include <hermes/calc_parser.h>
+#include <hermes/errors.h>
 
-#include <fstream>
 #include <iostream>
 #include <sstream>
 
@@ -29,6 +25,7 @@ void parse(const std::string& str)
 
 int main(int argc, char** argv)
 {
+    // REPL
     while(true)
     {
         char str[256];
