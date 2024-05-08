@@ -1,8 +1,6 @@
+#include <hermes/calc_parser.h>
 #include <hermes/errors.h>
-#include <hermes/parser.h>
-#include <hermes/scanner.h>
 
-#include <fstream>
 #include <iostream>
 #include <sstream>
 
@@ -12,13 +10,10 @@ void parse(const std::string& str)
 {
     // Create a scanner for the stream
     auto input = std::make_shared<stringstream>(str);
-    auto scanner = hermes::Scanner::New(input);
-    // Create the parser
-    hermes::Parser parser;
     // Parse the stream
     try
     {
-        int out = parser.parse(scanner);
+        int out = hermes::parse_calc(input);
         // Print the result
         cout << "Result: " << out << "\n";
     }
@@ -30,6 +25,7 @@ void parse(const std::string& str)
 
 int main(int argc, char** argv)
 {
+    // REPL
     while(true)
     {
         char str[256];

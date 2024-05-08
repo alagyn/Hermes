@@ -17,7 +17,7 @@ NAME = "[a-zA-Z_]+";
 SEMICOLON = ';';
 STRING = "\"[^\"]+\"";
 ```
-Regex strings can be wrapped in either single or double quotes to the same effect, and inner quotes can be escaped with backslashes. Otherwise, regex follow the boost regex as described above. You cannot have more than one token with the same name, and you cannot have an empty regex string.
+Regex strings can be wrapped in either single or double quotes to the same effect, and inner quotes can be escaped with backslashes. Otherwise, regex follow the specification [described here](regex.md). You cannot have more than one token with the same name, and you cannot have an empty regex string.
 
 ### Rules
 Rules describe your Context-Free-Grammer. They are composed of Tokens (a.k.a Terminals) and Nonterminals. Nonterminals are best described as intermediate steps, where terminals are your base building blocks. New nonterminals are created simply by creating a rule with a new name on the left hand side. The right hand side is composed of any number of "symbols" (Terminals and Nonterminals), then a code block enclosed in curly brackets (more on that later) and ends with a semicolon. By convention, nonterminals are all lowercase, but again they can be any combination of letters and underscores.

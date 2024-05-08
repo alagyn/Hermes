@@ -13,7 +13,7 @@ could be turned into the following tokens:
 ```
 TYPE_INT NAME OPERATOR_EQUALS LITERAL_INT SEMICOLON
 ```
-Tokens are defined via *regular expression* (a.k.a regex), in particular they must conform to the [default boost regex syntax](https://www.boost.org/doc/libs/1_82_0/libs/regex/doc/html/boost_regex/syntax/perl_syntax.html). Another importnant thing to note, is that the Hermes scanner (like most scanners) operates under the *maximal-munch principle* which essentially means that it will always produce the longest token it can, in the case of a tie. This is the difference between turning `interior` into `int erior` or `interior`, if you have tokens that matches `int` and `interior`.
+Tokens are defined via *regular expression* (a.k.a regex). Hermes uses a regex syntax that is a subset of the Perl regex specification. See [the regex docs](regex.md) for more info. Another important thing to note, is that the Hermes scanner (like most scanners) operates under the *maximal-munch principle* which essentially means that it will always produce the longest token it can, in the case of a tie. This is the difference between turning `interior` into `int erior` or `interior`, if you have tokens that matches `int` and `interior`.
 
 __Parser__:
 The parser takes in a stream of tokens, and performs a number of actions as defined by a *Deterministic Finite Automata*. This automata is created from your input grammar. In particular, Hermes consumes a *Context Free Grammar* (CFG) and produces an LALR(1) Automata (More automata flavors may come later).  

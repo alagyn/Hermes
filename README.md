@@ -11,10 +11,14 @@ It's like Bison's estranged younger brother.
 
 ```cmake
 
-set(GRAMMAR "yourGrammerFile.hm")
-add_subdirectory(hermes)
+add_subdirectory(Hermes)
 
-target_link_libraries(yourTarget hermes)
+add_hermes_grammar(
+    TARGET myParser
+    GRAMMAR myGrammar.hm
+)
+
+target_link_libraries(yourTarget myParser)
 
 ```
 
@@ -71,32 +75,78 @@ factor
 
 App:
 ```c++
-#include <hermes/parser.h>
-#include <hermes/scanner.h>
+#include <hermes/calc_parser.h>
+#include <hermes/errors.h>
 
 #include <iostream>
 #include <sstream>
 
 using namespace std;
 
+void parse(const std::string& str)
+{
+    // Create a scanner for the stream
+    auto input = std::make_shared<stringstream>(str);
+    // Parse the stream
+    try
+    {
+        int out = hermes::parse_calc(input);
+        // Print the result
+        cout << "Result: " << out << "\n";
+    }
+    catch(const HermesError& err)
+    {
+        cout << "Error: " << err.what() << "\n";
+    }
+}
+
 int main(int argc, char** argv)
 {
-    if(argc != 2)
+    while(true)
     {
-        cout << "Usage: calculator 'expr'\n";
-        return 1;
+        char str[256];
+        std::cout << "> ";
+        cin.getline(str, 256);
+        parse(std::string(str));
     }
 
-    auto ssPtr = std::make_shared<stringstream>();
-    stringstream& ss = *ssPtr;
+    return 0;
+}#include <hermes/calc_parser.h>
+#include <hermes/errors.h>
 
-    ss << argv[1];
+#include <iostream>
+#include <sstream>
 
-    auto scanner = std::make_shared<hermes::Scanner>(ssPtr);
-    hermes::Parser parser;
+using namespace std;
 
-    int out = parser.parse(scanner);
+void parse(const std::string& str)
+{
+    // Create a scanner for the stream
+    auto input = std::make_shared<stringstream>(str);
+    // Parse the stream
+    try
+    {
+        int out = hermes::parse_calc(input);
+        // Print the result
+        cout << "Result: " << out << "\n";
+    }
+    catch(const HermesError& err)
+    {
+        cout << "Error: " << err.what() << "\n";
+    }
+}
 
-    cout << "Result: " << out << "\n";
+int main(int argc, char** argv)
+{
+    // REPL
+    while(true)
+    {
+        char str[256];
+        std::cout << "> ";
+        cin.getline(str, 256);
+        parse(std::string(str));
+    }
+
+    return 0;
 }
 ```

@@ -7,56 +7,9 @@ find_package(Python3
         COMPONENTS Interpreter
 )
 
-# This will let users specify their grammar and then add_subdiretory to this
-set(HERMES_GRAMMAR ${HERMES_GRAMMAR} CACHE FILEPATH "The input grammar file")
-
-OPTION(HERMES_TEST "Build tests" OFF)
-
-set(HERMES_DEBUG OFF CACHE BOOL "Enable Parser debug statements")
-set(HERMES_DESC_FILE "" CACHE PATH "Optional automata description output file")
-
-if(NOT EXISTS "${HERMES_GRAMMAR}")
-    message(FATAL_ERROR "Grammar file: \"${HERMES_GRAMMAR}\" not found")
-endif()
-
-# Hidden generated include files
-set(HERMES_HIDDEN_INC ${CMAKE_CURRENT_BINARY_DIR}/hidden)
-# Public generated include files
-set(HERMES_PUBLIC_INC ${CMAKE_CURRENT_BINARY_DIR}/inc)
-
-set(HERMES_PARSE_TABLE_FILE ${HERMES_HIDDEN_INC}/hermes/_parseTable.h)
-set(HERMES_SYMBOL_FILE ${HERMES_PUBLIC_INC}/hermes/symbol.h)
-
-set(HERMES_GEN_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/hermes_gen)
-set(HERMES_CPP_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/hermes_cpp)
-
-
-if(NOT HERMES_DESC_FILE STREQUAL "")
-    # Make the desc file relative to the source root
-    if(NOT IS_ABSOLUTE ${HERMES_DESC_FILE})
-    cmake_path(ABSOLUTE_PATH HERMES_DESC_FILE
-        BASE_DIRECTORY ${CMAKE_SOURCE_DIR}
-        NORMALIZE
-        OUTPUT_VARIABLE _HERMES_DESC_FILE 
-        )
-    else()
-        set(_HERMES_DESC_FILE ${HERMES_DESC_FILE})
-    endif()
-endif()
-
-
-## Regex Lib
-add_library(hermes_regex SHARED
-    ${HERMES_CPP_ROOT}/src/regex/node.cpp
-    ${HERMES_CPP_ROOT}/src/regex/regex.cpp
-    ${HERMES_CPP_ROOT}/src/regex/rparser.cpp
-)
-
-target_include_directories(hermes_regex
-    PUBLIC
-        hermes_cpp/inc
-)
-
+set(HERMES_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+set(HERMES_GEN_ROOT ${HERMES_ROOT}/hermes_gen)
+set(HERMES_CPP_ROOT ${HERMES_ROOT}/hermes_cpp)
 
 set(PY_FILES
     ${HERMES_GEN_ROOT}/consts.py
@@ -64,68 +17,129 @@ set(PY_FILES
     ${HERMES_GEN_ROOT}/errors.py
     ${HERMES_GEN_ROOT}/lalr1_automata.py
     ${HERMES_GEN_ROOT}/main.py
+    ${HERMES_GEN_ROOT}/writers/hermesHeader.py
+    ${HERMES_GEN_ROOT}/writers/loader.py
+    ${HERMES_GEN_ROOT}/writers/parseTable.py
 )
 
-set(CPP_FILES
-    ${HERMES_CPP_ROOT}/src/parser.cpp
+add_library(hermes
     ${HERMES_CPP_ROOT}/src/scanner.cpp
-    ${HERMES_CPP_ROOT}/src/parseTableImpl.cpp
+    ${HERMES_CPP_ROOT}/src/parseTable.cpp
+    ${HERMES_CPP_ROOT}/src/regex/node.cpp
+    ${HERMES_CPP_ROOT}/src/regex/regex.cpp
+    ${HERMES_CPP_ROOT}/src/regex/rparser.cpp
 )
 
-#message("PT: ${HERMES_PARSE_TABLE_FILE}")
-#message("ST: ${HERMES_SYMBOL_FILE}")
-#message("DF: ${HERMES_DESC_FILE}")
-
-# Custom command to generate the header
-add_custom_command(
-    OUTPUT ${HERMES_PARSE_TABLE_FILE} ${HERMES_SYMBOL_FILE} ${_HERMES_DESC_FILE}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMAND
-        ${Python3_EXECUTABLE} -m hermes_gen.main
-            --table ${HERMES_PARSE_TABLE_FILE}
-            --symbol ${HERMES_SYMBOL_FILE}
-            --automata "${_HERMES_DESC_FILE}"
-            ${HERMES_GRAMMAR}
-    VERBATIM
-    COMMENT "Generating ${HERMES_PARSE_TABLE_FILE}"
-    DEPENDS ${HERMES_GRAMMAR} ${PY_FILES}
-)
-
-# Add target to generate parse table
-add_custom_target(parse_table
-    DEPENDS ${HERMES_PARSE_TABLE_FILE} ${HERMES_GRAMMAR} ${PY_FILES}
-)
-
-# Add library
-add_library(${PROJECT_NAME} SHARED
-    ${CPP_FILES}
-)
-
-# Add dependency on parse_table
-add_dependencies(${PROJECT_NAME} parse_table)
-
-target_include_directories(${PROJECT_NAME}
+target_include_directories(hermes
     PUBLIC
         hermes_cpp/inc
-        ${HERMES_PUBLIC_INC}
-    PRIVATE
-        ${HERMES_HIDDEN_INC}
-        ${HERMES_ADDITIONAL_INCLUDES}
 )
 
-target_link_libraries(${PROJECT_NAME}
-    PRIVATE
-        hermes_regex
-)
+option(HERMES_TESTS "Enable Hermes Test builds" OFF)
 
-if(${HERMES_DEBUG})
-target_compile_definitions(${PROJECT_NAME}
-    PRIVATE
-        HERMES_PARSE_DEBUG
-)
-endif()
 
-if(${HERMES_TEST})
+function(add_hermes_grammer)
+    set(options DEBUG)
+    set(single_args TARGET GRAMMAR DESC_FILE)
+    set(multivalue_args)
+
+    cmake_parse_arguments(ARGS "${options}" "${single_args}" "${multivalue_args}" ${ARGN})
+
+    if(NOT ${ARGS_GRAMMAR} STREQUAL "")
+        # Make the desc file relative to the source root
+        if(NOT IS_ABSOLUTE ${ARGS_GRAMMAR})
+            cmake_path(ABSOLUTE_PATH ARGS_GRAMMAR
+                BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                NORMALIZE
+                OUTPUT_VARIABLE GRAMMAR 
+            )
+        else()
+            set(GRAMMAR ${ARGS_GRAMMAR})
+        endif()
+    endif()
+
+    if(NOT EXISTS "${GRAMMAR}")
+        message(FATAL_ERROR "Grammar file: \"${GRAMMAR}\" not found")
+    endif()
+
+    if(NOT ${ARGS_DESC_FILE} STREQUAL "")
+        # Make the desc file relative to the source root
+        if(NOT IS_ABSOLUTE ${ARGS_DESC_FILE})
+            cmake_path(ABSOLUTE_PATH ARGS_DESC_FILE
+                BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                NORMALIZE
+                OUTPUT_VARIABLE DESC_FILE 
+            )
+        else()
+            set(DESC_FILE ${ARGS_DESC_FILE})
+        endif()
+    endif()
+
+    # Private generated include files
+    set(PRIVATE_INC ${CMAKE_CURRENT_BINARY_DIR}/hidden)
+    # Public generated include files
+    set(PUBLIC_INC ${CMAKE_CURRENT_BINARY_DIR}/inc)
+
+
+    set(PARSE_TABLE_FILE ${PRIVATE_INC}/hermes/${ARGS_TARGET}_parseTable.h)
+    set(LOADER_HEADER_FILE ${PUBLIC_INC}/hermes/${ARGS_TARGET}_parser.h)
+    set(LOADER_IMPL_FILE ${PRIVATE_INC}/hermes/${ARGS_TARGET}_parser.cpp)
+
+    set(OUTPUTS ${PARSE_TABLE_FILE} ${LOADER_HEADER_FILE} ${LOADER_IMPL_FILE})
+
+    # Custom command to generate the header
+    add_custom_command(
+        OUTPUT ${OUTPUTS}
+        WORKING_DIRECTORY ${HERMES_ROOT}
+        COMMAND
+            ${Python3_EXECUTABLE} -m hermes_gen.main
+                --name ${ARGS_TARGET}
+                --table ${PARSE_TABLE_FILE}
+                --loader ${LOADER_HEADER_FILE}
+                --impl ${LOADER_IMPL_FILE}
+                --automata "${DESC_FILE}"
+                ${GRAMMAR}
+        VERBATIM
+        DEPENDS ${GRAMMAR} ${PY_FILES}
+    )
+
+    # Add target to generate parse table
+    add_custom_target(${ARGS_TARGET}_parse_table
+        DEPENDS ${OUTPUTS} ${GRAMMAR} ${PY_FILES}
+    )
+
+    # Add library
+    add_library(${ARGS_TARGET}
+        ${LOADER_IMPL_FILE}
+    )
+
+    # Add dependency on parse_table
+    add_dependencies(${ARGS_TARGET} ${ARGS_TARGET}_parse_table)
+
+    target_include_directories(${ARGS_TARGET}
+        PUBLIC
+            ${HERMES_ROOT}/hermes_cpp/inc
+            ${PUBLIC_INC}
+        PRIVATE
+            ${PRIVATE_INC}
+    )
+    
+    target_link_libraries(${ARGS_TARGET}
+        PRIVATE
+            hermes
+    )
+    
+    if(${ARGS_DEBUG})
+        target_compile_definitions(${ARGS_TARGET}
+            PRIVATE
+                HERMES_PARSE_DEBUG
+        )
+        message("Added Hermes target ${ARGS_TARGET} for grammar ${ARGS_GRAMMAR} in ${CMAKE_CURRENT_SOURCE_DIR}")
+    endif()
+
+endfunction()
+
+if(${HERMES_TESTS})
     add_subdirectory(third-party)
     add_subdirectory(tests)
 endif()

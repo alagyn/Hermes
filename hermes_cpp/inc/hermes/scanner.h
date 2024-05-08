@@ -1,27 +1,45 @@
 #pragma once
 
+#include <hermes/regex/regex.h>
+
 #include <istream>
 #include <memory>
 #include <string>
 
 namespace hermes {
 
-enum class Symbol;
-
-typedef struct
+struct ParseToken
 {
-    Symbol symbol;
+    unsigned symbol;
     std::string text;
     unsigned lineNum;
     unsigned charNum;
-} ParseToken;
+};
+
+struct Terminal
+{
+    // Symbol ID
+    unsigned id;
+    Regex re;
+};
 
 class Scanner
 {
 public:
-    static std::shared_ptr<Scanner> New(std::shared_ptr<std::istream> handle);
+    static std::shared_ptr<Scanner>
+    New(std::shared_ptr<std::istream> handle,
+        const Terminal* terminals,
+        size_t numTerminals,
+        unsigned symbolEOF,
+        unsigned symbolIGNORE);
 
-    Scanner(std::shared_ptr<std::istream> handle);
+    Scanner(
+        std::shared_ptr<std::istream> handle,
+        const Terminal* terminals,
+        size_t numTerminals,
+        unsigned symbolEOF,
+        unsigned symbolIGNORE
+    );
 
     ParseToken nextToken();
 
@@ -35,6 +53,12 @@ private:
     unsigned lineNum;
     unsigned charNum;
     unsigned lastLineLength;
+
+    const unsigned symbolEOF;
+    const unsigned symbolIGNORE;
+
+    const Terminal* terminals;
+    size_t numTerminals;
 };
 
 } //namespace hermes

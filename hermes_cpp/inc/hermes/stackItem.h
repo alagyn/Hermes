@@ -2,12 +2,11 @@
 
 #include <string>
 
-#include <hermes/symbol.h>
-
 namespace hermes {
 
 typedef unsigned HState;
 
+template<typename HermesReturn>
 class StackItem
 {
 public:
@@ -19,7 +18,7 @@ public:
     }
 
     virtual std::string t() = 0;
-    virtual HERMES_RETURN nt() = 0;
+    virtual HermesReturn nt() = 0;
 };
 
 } //namespace hermes
