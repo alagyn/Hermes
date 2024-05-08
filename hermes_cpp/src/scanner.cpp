@@ -12,9 +12,21 @@ using namespace std;
 
 namespace hermes {
 
-std::shared_ptr<Scanner> Scanner::New(std::shared_ptr<std::istream> handle)
+std::shared_ptr<Scanner> Scanner::New(
+    std::shared_ptr<std::istream> handle,
+    const Terminal* terminals,
+    size_t numTerminals,
+    unsigned symbolEOF,
+    unsigned symbolIGNORE
+)
 {
-    return std::make_shared<Scanner>(handle);
+    return std::make_shared<Scanner>(
+        handle,
+        terminals,
+        numTerminals,
+        symbolEOF,
+        symbolIGNORE
+    );
 }
 
 char Scanner::get()
@@ -61,18 +73,28 @@ void Scanner::unget()
     }
 }
 
-Scanner::Scanner(std::shared_ptr<std::istream> handle)
+Scanner::Scanner(
+    std::shared_ptr<std::istream> handle,
+    const Terminal* terminals,
+    size_t numTerminals,
+    unsigned symbolEOF,
+    unsigned symbolIGNORE
+)
     : handle(handle)
     , lineNum(1)
     , charNum(1)
     , lastLineLength(0)
+    , terminals(terminals)
+    , numTerminals(numTerminals)
+    , symbolEOF(symbolEOF)
+    , symbolIGNORE(symbolIGNORE)
 {
 }
 
 ParseToken Scanner::nextToken()
 {
     ParseToken out = _nextToken();
-    while(out.symbol == Symbol::__IGNORE__)
+    while(out.symbol == symbolIGNORE)
     {
         out = _nextToken();
     }
@@ -87,7 +109,7 @@ ParseToken Scanner::_nextToken()
 
     if(handle->eof())
     {
-        out.symbol = Symbol::__EOF__;
+        out.symbol = symbolEOF;
         return out;
     }
 
@@ -113,13 +135,14 @@ ParseToken Scanner::_nextToken()
             if(foundMatch)
             {
                 bool found = false;
-                for(auto& x : getTerminals())
+                for(size_t i = 0; i < numTerminals; ++i)
                 {
-                    Match m = x.re.match(out.text);
+                    const Terminal& term = terminals[i];
+                    Match m = term.re.match(out.text);
                     if(m.match)
                     {
                         // Take the first that matches
-                        out.symbol = x.id;
+                        out.symbol = term.id;
                         found = true;
                         break;
                     }
@@ -159,9 +182,10 @@ ParseToken Scanner::_nextToken()
 
         bool foundNewMatch = false;
         foundPartial = false;
-        for(auto& t : getTerminals())
+        for(size_t i = 0; i < numTerminals; ++i)
         {
-            Match m = t.re.match(out.text);
+            const Terminal& term = terminals[i];
+            Match m = term.re.match(out.text);
             if(m.match)
             {
                 foundNewMatch = true;
@@ -192,8 +216,9 @@ ParseToken Scanner::_nextToken()
             /*
                 Find the first terminal that matches
             */
-            for(auto& term : getTerminals())
+            for(size_t i = 0; i < numTerminals; ++i)
             {
+                const Terminal& term = terminals[i];
                 Match m = term.re.match(out.text);
                 if(m.match)
                 {
@@ -212,7 +237,7 @@ ParseToken Scanner::_nextToken()
 
     if(out.text.empty())
     {
-        out.symbol = Symbol::__EOF__;
+        out.symbol = symbolEOF;
         return out;
     }
 

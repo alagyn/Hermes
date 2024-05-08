@@ -12,7 +12,6 @@ target_link_libraries(tests
 add_executable(calculator test_execs/calculator.cpp)
 
 add_hermes_grammer(
-    DEBUG
     TARGET calc
     GRAMMAR grammars/calculator.hm
 )

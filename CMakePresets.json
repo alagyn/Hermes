@@ -3,11 +3,16 @@
     "configurePresets": [
         {
             "name": "default",
-            "generator": "Ninja Multi-Config",
+            //"generator": "Ninja Multi-Config",
+            "generator": "Unix Makefiles",
             "binaryDir": "${sourceDir}/build",
             
             "cacheVariables": {
                 "HERMES_TESTS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "CMAKE_EXPORT_COMPILE_COMMANDS": {
                     "type": "BOOL",
                     "value": "ON"
                 }

@@ -11,32 +11,31 @@ set(HERMES_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(HERMES_GEN_ROOT ${HERMES_ROOT}/hermes_gen)
 set(HERMES_CPP_ROOT ${HERMES_ROOT}/hermes_cpp)
 
-## Regex Lib
-add_library(hermes_regex SHARED
-    ${HERMES_CPP_ROOT}/src/regex/node.cpp
-    ${HERMES_CPP_ROOT}/src/regex/regex.cpp
-    ${HERMES_CPP_ROOT}/src/regex/rparser.cpp
-)
-
-target_include_directories(hermes_regex
-    PUBLIC
-        hermes_cpp/inc
-)
-
-
 set(PY_FILES
     ${HERMES_GEN_ROOT}/consts.py
     ${HERMES_GEN_ROOT}/grammar.py
     ${HERMES_GEN_ROOT}/errors.py
     ${HERMES_GEN_ROOT}/lalr1_automata.py
     ${HERMES_GEN_ROOT}/main.py
+    ${HERMES_GEN_ROOT}/writers/hermesHeader.py
+    ${HERMES_GEN_ROOT}/writers/loader.py
+    ${HERMES_GEN_ROOT}/writers/parseTable.py
 )
 
-set(CPP_FILES
-    ${HERMES_CPP_ROOT}/src/parser.cpp
+add_library(hermes
     ${HERMES_CPP_ROOT}/src/scanner.cpp
-    ${HERMES_CPP_ROOT}/src/parseTableImpl.cpp
+    ${HERMES_CPP_ROOT}/src/parseTable.cpp
+    ${HERMES_CPP_ROOT}/src/regex/node.cpp
+    ${HERMES_CPP_ROOT}/src/regex/regex.cpp
+    ${HERMES_CPP_ROOT}/src/regex/rparser.cpp
 )
+
+target_include_directories(hermes
+    PUBLIC
+        hermes_cpp/inc
+)
+
+option(HERMES_TESTS "Enable Hermes Test builds" OFF)
 
 
 function(add_hermes_grammer)
@@ -76,22 +75,28 @@ function(add_hermes_grammer)
         endif()
     endif()
 
-    # Hidden generated include files
-    set(HIDDEN_INC ${CMAKE_CURRENT_BINARY_DIR}/hidden)
+    # Private generated include files
+    set(PRIVATE_INC ${CMAKE_CURRENT_BINARY_DIR}/hidden)
     # Public generated include files
     set(PUBLIC_INC ${CMAKE_CURRENT_BINARY_DIR}/inc)
 
-    set(PARSE_TABLE_FILE ${HIDDEN_INC}/hermes/${ARGS_TARGET}_parseTable.h)
-    set(SYMBOL_FILE ${PUBLIC_INC}/hermes/${ARGS_TARGET}_symbol.h)
+
+    set(PARSE_TABLE_FILE ${PRIVATE_INC}/hermes/${ARGS_TARGET}_parseTable.h)
+    set(LOADER_HEADER_FILE ${PUBLIC_INC}/hermes/${ARGS_TARGET}_parser.h)
+    set(LOADER_IMPL_FILE ${PRIVATE_INC}/hermes/${ARGS_TARGET}_parser.cpp)
+
+    set(OUTPUTS ${PARSE_TABLE_FILE} ${LOADER_HEADER_FILE} ${LOADER_IMPL_FILE})
 
     # Custom command to generate the header
     add_custom_command(
-        OUTPUT ${PARSE_TABLE_FILE}
+        OUTPUT ${OUTPUTS}
         WORKING_DIRECTORY ${HERMES_ROOT}
         COMMAND
             ${Python3_EXECUTABLE} -m hermes_gen.main
+                --name ${ARGS_TARGET}
                 --table ${PARSE_TABLE_FILE}
-                --symbol ${SYMBOL_FILE}
+                --loader ${LOADER_HEADER_FILE}
+                --impl ${LOADER_IMPL_FILE}
                 --automata "${DESC_FILE}"
                 ${GRAMMAR}
         VERBATIM
@@ -100,12 +105,12 @@ function(add_hermes_grammer)
 
     # Add target to generate parse table
     add_custom_target(${ARGS_TARGET}_parse_table
-        DEPENDS ${PARSE_TABLE_FILE} ${GRAMMAR} ${PY_FILES}
+        DEPENDS ${OUTPUTS} ${GRAMMAR} ${PY_FILES}
     )
 
     # Add library
-    add_library(${ARGS_TARGET} SHARED
-        ${CPP_FILES}
+    add_library(${ARGS_TARGET}
+        ${LOADER_IMPL_FILE}
     )
 
     # Add dependency on parse_table
@@ -116,11 +121,12 @@ function(add_hermes_grammer)
             ${HERMES_ROOT}/hermes_cpp/inc
             ${PUBLIC_INC}
         PRIVATE
-            ${HIDDEN_INC}
+            ${PRIVATE_INC}
     )
     
     target_link_libraries(${ARGS_TARGET}
         PRIVATE
+            hermes
     )
     
     if(${ARGS_DEBUG})
@@ -132,8 +138,6 @@ function(add_hermes_grammer)
     endif()
 
 endfunction()
-
-option(HERMES_TESTS "Enable Hermes Test builds" OFF)
 
 if(${HERMES_TESTS})
     add_subdirectory(third-party)

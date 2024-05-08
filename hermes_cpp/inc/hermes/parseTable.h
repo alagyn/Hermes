@@ -1,7 +1,6 @@
 #pragma once
 
 #include <hermes/regex/regex.h>
-#include <hermes/symbol.h>
 
 #include <map>
 #include <string>
@@ -18,20 +17,6 @@ constexpr char R = 2;
 // Goto
 constexpr char G = 3;
 
-enum class Symbol;
-
-const std::string& symbolLookup(unsigned symbol);
-const std::string& symbolLookup(Symbol symbol);
-
-typedef struct
-{
-    Symbol id;
-    Regex re;
-} Terminal;
-
-const Terminal& getTerminal(Symbol symbol);
-const std::vector<Terminal>& getTerminals();
-
 typedef struct
 {
     // The number of states to pop
@@ -40,21 +25,88 @@ typedef struct
     unsigned short nonterm;
 } Reduction;
 
-const Reduction& getReduction(short rule);
-
-const unsigned numRows();
-const unsigned numCols();
-
 typedef struct
 {
     char action = E;
     unsigned short state = 0;
 } ParseAction;
 
-const ParseAction& getAction(unsigned state, unsigned symbol);
-const ParseAction& getAction(unsigned state, Symbol symbol);
-
+template<typename HermesReturn>
 class StackItem;
-HERMES_RETURN reduce(short rule, std::vector<std::shared_ptr<StackItem>>& items);
+
+template<typename HermesReturn>
+class ParseTable
+{
+    using StackItemPtr = std::shared_ptr<StackItem<HermesReturn>>;
+    using ReductionFunc = HermesReturn (*)(std::vector<StackItemPtr>);
+
+public:
+    const unsigned numCols;
+    const unsigned numRows;
+
+    static std::shared_ptr<ParseTable<HermesReturn>>
+    New(const ParseAction* parseTable,
+        unsigned numCols,
+        unsigned numRows,
+        const Reduction* reductions,
+        const ReductionFunc* reductionFuncs,
+        const std::string* symbolLookup)
+    {
+        return std::make_shared<ParseTable<HermesReturn>>(
+            parseTable,
+            numCols,
+            numRows,
+            reductions,
+            reductionFuncs,
+            symbolLookup
+        );
+    }
+
+    ParseTable(
+        const ParseAction* parseTable,
+        unsigned numCols,
+        unsigned numRows,
+        const Reduction* reductions,
+        const ReductionFunc* reductionFuncs,
+        const std::string* symbolLookup
+    )
+        : numCols(numCols)
+        , numRows(numRows)
+        , parseTable(parseTable)
+        , reductions(reductions)
+        , reductionFuncs(reductionFuncs)
+        , symbolLookup(symbolLookup)
+    {
+    }
+
+    inline HermesReturn reduce(
+        short rule,
+        std::vector<std::shared_ptr<StackItem<HermesReturn>>>& items
+    ) const
+    {
+        return reductionFuncs[rule](items);
+    }
+
+    inline const std::string& lookupSymbol(unsigned symbol) const
+    {
+        return symbolLookup[symbol];
+    }
+
+    inline const Reduction& getReduction(short rule) const
+    {
+        return reductions[rule];
+    }
+
+    inline const ParseAction& getAction(unsigned state, unsigned symbol) const
+    {
+        return parseTable[(state * numCols) + (symbol - 1)];
+    }
+
+private:
+    const ParseAction* parseTable;
+    const Reduction* reductions;
+    const ReductionFunc* reductionFuncs;
+    const std::string* symbolLookup;
+};
 
 } //namespace hermes
