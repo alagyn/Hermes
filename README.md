@@ -11,10 +11,14 @@ It's like Bison's estranged younger brother.
 
 ```cmake
 
-set(GRAMMAR "yourGrammerFile.hm")
-add_subdirectory(hermes)
+add_subdirectory(Hermes)
 
-target_link_libraries(yourTarget hermes)
+add_hermes_grammar(
+    TARGET myParser
+    GRAMMAR myGrammar.hm
+)
+
+target_link_libraries(yourTarget myParser)
 
 ```
 
