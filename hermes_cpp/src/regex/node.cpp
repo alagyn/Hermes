@@ -171,12 +171,22 @@ bool RepetitionNode::match(const char* str, Match& m)
     // Loop until max matches, or maybe forever
     while(max == -1 || matches < max)
     {
-        m.pos.push(m.pos.top());
+        // only push once we get above the min
+        // this prevents us backtracking below the min
+        if(matches >= min)
+        {
+            m.pos.push(m.pos.top());
+        }
+
         // Break when we don't get a match
         if(!p->match(str, m))
         {
-            // go back to the last good position
-            m.pos.pop();
+            // if we pushed
+            if(matches >= min)
+            {
+                // go back to the last good position
+                m.pos.pop();
+            }
             break;
         }
 

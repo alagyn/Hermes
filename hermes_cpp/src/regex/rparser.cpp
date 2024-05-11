@@ -474,32 +474,37 @@ NodePtr parseBracketRepetition(const char* str, int& pos, NodePtr inner)
             c = str[++pos];
         }
 
-        if(c < '0' || c > '9')
-        {
-            THROW(
-                "rparser::parseBracketRepetition()",
-                " Invalid bracket repetition, expected number, but "
-                "found '"
-                    << c << "' (" << static_cast<int>(c) << ")"
-            );
-        }
-
-        max = readNum(str, pos);
-        c = str[pos];
-        while(c == ' ')
-        {
-            c = str[++pos];
-        }
-
+        // if {3,}, min = 3, max = -1
         if(c != '}')
         {
-            THROW(
-                "rparser::parseBracketRepetition()",
-                " Invalid bracket repetition, expected closing bracket '}', "
-                "but "
-                "found '"
-                    << c << "' (" << static_cast<int>(c) << ")"
-            );
+            if(c < '0' || c > '9')
+            {
+                THROW(
+                    "rparser::parseBracketRepetition()",
+                    " Invalid bracket repetition, expected number, but "
+                    "found '"
+                        << c << "' (" << static_cast<int>(c) << ")"
+                );
+            }
+
+            max = readNum(str, pos);
+            c = str[pos];
+            while(c == ' ')
+            {
+                c = str[++pos];
+            }
+
+            if(c != '}')
+            {
+                THROW(
+                    "rparser::parseBracketRepetition()",
+                    " Invalid bracket repetition, expected closing bracket "
+                    "'}', "
+                    "but "
+                    "found '"
+                        << c << "' (" << static_cast<int>(c) << ")"
+                );
+            }
         }
     }
     else

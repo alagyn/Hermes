@@ -44,7 +44,11 @@ std::string RepetitionNode::toStr()
         ss << "{" << min;
         if(min != max)
         {
-            ss << "," << max;
+            ss << ",";
+            if(max != -1)
+            {
+                ss << max;
+            }
         }
         ss << "}";
     }

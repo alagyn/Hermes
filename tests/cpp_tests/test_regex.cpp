@@ -115,6 +115,46 @@ TEST_CASE("Regex ?", "[regex]")
     }
 }
 
+TEST_CASE("Regex {}", "[regex]")
+{
+    {
+        hermes::Regex r("ab{4}c");
+
+        check(r, "ab", false, true);
+        check(r, "abbbb", false, true);
+        check(r, "abbbbc");
+        check(r, "abbbc", false);
+    }
+
+    {
+        hermes::Regex r("ab{3,}c");
+        check(r, "abc", false);
+        check(r, "abbb", false, true);
+        check(r, "abbc", false);
+        check(r, "abbbc");
+        check(r, "abbbbbbbbbbbbbbbc");
+    }
+
+    {
+        hermes::Regex r("ab{2,}b{5,}c");
+        check(r, "abc", false);
+        /*
+            this tests to make sure the backtracking doesn't
+            go below the minimum reps
+        */
+        check(r, "abbbbbbc", false);
+    }
+
+    {
+        hermes::Regex r("ab{2,4}c");
+        check(r, "abc", false);
+        check(r, "abbc");
+        check(r, "abbbc");
+        check(r, "abbbbc");
+        check(r, "abbbbbc", false);
+    }
+}
+
 TEST_CASE("Regex CC Number", "[regex]")
 {
     hermes::Regex r1("\\d{3, 4}[- ]?[0-9]{4}[ -]?[0-56-9]{ 4 ,4}[ -]?\\d{4,4}");
@@ -176,6 +216,11 @@ TEST_CASE("Bad Regex", "[regex]")
     tryConstr("?a");
     tryConstr("{2}a");
     tryConstr("{2,3}a");
+
+    // bad alternations
+    tryConstr("|a");
+    tryConstr("a|");
+    tryConstr("(|)");
 }
 
 TEST_CASE("Char Class", "[regex]")
@@ -336,4 +381,39 @@ TEST_CASE("Lookahead", "[regex]")
 
         check(r, "Aasdf1");
     }
+}
+
+TEST_CASE("Escapes", "[regex]")
+{
+    singleCheck("a\\|", "a|");
+    singleCheck("a\\(", "a(");
+    singleCheck("a\\[", "a[");
+    singleCheck("a\\{", "a{");
+    singleCheck("a\\n", "a\n");
+    singleCheck("a\\d", "a3");
+    singleCheck("a\\d", "a1");
+    singleCheck("a\\d", "a9");
+    singleCheck("a\\d", "a0");
+    singleCheck("a\\l", "aa");
+    singleCheck("a\\l", "az");
+    singleCheck("a\\l", "ag");
+    singleCheck("a\\l", "aA", false);
+    singleCheck("a\\u", "aA");
+    singleCheck("a\\s", "a ");
+}
+
+TEST_CASE("Alternation", "[regex]")
+{
+    singleCheck("a|b", "a");
+    singleCheck("a|b", "b");
+    singleCheck("a|b|c", "c");
+    singleCheck("a|(b)|.", "b");
+    singleCheck("(a)|b|.", "a");
+    singleCheck("a(b|c)", "ab");
+    singleCheck("a(b|c)", "ac");
+    singleCheck("a(b|c)", "ad", false);
+    singleCheck("(a|b|c)", "c");
+    singleCheck("(a|b|c)", "a");
+    singleCheck("(a|b|c)", "b");
+    singleCheck("(a|(b)|.)", "b");
 }
