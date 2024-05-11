@@ -6,7 +6,7 @@ add_executable(tests
 target_link_libraries(tests
     PRIVATE
     Catch2::Catch2
-    hermes_regex
+    hermes
 )
 
 add_executable(calculator test_execs/calculator.cpp)
@@ -19,3 +19,7 @@ add_hermes_grammer(
 target_link_libraries(calculator
     PRIVATE calc
 )
+
+add_executable(regex-debug test_execs/regex-debug.cpp)
+
+target_link_libraries(regex-debug PRIVATE hermes)

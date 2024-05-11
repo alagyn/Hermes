@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stack>
+
 namespace hermes {
 
 class Match
@@ -7,13 +9,14 @@ class Match
 public:
     bool match;
     bool partial;
-    int pos;
+    std::stack<int> pos;
 
     Match()
         : match(false)
         , partial(false)
-        , pos(0)
+        , pos()
     {
+        pos.push(0);
     }
 };
 

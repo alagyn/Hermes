@@ -3,8 +3,8 @@
     "configurePresets": [
         {
             "name": "default",
-            //"generator": "Ninja Multi-Config",
-            "generator": "Unix Makefiles",
+            "generator": "Ninja Multi-Config",
+            //"generator": "Unix Makefiles",
             "binaryDir": "${sourceDir}/build",
             
             "cacheVariables": {

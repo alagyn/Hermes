@@ -17,8 +17,6 @@ NodePtr parseBracketRepetition(const char* str, int& pos, NodePtr inner);
 NodePtr parseGroup(const char* str, int& pos);
 NodePtr parseCharClass(const char* std, int& pos);
 
-// TODO make excepts contain char number
-
 #define THROW(loc, msg) \
     { \
         std::stringstream ss; \
@@ -91,10 +89,15 @@ NodePtr parseConcat(const char* str, int& pos)
 {
     NodePtr p1 = parseRepetition(str, pos);
 
-    while(p1 && pos >= 0 && str[pos] != '|' && str[pos] != ')')
+    /*
+        Recursively call parseConcat so we always
+        have concats on the right. This makes repetition
+        easier to backtrack with the stack
+     */
+    if(p1 && pos >= 0 && str[pos] != '|' && str[pos] != ')')
     {
-        NodePtr p2 = parseRepetition(str, pos);
-        p1 = std::make_shared<ConcatNode>(p1, p2);
+        NodePtr p2 = parseConcat(str, pos);
+        return std::make_shared<ConcatNode>(p1, p2);
     }
 
     return p1;
@@ -189,7 +192,6 @@ NodePtr parseAtomicNode(const char* str, int& pos)
         return std::make_shared<DotNode>();
     }
 
-    // TODO start/end line?
     THROW(
         "rparser::parseAtomicNode()",
         "Invalid pattern, expected atomic, got unknown '"
@@ -307,6 +309,10 @@ NodePtr parseCharClass(const char* str, int& pos)
             {
                 c = '\n';
             }
+            else if(c == 't')
+            {
+                c = '\t';
+            }
             else
             {
                 // char classes shortcuts
@@ -326,7 +332,12 @@ NodePtr parseCharClass(const char* str, int& pos)
                 {
                     out->pushRange('A', 'Z');
                 }
-                // TODO whitespace? \s
+                else if(c == 's')
+                {
+                    out->syms.push_back(' ');
+                    out->syms.push_back('\t');
+                    out->syms.push_back('\n');
+                }
                 else // not anything, just use the char as is
                 {
                     isClass = false;
@@ -383,6 +394,11 @@ NodePtr parseCharClass(const char* str, int& pos)
         }
 
         c = str[++pos];
+    }
+
+    if(out->syms.empty())
+    {
+        THROW("rparser::parseCharClass()", "Empty character class is invalid");
     }
 
     return out;

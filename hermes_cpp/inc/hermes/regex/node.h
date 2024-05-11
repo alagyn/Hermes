@@ -43,7 +43,10 @@ public:
 class DotNode : public Node
 {
 public:
-    DotNode();
+    DotNode()
+    {
+    }
+
     bool match(const char* str, Match& m) override;
     std::string toStr() override;
 };
@@ -123,7 +126,10 @@ public:
 class EndOfStringNode : public Node
 {
 public:
-    EndOfStringNode();
+    EndOfStringNode()
+    {
+    }
+
     bool match(const char* str, Match& m) override;
     std::string toStr() override;
 };

@@ -23,11 +23,12 @@ set(PY_FILES
 )
 
 add_library(hermes
-    ${HERMES_CPP_ROOT}/src/scanner.cpp
-    ${HERMES_CPP_ROOT}/src/parseTable.cpp
+    ${HERMES_CPP_ROOT}/src/regex/node_strs.cpp
     ${HERMES_CPP_ROOT}/src/regex/node.cpp
     ${HERMES_CPP_ROOT}/src/regex/regex.cpp
     ${HERMES_CPP_ROOT}/src/regex/rparser.cpp
+    ${HERMES_CPP_ROOT}/src/parseTable.cpp
+    ${HERMES_CPP_ROOT}/src/scanner.cpp
 )
 
 target_include_directories(hermes

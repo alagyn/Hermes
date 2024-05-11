@@ -4,9 +4,10 @@ Grouping: `(asdf)`
 Repetition: `a+ b* c? d{1, 4} e{2,} f{4}`
 Alternation: `(abc)|(def)`
 Character classes: `[ab][a-z][0-9][^xyz]`
-- Digits: `\d`
-- Uppercase: `\u`
-- Lowercase: `\l`
+- Digits: `\d` => `[0-9]`
+- Uppercase: `\u` => `[A-Z]`
+- Lowercase: `\l` => `[a-z]`
+- Whitespace: `\s` => `[\n \t]`
 Lookahead: 
 - Positive: `(?=abc)`
 - Negative: `(?!abc)`

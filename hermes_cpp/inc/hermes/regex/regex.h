@@ -19,6 +19,7 @@ public:
     Match match(const char* str) const;
 
     std::string toStr() const;
+    std::string annotate() const;
 
 private:
     std::shared_ptr<Node> root;

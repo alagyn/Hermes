@@ -20,11 +20,21 @@ void check(
 
     INFO(
         "Actual:    full=" << m.match << " partial=" << m.partial
-                           << " pos=" << m.pos
+                           << " pos=" << m.pos.top()
     );
 
-    CHECK(fullmatch == m.match);
-    CHECK(partial == m.partial);
+    CHECK((fullmatch == m.match && partial == m.partial));
+}
+
+void singleCheck(
+    const char* re,
+    const char* str,
+    bool fullmatch = true,
+    bool partial = false
+)
+{
+    hermes::Regex r(re);
+    check(r, str, fullmatch, partial);
 }
 
 TEST_CASE("Regex + #1", "[regex]")
@@ -144,6 +154,11 @@ TEST_CASE("Bad Regex", "[regex]")
     tryConstr("()");
     // unclosed class
     tryConstr("[");
+    tryConstr("[a");
+    tryConstr("a[a");
+    // empty class
+    tryConstr("a[]");
+    tryConstr("a[^]");
     // various bad bracket reps
     tryConstr("a{");
     tryConstr("a{a}");
@@ -214,25 +229,79 @@ TEST_CASE("Char Class", "[regex]")
         check(r, "8");
         check(r, "9");
     }
+
+    {
+        hermes::Regex r("[abc]");
+
+        check(r, "a");
+        check(r, "b");
+        check(r, "c");
+        check(r, "d", false);
+    }
+
+    {
+        hermes::Regex r("[^bcd]");
+
+        check(r, "a");
+        check(r, "b", false);
+        check(r, "d", false);
+        check(r, "e");
+    }
+
+    singleCheck("a[b]c", "abc");
+    singleCheck("a[b]c", "abc");
+    singleCheck("a[ab]c", "abc");
+    singleCheck("a[a^b]*c", "aba^c");
+    singleCheck("a[^ab]c", "adc");
+    singleCheck("a[[b]c", "a[c");
+    singleCheck("a[-b]c", "a-c");
+    singleCheck("a[^-b]c", "adc");
+    singleCheck("a[b-]c", "a-c");
+    singleCheck("a[a-z-]c", "a-c");
+    singleCheck("a[a-z-]+c", "aaz-c");
+    singleCheck("a[a-z-]+c", "aaz-cccc");
+
+    //partial because d is consumed by the class
+    singleCheck("a[a-z-]+c", "aaz-cd", false, true);
+
+    singleCheck("a[a-z-]+c", "aaz-c1", false);
+}
+
+TEST_CASE("Repetition", "[regex]")
+{
+    {
+        hermes::Regex r("ab{0,2}bb");
+
+        check(r, "ab", false, true);
+        check(r, "abb");
+        check(r, "abbb");
+        check(r, "abbbb");
+        check(r, "abbbbb", false);
+    }
 }
 
 TEST_CASE("Partial Matches", "[regex]")
 {
-    hermes::Regex r("ab{4}");
+    {
+        hermes::Regex r("ab{4}");
 
-    bool partial = false;
+        bool partial = false;
 
-    check(r, "abbbb");
-    check(r, "abbb", false, true);
-    check(r, "abb", false, true);
-    check(r, "ab", false, true);
-    check(r, "a", false, true);
-    check(r, "b", false, false);
+        check(r, "abbbbb", false, false);
+        check(r, "abbbb");
+        check(r, "abbb", false, true);
+        check(r, "abb", false, true);
+        check(r, "ab", false, true);
+        check(r, "a", false, true);
+        check(r, "b", false, false);
+    }
 }
 
 TEST_CASE("Lookahead", "[regex]")
 {
     {
+        // must start with ab
+        // and can contain any combination of [abcd] that is not ba
         hermes::Regex r("ab((?!ba)[abcd])*");
 
         check(r, "ab");
@@ -240,13 +309,28 @@ TEST_CASE("Lookahead", "[regex]")
         check(r, "abcba", false, false);
         check(r, "abcdba", false, false);
         check(r, "abbacc", false, false);
+        check(r, "abcbac", false, false);
     }
 
     {
+        // typical c-style multiline comment
         hermes::Regex r("/\\*((?!\\*/)(.|\n))*?\\*/");
 
         check(r, "/* asdf */");
         check(r, "/*a*s\nd/f*/");
         check(r, "/*asdf/", false, true);
+    }
+
+    {
+        // requires string to contain at least 1 number and 1 uppercase letter
+        hermes::Regex r("(?=.*[0-9])(?=.*[A-Z]).*");
+
+        // none of these are partial, because they never make it to
+        // the ".*", they fail in one of the lookaheads first
+        check(r, "asdf", false);
+        check(r, "asdfA", false);
+        check(r, "as1df", false);
+
+        check(r, "Aasdf1");
     }
 }
