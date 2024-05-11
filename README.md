@@ -1,9 +1,16 @@
-# Hermes
+<table>
+<tr>
+<td>
+<img src="docs/images/hermes-logo-256.png">
+</td>
+<td>
 
-<img src="docs/images/hermes-logo-256.png" align="right">
+# Hermes
 
 A Context-Free-Grammar parser generator for C++ written in Python.
 It's like Bison's estranged younger brother.
+</td>
+</table>
 
 ### [Read the docs](docs)
 
