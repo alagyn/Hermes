@@ -265,6 +265,9 @@ TEST_CASE("Char Class", "[regex]")
     singleCheck("a[a-z-]+c", "aaz-cd", false, true);
 
     singleCheck("a[a-z-]+c", "aaz-c1", false);
+
+    singleCheck("//[^\\n]*\\n?", "// asdf this is line ");
+    singleCheck("//[^\\n]*\\n?", "// asdf this is line\n");
 }
 
 TEST_CASE("Repetition", "[regex]")

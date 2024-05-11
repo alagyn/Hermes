@@ -208,6 +208,10 @@ NodePtr parseEscapeSequence(const char* str, int& pos)
     {
         return std::make_shared<LiteralNode>('\n');
     }
+    else if(c == 't')
+    {
+        return std::make_shared<LiteralNode>('\t');
+    }
 
     auto out = std::make_shared<CharClassNode>();
     // class ranges
@@ -222,6 +226,12 @@ NodePtr parseEscapeSequence(const char* str, int& pos)
     else if(c == 'u')
     {
         out->pushRange('A', 'Z');
+    }
+    else if(c == 's')
+    {
+        out->syms.push_back(' ');
+        out->syms.push_back('\t');
+        out->syms.push_back('\n');
     }
     else
     {
@@ -302,57 +312,37 @@ NodePtr parseCharClass(const char* str, int& pos)
 
         if(c == '\\')
         {
-            // handle escapes
-            c = str[++pos];
+            ++pos;
+            auto escapedNode = parseEscapeSequence(str, pos);
 
-            if(c == 'n')
+            // check if it was a literal
             {
-                c = '\n';
-            }
-            else if(c == 't')
-            {
-                c = '\t';
-            }
-            else
-            {
-                // char classes shortcuts
-                // digits
-                bool isClass = true;
-                if(c == 'd')
+                auto node = std::dynamic_pointer_cast<LiteralNode>(escapedNode);
+                if(node)
                 {
-                    out->pushRange('0', '9');
-                }
-                // lowercase
-                else if(c == 'l')
-                {
-                    out->pushRange('a', 'z');
-                }
-                // uppercase
-                else if(c == 'u')
-                {
-                    out->pushRange('A', 'Z');
-                }
-                else if(c == 's')
-                {
-                    out->syms.push_back(' ');
-                    out->syms.push_back('\t');
-                    out->syms.push_back('\n');
-                }
-                else // not anything, just use the char as is
-                {
-                    isClass = false;
-                }
-
-                // skip the rest of the logic
-                if(isClass)
-                {
-                    c = str[++pos];
+                    out->syms.push_back(node->sym);
+                    c = str[pos];
                     continue;
                 }
-                // if it wasn't a class, then fall through and use the currect
-                // char as is this handles escaping '-' as well
-                out->syms.push_back(c);
             }
+            // else it was a new char class
+            {
+                auto node =
+                    std::dynamic_pointer_cast<CharClassNode>(escapedNode);
+                if(!node)
+                {
+                    throw HermesError("rparser::parseCharClass() Bad pointer "
+                                      "cast from parseEscapeSequence()");
+                }
+
+                std::copy(
+                    node->syms.begin(),
+                    node->syms.end(),
+                    std::back_inserter(out->syms)
+                );
+            }
+            c = str[pos];
+            continue;
         }
         else if(c == '-' && !out->syms.empty())
         {

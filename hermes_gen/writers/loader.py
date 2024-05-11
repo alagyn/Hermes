@@ -22,8 +22,8 @@ def writeLoader(headerFilename: str, implFilename: str, parseTableFilename: str,
     with open(implFilename, mode='w') as f:
         writeHermesHeader(f)
         lines = [
-            f"#include <hermes/{name}_parser.h>",
-            f"#include <hermes/{name}_parseTable.h>",
+            f"#include <hermes/{name}_loader.h>",
+            f"#include <hermes/{name}_grammar.h>",
             f"#include <hermes/internal/grammar.h>",
             "namespace hermes {",
             # force template to instantiate

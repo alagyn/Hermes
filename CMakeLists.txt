@@ -82,11 +82,11 @@ function(add_hermes_grammer)
     set(PUBLIC_INC ${CMAKE_CURRENT_BINARY_DIR}/inc)
 
 
-    set(PARSE_TABLE_FILE ${PRIVATE_INC}/hermes/${ARGS_TARGET}_parseTable.h)
-    set(LOADER_HEADER_FILE ${PUBLIC_INC}/hermes/${ARGS_TARGET}_parser.h)
-    set(LOADER_IMPL_FILE ${PRIVATE_INC}/hermes/${ARGS_TARGET}_parser.cpp)
+    set(GRAMMAR_FILE ${PRIVATE_INC}/hermes/${ARGS_TARGET}_grammar.h)
+    set(LOADER_HEADER_FILE ${PUBLIC_INC}/hermes/${ARGS_TARGET}_loader.h)
+    set(LOADER_IMPL_FILE ${PRIVATE_INC}/hermes/${ARGS_TARGET}_loader.cpp)
 
-    set(OUTPUTS ${PARSE_TABLE_FILE} ${LOADER_HEADER_FILE} ${LOADER_IMPL_FILE})
+    set(OUTPUTS ${GRAMMAR_FILE} ${LOADER_HEADER_FILE} ${LOADER_IMPL_FILE})
 
     # Custom command to generate the header
     add_custom_command(
@@ -95,7 +95,7 @@ function(add_hermes_grammer)
         COMMAND
             ${Python3_EXECUTABLE} -m hermes_gen.main
                 --name ${ARGS_TARGET}
-                --table ${PARSE_TABLE_FILE}
+                --table ${GRAMMAR_FILE}
                 --loader ${LOADER_HEADER_FILE}
                 --impl ${LOADER_IMPL_FILE}
                 --automata "${DESC_FILE}"
@@ -105,7 +105,7 @@ function(add_hermes_grammer)
     )
 
     # Add target to generate parse table
-    add_custom_target(${ARGS_TARGET}_parse_table
+    add_custom_target(${ARGS_TARGET}_grammar
         DEPENDS ${OUTPUTS} ${GRAMMAR} ${PY_FILES}
     )
 
@@ -115,7 +115,7 @@ function(add_hermes_grammer)
     )
 
     # Add dependency on parse_table
-    add_dependencies(${ARGS_TARGET} ${ARGS_TARGET}_parse_table)
+    add_dependencies(${ARGS_TARGET} ${ARGS_TARGET}_grammar)
 
     target_include_directories(${ARGS_TARGET}
         PUBLIC
