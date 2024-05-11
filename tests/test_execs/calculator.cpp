@@ -6,32 +6,40 @@
 
 using namespace std;
 
-void parse(const std::string& str)
+int main(int argc, char** argv)
 {
-    // Create a scanner for the stream
-    auto input = std::make_shared<stringstream>(str);
-    // Parse the stream
+    // Load grammar
+    std::shared_ptr<hermes::Parser<int>> parser;
     try
     {
-        int out = hermes::parse_calc(input);
-        // Print the result
-        cout << "Result: " << out << "\n";
+        parser = hermes::load_calc();
     }
     catch(const HermesError& err)
     {
-        cout << "Error: " << err.what() << "\n";
+        cout << "Error loading grammar: " << err.what();
+        return 1;
     }
-}
 
-int main(int argc, char** argv)
-{
     // REPL
     while(true)
     {
         char str[256];
         std::cout << "> ";
         cin.getline(str, 256);
-        parse(std::string(str));
+        // Create a stream for the input
+        auto input = std::make_shared<stringstream>(str);
+
+        try
+        {
+            // parse the input
+            int out = parser->parse(input);
+            // print the result
+            cout << "Result: " << out << "\n";
+        }
+        catch(const HermesError& err)
+        {
+            cout << "Error: " << err.what() << "\n";
+        }
     }
 
     return 0;

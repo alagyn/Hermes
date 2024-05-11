@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include <hermes/regex/node.h>
+#include <hermes/internal/regex/node.h>
 
 namespace hermes {
 

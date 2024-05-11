@@ -13,10 +13,8 @@ def writeParseTable(filename: str, grammarFile: str, grammar: Grammar, table: Pa
         writeHermesHeader(f)
 
         f.write(
-            "#include <hermes/parseTable.h>\n"
-            "#include <hermes/parser.h>\n"
-            "#include <hermes/stackItem.h>\n"
-            "#include <hermes/regex/regex.h>\n"
+            "#include <hermes/internal/grammar.h>\n"
+            "#include <hermes/internal/regex/regex.h>\n"
             "\n"
             "#include <vector>\n"
             "#include <string>\n"
@@ -66,7 +64,7 @@ def writeParseTable(filename: str, grammarFile: str, grammar: Grammar, table: Pa
         f.write('    "__IGNORE__"\n')
         f.write("}; // End SYMBOL_LOOKUP\n\n")
 
-        f.write("const std::vector<Terminal> TERMINALS = {\n")
+        f.write("const std::vector<TerminalDef> TERMINALS = {\n")
 
         def escape_regex(r: str) -> str:
             regex = re.sub(r"\\", r"\\\\", r)
@@ -75,14 +73,14 @@ def writeParseTable(filename: str, grammarFile: str, grammar: Grammar, table: Pa
 
         for idx, terminal in enumerate(grammar.terminalList):
             regex = escape_regex(terminal[1])
-            f.write(f'    {{Symbol::{terminal[0]}, hermes::Regex("{regex}")}}')
+            f.write(f'    {{Symbol::{terminal[0]}, "{regex}"}}')
             if idx < len(grammar.terminalList) - 1:
                 f.write(",\n")
         # Write ignored terminals
         if Directive.ignore in grammar.directives:
             for ignore in grammar.directives[Directive.ignore]:
                 regex = escape_regex(ignore)
-                f.write(f',\n    {{Symbol::__IGNORE__, hermes::Regex("{regex}")}}')
+                f.write(f',\n    {{Symbol::__IGNORE__, "{regex}"}}')
         f.write("\n}; // End TERMINALS\n\n")
 
         f.write("const std::vector<Reduction> REDUCTIONS = {\n")

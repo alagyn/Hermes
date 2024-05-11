@@ -1,7 +1,7 @@
-#include <hermes/regex/regex.h>
+#include <hermes/internal/regex/regex.h>
 
 #include <hermes/errors.h>
-#include <hermes/regex/rparser.h>
+#include <hermes/internal/regex/rparser.h>
 
 #include <sstream>
 

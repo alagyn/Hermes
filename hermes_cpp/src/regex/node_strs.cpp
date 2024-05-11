@@ -1,4 +1,4 @@
-#include <hermes/regex/node.h>
+#include <hermes/internal/regex/node.h>
 
 #include <sstream>
 

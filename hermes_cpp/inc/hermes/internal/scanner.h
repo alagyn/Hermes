@@ -1,6 +1,6 @@
 #pragma once
 
-#include <hermes/regex/regex.h>
+#include <hermes/internal/regex/regex.h>
 
 #include <istream>
 #include <memory>

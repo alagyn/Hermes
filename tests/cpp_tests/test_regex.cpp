@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <hermes/regex/regex.h>
+#include <hermes/internal/regex/regex.h>
 
 #include <iostream>
 #include <vector>

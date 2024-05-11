@@ -1,4 +1,4 @@
-#include <hermes/regex/rparser.h>
+#include <hermes/internal/regex/rparser.h>
 
 #include <hermes/errors.h>
 

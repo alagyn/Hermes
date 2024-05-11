@@ -1,12 +1,11 @@
-#include <hermes/scanner.h>
+#include <hermes/internal/scanner.h>
 
 #include <iostream>
 #include <list>
 #include <sstream>
 
 #include <hermes/errors.h>
-#include <hermes/parseTable.h>
-#include <hermes/regex/regex.h>
+#include <hermes/internal/regex/regex.h>
 
 using namespace std;
 

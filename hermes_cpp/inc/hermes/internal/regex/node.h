@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <hermes/regex/match.h>
+#include <hermes/internal/regex/match.h>
 
 namespace hermes {
 

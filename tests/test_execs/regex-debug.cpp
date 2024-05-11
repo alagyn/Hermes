@@ -1,4 +1,4 @@
-#include <hermes/regex/regex.h>
+#include <hermes/internal/regex/regex.h>
 
 #include <iostream>
 

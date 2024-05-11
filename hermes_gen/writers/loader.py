@@ -11,8 +11,10 @@ def writeLoader(headerFilename: str, implFilename: str, parseTableFilename: str,
             "#pragma once",
             "#include <memory>",
             "#include <iostream>",
+            "#include <hermes/parser.h>",
             "namespace hermes {",
-            f"{returnType} parse_{name}(std::shared_ptr<std::istream> input);",
+            ""
+            f"std::shared_ptr<Parser<{returnType}>> load_{name}();",
             "} // end namespace hermes"
         ]
         f.write("\n".join(lines))
@@ -22,23 +24,24 @@ def writeLoader(headerFilename: str, implFilename: str, parseTableFilename: str,
         lines = [
             f"#include <hermes/{name}_parser.h>",
             f"#include <hermes/{name}_parseTable.h>",
-            "#include <hermes/parser.h>",
-            f"{returnType} hermes::parse_{name}(std::shared_ptr<std::istream> input)",
+            f"#include <hermes/internal/grammar.h>",
+            "namespace hermes {",
+            # force template to instantiate
+            f"template class Parser<{returnType}>;"
+            f"std::shared_ptr<Parser<{returnType}>> load_{name}()",
             "{",
-            "    auto scanner = hermes::Scanner::New(",
-            "       input,",
-            "       TERMINALS.data(),",
-            "       TERMINALS.size(),",
-            "       Symbol::__EOF__, Symbol::__IGNORE__",
-            "    );",
-            f"    auto parseTable = hermes::ParseTable<{returnType}>::New(",
+            f"    auto grammar =  Grammar<{returnType}>::New(",
             "       &PARSE_TABLE[0][0],",
             "       TABLE_COLS, TABLE_ROWS,",
             "       REDUCTIONS.data(),",
             "       REDUCTION_FUNCS.data(),",
-            "       SYMBOL_LOOKUP.data()",
-            "     );",
-            "     return hermes::parse(scanner, parseTable);",
+            "       SYMBOL_LOOKUP.data(),",
+            "       TERMINALS.data(),",
+            "       TERMINALS.size(),",
+            "       Symbol::__EOF__, Symbol::__IGNORE__",
+            "    );",
+            f"    return std::make_shared<Parser<{returnType}>>(grammar);"
             "}",
+            "}"
         ]
         f.write("\n".join(lines))
