@@ -161,10 +161,6 @@ RepetitionNode::RepetitionNode(NodePtr p, int min, int max)
 bool RepetitionNode::match(const char* str, Match& m)
 {
     int matches = 0;
-    // FIXME
-    /*
-    This needs to backtrack better and keep retrying
-    */
 
     size_t startSize = m.pos.size();
 

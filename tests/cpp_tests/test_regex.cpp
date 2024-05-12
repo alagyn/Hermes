@@ -23,6 +23,8 @@ void check(
                            << " pos=" << m.pos.top()
     );
 
+    INFO(r.annotate());
+
     CHECK((fullmatch == m.match && partial == m.partial));
 }
 
@@ -37,38 +39,37 @@ void singleCheck(
     check(r, str, fullmatch, partial);
 }
 
-TEST_CASE("Regex + #1", "[regex]")
+TEST_CASE("Repetition +", "[regex]")
 {
-    hermes::Regex r("ab+");
+    {
+        hermes::Regex r("ab+");
 
-    check(r, "ab");
-    check(r, "b", false, false);
-    check(r, "abb");
-    check(r, "aab", false, false);
+        check(r, "ab");
+        check(r, "b", false, false);
+        check(r, "abb");
+        check(r, "aab", false, false);
 
-    CHECK_THROWS(r.match(""));
+        CHECK_THROWS(r.match(""));
+    }
+
+    {
+        hermes::Regex r("a(ab)+");
+
+        check(r, "aab");
+        check(r, "aabab");
+        check(r, "aababab");
+        check(r, "aa", false, true);
+        check(r, "aaba", false, true);
+        check(r, "aabb", false, false);
+    }
+    {
+        hermes::Regex r("[0-9]+");
+        check(r, "2");
+        check(r, "2 ", false, false);
+    }
 }
 
-TEST_CASE("Regex + #2", "[regex]")
-{
-    hermes::Regex r("a(ab)+");
-
-    check(r, "aab");
-    check(r, "aabab");
-    check(r, "aababab");
-    check(r, "aa", false, true);
-    check(r, "aaba", false, true);
-    check(r, "aabb", false, false);
-}
-
-TEST_CASE("Regex + #3")
-{
-    hermes::Regex r("[0-9]+");
-    check(r, "2");
-    check(r, "2 ", false, false);
-}
-
-TEST_CASE("Regex *", "[regex]")
+TEST_CASE("Repetition *", "[regex]")
 {
     hermes::Regex r1("a[ba]*");
 
@@ -94,7 +95,7 @@ TEST_CASE("Regex *", "[regex]")
     check(r2, "ababb", false);
 }
 
-TEST_CASE("Regex ?", "[regex]")
+TEST_CASE("Repetition ?", "[regex]")
 {
     {
         hermes::Regex r("ab?");
@@ -112,46 +113,6 @@ TEST_CASE("Regex ?", "[regex]")
         check(r, "aa", false, true);
         check(r, "aaba", false);
         check(r, "aac", false);
-    }
-}
-
-TEST_CASE("Regex {}", "[regex]")
-{
-    {
-        hermes::Regex r("ab{4}c");
-
-        check(r, "ab", false, true);
-        check(r, "abbbb", false, true);
-        check(r, "abbbbc");
-        check(r, "abbbc", false);
-    }
-
-    {
-        hermes::Regex r("ab{3,}c");
-        check(r, "abc", false);
-        check(r, "abbb", false, true);
-        check(r, "abbc", false);
-        check(r, "abbbc");
-        check(r, "abbbbbbbbbbbbbbbc");
-    }
-
-    {
-        hermes::Regex r("ab{2,}b{5,}c");
-        check(r, "abc", false);
-        /*
-            this tests to make sure the backtracking doesn't
-            go below the minimum reps
-        */
-        check(r, "abbbbbbc", false);
-    }
-
-    {
-        hermes::Regex r("ab{2,4}c");
-        check(r, "abc", false);
-        check(r, "abbc");
-        check(r, "abbbc");
-        check(r, "abbbbc");
-        check(r, "abbbbbc", false);
     }
 }
 
@@ -315,7 +276,7 @@ TEST_CASE("Char Class", "[regex]")
     singleCheck("//[^\\n]*\\n?", "// asdf this is line\n");
 }
 
-TEST_CASE("Repetition", "[regex]")
+TEST_CASE("Repetition {}", "[regex]")
 {
     {
         hermes::Regex r("ab{0,2}bb");
@@ -325,6 +286,43 @@ TEST_CASE("Repetition", "[regex]")
         check(r, "abbb");
         check(r, "abbbb");
         check(r, "abbbbb", false);
+    }
+
+    {
+        hermes::Regex r("ab{4}c");
+
+        check(r, "ab", false, true);
+        check(r, "abbbb", false, true);
+        check(r, "abbbbc");
+        check(r, "abbbc", false);
+    }
+
+    {
+        hermes::Regex r("ab{3,}c");
+        check(r, "abc", false);
+        check(r, "abbb", false, true);
+        check(r, "abbc", false);
+        check(r, "abbbc");
+        check(r, "abbbbbbbbbbbbbbbc");
+    }
+
+    {
+        hermes::Regex r("ab{2,}b{5,}c");
+        check(r, "abc", false);
+        /*
+            this tests to make sure the backtracking doesn't
+            go below the minimum reps
+        */
+        check(r, "abbbbbbc", false);
+    }
+
+    {
+        hermes::Regex r("ab{2,4}c");
+        check(r, "abc", false);
+        check(r, "abbc");
+        check(r, "abbbc");
+        check(r, "abbbbc");
+        check(r, "abbbbbc", false);
     }
 }
 
@@ -416,4 +414,95 @@ TEST_CASE("Alternation", "[regex]")
     singleCheck("(a|b|c)", "a");
     singleCheck("(a|b|c)", "b");
     singleCheck("(a|(b)|.)", "b");
+}
+
+TEST_CASE("Tricky Stuff", "[regex]")
+{
+    singleCheck("a(((b)))c", "abc");
+    singleCheck("a(b|(c))d", "abd");
+    singleCheck("a(b|(c))d", "acd");
+    singleCheck("a(b*|c)d", "abbd");
+    singleCheck("a(b*|c)d", "ad");
+    singleCheck("a(b*|c)d", "acd");
+    singleCheck("a[ab]{20}", "aaaaabaaaabaaaabaaaab");
+    singleCheck(
+        "a[ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab]["
+        "ab][ab][ab]",
+        "aaaaabaaaabaaaabaaaab"
+    );
+    singleCheck(
+        "a[ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab]["
+        "ab][ab][ab](wee|week)(knights|night)",
+        "aaaaabaaaabaaaabaaaabweeknights"
+    );
+    singleCheck(
+        "123456789012345678901234567890123456789012345678901234567890123456789"
+        "0",
+        "a123456789012345678901234567890123456789012345678901234567890123456789"
+        "0b",
+        false
+    );
+
+    singleCheck("a(b?c)+d", "accd");
+    singleCheck("(wee|week)(knights|night)", "weeknights");
+    singleCheck(".*", "abc");
+
+    {
+        hermes::Regex r("a(b|(c))d");
+
+        check(r, "abd");
+        check(r, "acd");
+    }
+
+    {
+        hermes::Regex r("a(b*|c|e)d");
+
+        check(r, "abbd");
+        check(r, "acd");
+        check(r, "ad");
+    }
+
+    {
+        hermes::Regex r("a(b?)c");
+
+        check(r, "abc");
+        check(r, "ac");
+    }
+
+    {
+        hermes::Regex r("a(b+)c");
+
+        check(r, "abc");
+        check(r, "abbbc");
+    }
+
+    singleCheck("a(b*)c", "ac");
+    singleCheck("(a|ab)(bc([de]+)f|cde)", "abcdef");
+
+    {
+        hermes::Regex r("a([bc]?)c");
+
+        check(r, "abc");
+        check(r, "ac");
+    }
+
+    {
+        hermes::Regex r("a([bc]+)c");
+
+        check(r, "abc");
+        check(r, "abcc");
+        check(r, "abcbc");
+    };
+
+    {
+        hermes::Regex r("a(bbb+|bb+|b)b");
+
+        check(r, "abb");
+        check(r, "abbb");
+    }
+
+    singleCheck("a(bbb+|bb+|b)bb", "abbb");
+    singleCheck("a(bb+|b)b", "abb");
+    singleCheck("(.*).*", "abcdef");
+    singleCheck("(a*)*", "bc", false);
 }

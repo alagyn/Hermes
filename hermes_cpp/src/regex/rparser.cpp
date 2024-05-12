@@ -39,6 +39,19 @@ NodePtr hermes::parseRegexPattern(const char* str)
     }
     NodePtr regex = parseAlternation(str, pos);
 
+    if(!regex)
+    {
+        THROW("rparser::parserRegexPattern()", "Failed to parse regex");
+    }
+    else if(pos != -1)
+    {
+        THROW(
+            "rparser::parserRegexPattern()",
+            "Failed to parse regex, did not parse the entire string: "
+                << regex->toStr()
+        );
+    }
+
     if(!regex || pos != -1)
     {
         THROW(
