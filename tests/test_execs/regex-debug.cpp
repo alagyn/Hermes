@@ -22,8 +22,7 @@ int main(int argc, char** argv)
         if(argc == 3)
         {
             auto m = r.match(argv[2]);
-            cout << "Fullmatch: " << m.match << " Partial:" << m.partial
-                 << " Pos:" << m.pos.top() << endl;
+            cout << "Fullmatch: " << m.match << " Partial:" << m.partial << endl;
         }
     }
     catch(const std::exception& err)

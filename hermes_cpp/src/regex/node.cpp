@@ -10,20 +10,32 @@ LiteralNode::LiteralNode(char sym)
 {
 }
 
-bool LiteralNode::match(const char* str, Match& m)
+void LiteralNode::match(const char* str, Match& m)
 {
-    if(str[m.pos.top()] == 0)
+    auto iter = m.pos.begin();
+    auto end = m.pos.end();
+    while(iter != end)
     {
-        m.partial = true;
-        return false;
-    }
+        int pos = *iter;
+        if(str[pos] == 0)
+        {
+            // mark partial if we hit end of string
+            m.partial = true;
+        }
 
-    bool out = str[m.pos.top()] == sym;
-    if(out)
-    {
-        ++m.pos.top();
+        if(str[pos] != sym)
+        {
+            auto d = iter;
+            ++iter;
+            m.pos.erase(d);
+        }
+        else
+        {
+            // it was valid, inc the pos by 1
+            *iter += 1;
+            ++iter;
+        }
     }
-    return out;
 }
 
 CharClassNode::CharClassNode()
@@ -32,32 +44,41 @@ CharClassNode::CharClassNode()
 {
 }
 
-bool CharClassNode::match(const char* str, Match& m)
+void CharClassNode::match(const char* str, Match& m)
 {
-    if(str[m.pos.top()] == 0)
+    auto iter = m.pos.begin();
+    auto end = m.pos.end();
+    while(iter != end)
     {
-        m.partial = true;
-        return false;
-    }
-
-    const char val = str[m.pos.top()];
-
-    bool found = false;
-    for(const char x : syms)
-    {
-        if(val == x)
+        const int pos = *iter;
+        const char val = str[pos];
+        if(val == 0)
         {
-            found = true;
-            break;
+            m.partial = true;
+        }
+
+        bool found = false;
+        for(const char x : syms)
+        {
+            if(val == x)
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if((found && !invert) || (!found && invert))
+        {
+            *iter += 1;
+            ++iter;
+        }
+        else
+        {
+            auto d = iter;
+            ++iter;
+            m.pos.erase(d);
         }
     }
-
-    bool out = found ^ invert;
-    if(out)
-    {
-        ++m.pos.top();
-    }
-    return out;
 }
 
 void CharClassNode::pushRange(char s, char e)
@@ -68,16 +89,26 @@ void CharClassNode::pushRange(char s, char e)
     }
 }
 
-bool DotNode::match(const char* str, Match& m)
+void DotNode::match(const char* str, Match& m)
 {
-    if(str[m.pos.top()] == 0)
+    auto iter = m.pos.begin();
+    auto end = m.pos.end();
+    while(iter != end)
     {
-        m.partial = true;
-        return false;
+        const char val = str[*iter];
+        if(val == 0)
+        {
+            m.partial = true;
+            auto d = iter;
+            ++iter;
+            m.pos.erase(d);
+        }
+        else
+        {
+            *iter += 1;
+            ++iter;
+        }
     }
-
-    ++m.pos.top();
-    return true;
 }
 
 ConcatNode::ConcatNode(NodePtr p1, NodePtr p2)
@@ -86,49 +117,16 @@ ConcatNode::ConcatNode(NodePtr p1, NodePtr p2)
 {
 }
 
-bool ConcatNode::match(const char* str, Match& m)
+void ConcatNode::match(const char* str, Match& m)
 {
-    /*
-    repetition notes:
-        a new repetition can only happen in p1.
-        After we call p1->match(), if it was a repetition, it will
-        have pushed every repetition it consumed onto the pos stack.
-        Therefore, we only need to loop p2, popping one pos off the stack
-        if it fails, until we get back to where we started
-    */
-    size_t startSize = m.pos.size();
+    p1->match(str, m);
 
-    if(p1->match(str, m))
+    if(m.pos.empty())
     {
-        while(true)
-        {
-            // check if p2 matches
-            bool out = p2->match(str, m);
-            // exit if we matched
-            if(out)
-            {
-                return true;
-            }
-            // else try to pop 1 repetition of p1 off
-            else if(m.pos.size() > startSize)
-            {
-                m.pos.pop();
-                // loop
-            }
-            // else we have no more repetitions, fail
-            else
-            {
-                return false;
-            }
-        }
-    }
-    else
-    {
-        return false;
+        return;
     }
 
-    // should never get here...
-    return false;
+    p2->match(str, m);
 }
 
 AlterationNode::AlterationNode(NodePtr p1, NodePtr p2)
@@ -137,18 +135,48 @@ AlterationNode::AlterationNode(NodePtr p1, NodePtr p2)
 {
 }
 
-bool AlterationNode::match(const char* str, Match& m)
+void AlterationNode::match(const char* str, Match& m)
 {
-    if(p1->match(str, m))
+    std::list<int> newPos;
+
+    // Check the first alternation
+    auto iter = m.pos.begin();
+    auto end = m.pos.end();
+    while(iter != end)
     {
-        return true;
-    }
-    if(p2->match(str, m))
-    {
-        return true;
+        int pos = *iter;
+        Match x(pos);
+        p1->match(str, x);
+
+        for(int p : x.pos)
+        {
+            newPos.push_back(p);
+        }
+
+        m.partial = m.partial || x.partial;
+        ++iter;
     }
 
-    return false;
+    // Check the second alternation
+    iter = m.pos.begin();
+    end = m.pos.end();
+    while(iter != end)
+    {
+        int pos = *iter;
+        Match x(pos);
+        p2->match(str, x);
+
+        for(int p : x.pos)
+        {
+            newPos.push_back(p);
+        }
+
+        m.partial = m.partial || x.partial;
+        ++iter;
+    }
+
+    // newPos becomes the new list of pos
+    m.pos.swap(newPos);
 }
 
 RepetitionNode::RepetitionNode(NodePtr p, int min, int max)
@@ -158,57 +186,63 @@ RepetitionNode::RepetitionNode(NodePtr p, int min, int max)
 {
 }
 
-bool RepetitionNode::match(const char* str, Match& m)
+void RepetitionNode::match(const char* str, Match& m)
 {
-    int matches = 0;
+    std::list<int> newPos;
 
-    size_t startSize = m.pos.size();
-
-    // Loop until max matches, or maybe forever
-    while(max == -1 || matches < max)
+    auto iter = m.pos.begin();
+    auto end = m.pos.end();
+    while(iter != end)
     {
-        // only push once we get above the min
-        // this prevents us backtracking below the min
-        if(matches >= min)
+        recurse(str, newPos, *iter, 0, m.partial);
+        ++iter;
+    }
+
+    m.pos.swap(newPos);
+}
+
+void RepetitionNode::recurse(
+    const char* str,
+    std::list<int>& out,
+    int curPos,
+    int curMatch,
+    bool& partial
+)
+{
+    if(curMatch >= min)
+    {
+        out.push_back(curPos);
+    }
+
+    if(str[curPos] == 0)
+    {
+        partial = true;
+        return;
+    }
+
+    if(curMatch == max)
+    {
+        return;
+    }
+
+    Match m(curPos);
+    // Do a SINGLE match of the sub-pattern
+    p->match(str, m);
+    partial |= m.partial;
+
+    auto iter = m.pos.begin();
+    auto end = m.pos.end();
+    // Recurse and check every new possible pos for another match
+    while(iter != end)
+    {
+        int nextPos = *iter;
+        // prevent infinite loops
+        if(nextPos != curPos)
         {
-            m.pos.push(m.pos.top());
+            recurse(str, out, *iter, curMatch + 1, partial);
         }
-
-        // Break when we don't get a match
-        if(!p->match(str, m))
-        {
-            // if we pushed
-            if(matches >= min)
-            {
-                // go back to the last good position
-                m.pos.pop();
-            }
-            break;
-        }
-
-        ++matches;
+        ++iter;
     }
-
-    // we just exited the loop, either we hit max matches
-    // or we went as far as we could
-
-    // we can't have gone over the max matches because of the loop limits
-    // check if we were in the correct range
-    if(min <= matches)
-    {
-        // we matched as much as we could, and were within the limits
-        // if we failed before the max, we already reset the position back one step
-        return true;
-    }
-
-    // If we are less than the minimum, take none of it
-    // have to pop off the matches we made
-    size_t numToPop = m.pos.size() - startSize;
-    for(size_t i = 0; i < numToPop; ++i)
-    {
-        m.pos.pop();
-    }
-    return false;
 }
 
 GroupNode::GroupNode(NodePtr p)
@@ -216,9 +250,9 @@ GroupNode::GroupNode(NodePtr p)
 {
 }
 
-bool GroupNode::match(const char* str, Match& m)
+void GroupNode::match(const char* str, Match& m)
 {
-    return p->match(str, m);
+    p->match(str, m);
 }
 
 LookAheadNode::LookAheadNode(NodePtr p, bool negative)
@@ -227,18 +261,44 @@ LookAheadNode::LookAheadNode(NodePtr p, bool negative)
 {
 }
 
-bool LookAheadNode::match(const char* str, Match& m)
+void LookAheadNode::match(const char* str, Match& m)
 {
-    // copy the current state
-    Match start = m;
-    // pass copy instead of m
-    // this is so we don't accidentally set the partial flag
-    // and that none of the str is consumed
-    bool good = p->match(str, start);
-    return good ^ negative;
+    auto iter = m.pos.begin();
+    auto end = m.pos.end();
+    while(iter != end)
+    {
+        Match x(*iter);
+        p->match(str, x);
+
+        if((x.pos.empty() && !negative) || (!x.pos.empty() && negative))
+        {
+            auto d = iter;
+            ++iter;
+            m.pos.erase(d);
+        }
+        else
+        {
+            ++iter;
+        }
+    }
 }
 
-bool EndOfStringNode::match(const char* str, Match& m)
+void EndOfStringNode::match(const char* str, Match& m)
 {
-    return str[m.pos.top()] == 0;
+    auto iter = m.pos.begin();
+    auto end = m.pos.end();
+    while(iter != end)
+    {
+        int pos = *iter;
+        if(str[pos] == 0)
+        {
+            throw EndOfString();
+        }
+        else
+        {
+            auto d = iter;
+            ++iter;
+            m.pos.erase(d);
+        }
+    }
 }

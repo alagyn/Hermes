@@ -30,11 +30,17 @@ Match Regex::match(const char* str) const
         throw HermesError("Regex::match() Cannot match empty string");
     }
     Match out;
-    bool fullmatch = root->match(str, out);
+    try
+    {
+        root->match(str, out);
+    }
+    catch(const EndOfString&)
+    {
+        out.match = true;
+    };
 
-    out.match = fullmatch;
     // unset partial if we matched the whole thing
-    out.partial = !fullmatch && out.partial;
+    out.partial = !out.match && out.partial;
 
     return out;
 }
@@ -108,7 +114,8 @@ std::vector<std::string> _annotate(NodePtr root)
         if(node)
         {
             std::stringstream ss;
-            ss << "LookAhead " << node->negative ? "Negative" : "Positive";
+            ss << "LookAhead " << (node->negative ? "Negative" : "Positive");
+            lines.push_back(ss.str());
             addLines(lines, _annotate(node->p));
             return lines;
         }
@@ -119,7 +126,20 @@ std::vector<std::string> _annotate(NodePtr root)
         if(node)
         {
             std::stringstream ss;
-            ss << "Literal '" << node->sym << "'";
+            ss << "Literal '";
+            if(node->sym == '\n')
+            {
+                ss << "\\n";
+            }
+            else if(node->sym == '\t')
+            {
+                ss << "\\t";
+            }
+            else
+            {
+                ss << node->sym;
+            }
+            ss << "'";
             lines.push_back(ss.str());
             return lines;
         }
@@ -131,9 +151,28 @@ std::vector<std::string> _annotate(NodePtr root)
         {
             std::stringstream ss;
             ss << "CharClass [";
+            if(node->invert)
+            {
+                ss << "^";
+            }
             for(const char& c : node->syms)
             {
-                ss << c;
+                if(c == '^' || c == '[' || c == ']')
+                {
+                    ss << '\\' << c;
+                }
+                else if(c == '\n')
+                {
+                    ss << "\\n";
+                }
+                else if(c == '\t')
+                {
+                    ss << "\\t";
+                }
+                else
+                {
+                    ss << c;
+                }
             }
 
             ss << "]";

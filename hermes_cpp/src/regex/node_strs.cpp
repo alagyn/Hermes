@@ -118,6 +118,9 @@ std::string LiteralNode::toStr()
     case '\n':
         ss << "\\n";
         break;
+    case '\t':
+        ss << "\\t";
+        break;
     case '*':
     case '?':
     case '+':

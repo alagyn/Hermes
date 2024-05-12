@@ -61,6 +61,10 @@ NodePtr hermes::parseRegexPattern(const char* str)
         );
     }
 
+    // concat a EOS to the pattern
+    auto eos = std::make_shared<EndOfStringNode>();
+    regex = std::make_shared<ConcatNode>(regex, eos);
+
     return regex;
 }
 
@@ -110,7 +114,10 @@ NodePtr parseConcat(const char* str, int& pos)
     if(p1 && pos >= 0 && str[pos] != '|' && str[pos] != ')')
     {
         NodePtr p2 = parseConcat(str, pos);
-        return std::make_shared<ConcatNode>(p1, p2);
+        if(p2)
+        {
+            return std::make_shared<ConcatNode>(p1, p2);
+        }
     }
 
     return p1;
@@ -175,7 +182,8 @@ NodePtr parseAtomicNode(const char* str, int& pos)
     if(c == 0)
     {
         pos = -1;
-        return std::make_shared<EndOfStringNode>();
+        // return null
+        return std::shared_ptr<Node>();
     }
 
     if(c == '\\')

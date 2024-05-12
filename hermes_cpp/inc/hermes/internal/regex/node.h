@@ -11,7 +11,7 @@ namespace hermes {
 class Node
 {
 public:
-    virtual bool match(const char* str, Match& m) = 0;
+    virtual void match(const char* str, Match& m) = 0;
     virtual std::string toStr() = 0;
 };
 
@@ -23,7 +23,7 @@ public:
     const char sym;
 
     LiteralNode(char sym);
-    bool match(const char* str, Match& m) override;
+    void match(const char* str, Match& m) override;
     std::string toStr() override;
 };
 
@@ -34,7 +34,7 @@ public:
     bool invert;
 
     CharClassNode();
-    bool match(const char* str, Match& m) override;
+    void match(const char* str, Match& m) override;
     void pushRange(char s, char e);
     std::string toStr() override;
 };
@@ -47,7 +47,7 @@ public:
     {
     }
 
-    bool match(const char* str, Match& m) override;
+    void match(const char* str, Match& m) override;
     std::string toStr() override;
 };
 
@@ -58,7 +58,7 @@ public:
     const NodePtr p2;
 
     ConcatNode(NodePtr p1, NodePtr p2);
-    bool match(const char* str, Match& m) override;
+    void match(const char* str, Match& m) override;
     std::string toStr() override;
 };
 
@@ -69,7 +69,7 @@ public:
     const NodePtr p2;
 
     AlterationNode(NodePtr p1, NodePtr p2);
-    bool match(const char* str, Match& m) override;
+    void match(const char* str, Match& m) override;
     std::string toStr() override;
 };
 
@@ -81,8 +81,17 @@ public:
     const int min;
     const int max;
     RepetitionNode(NodePtr p, int min, int max);
-    bool match(const char* str, Match& m) override;
+    void match(const char* str, Match& m) override;
     std::string toStr() override;
+
+private:
+    void recurse(
+        const char* str,
+        std::list<int>& out,
+        int curPos,
+        int curMatch,
+        bool& partial
+    );
 };
 
 // Parenthesis
@@ -92,7 +101,7 @@ public:
     const NodePtr p;
 
     GroupNode(NodePtr p);
-    bool match(const char* str, Match& m) override;
+    void match(const char* str, Match& m) override;
     std::string toStr() override;
 };
 
@@ -103,7 +112,7 @@ public:
     const bool negative;
 
     LookAheadNode(NodePtr p, bool negative);
-    bool match(const char* str, Match& m) override;
+    void match(const char* str, Match& m) override;
     std::string toStr() override;
 };
 
@@ -112,14 +121,14 @@ class LineStartNode : public Node
 {
 public:
     LineStartNode();
-    bool match(const char* str, Match& m) override;
+    void match(const char* str, Match& m) override;
 };
 
 class LineEndNode : public Node
 {
 public:
     LineEndNode();
-    bool match(const char* str, Match& m) override;
+    void match(const char* str, Match& m) override;
 };
 */
 
@@ -130,7 +139,7 @@ public:
     {
     }
 
-    bool match(const char* str, Match& m) override;
+    void match(const char* str, Match& m) override;
     std::string toStr() override;
 };
 
