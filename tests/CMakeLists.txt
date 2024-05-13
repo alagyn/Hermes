@@ -27,6 +27,8 @@ target_include_directories(tests
 
 add_executable(calculator test_execs/calculator.cpp)
 
+include(add_hermes_grammar)
+
 add_hermes_grammer(
     TARGET calc
     GRAMMAR grammars/calculator.hm
