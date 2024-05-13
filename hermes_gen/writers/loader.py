@@ -7,11 +7,22 @@ def writeLoader(headerFilename: str, implFilename: str, parseTableFilename: str,
     returnType = grammar.directives[Directive.return_][0]
     with open(headerFilename, mode='w') as f:
         writeHermesHeader(f)
+
+        f.write("#pragma once\n"
+                "#include <memory>\n"
+                "#include <iostream>\n"
+                "#include <hermes/parser.h>\n")
+        try:
+            includes = grammar.directives[Directive.include]
+            f.write("// Begin user directed includes\n")
+            for inc in includes:
+                f.write(f"#include {inc}\n")
+            f.write('// End user directed includes\n\n')
+
+        except KeyError:
+            pass
+
         lines = [
-            "#pragma once",
-            "#include <memory>",
-            "#include <iostream>",
-            "#include <hermes/parser.h>",
             "namespace hermes {",
             ""
             f"std::shared_ptr<Parser<{returnType}>> load_{name}();",

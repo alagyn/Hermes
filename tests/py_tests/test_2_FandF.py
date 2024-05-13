@@ -1,7 +1,7 @@
 import unittest
 from typing import Dict
 
-import utils
+from . import utils
 from hermes_gen.grammar import parse_grammar
 from hermes_gen.consts import EMPTY, END
 
@@ -73,7 +73,10 @@ class TestFirstAndFollow(unittest.TestCase):
         self._checkSet("First", EXP_FIRST, g.first)
 
         EXP_FOLLOW = {
-            'Y': {'close_p', END, 'plus'}, 'X': {'close_p', END}, 'T': {'close_p', END, 'plus'}, 'E': {'close_p', END}
+            'Y': {'close_p', END, 'plus'},
+            'X': {'close_p', END},
+            'T': {'close_p', END, 'plus'},
+            'E': {'close_p', END}
         }
 
         self._checkSet("Follow", EXP_FOLLOW, g.follow)
@@ -98,7 +101,9 @@ class TestFirstAndFollow(unittest.TestCase):
         self._checkSet("First", EXP_FIRST, g.first)
 
         EXP_FOLLOW = {
-            "P": {END}, "E": {"plus", END, "close_p"}, "T": {"close_p", "plus", END}
+            "P": {END},
+            "E": {"plus", END, "close_p"},
+            "T": {"close_p", "plus", END}
         }
 
         self._checkSet("Follow", EXP_FOLLOW, g.follow)

@@ -27,7 +27,19 @@
         {
             "name": "tests",
             "configurePreset": "default",
+            "configuration": "Debug",
             "targets": ["tests"]
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "all",
+            "configurePreset": "default",
+            "configuration": "Debug",
+            "inheritConfigureEnvironment": true,
+            "output": {
+                "outputOnFailure": true
+            }
         }
     ]
 }

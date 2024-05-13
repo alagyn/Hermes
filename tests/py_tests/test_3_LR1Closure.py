@@ -1,7 +1,7 @@
 import unittest
 from typing import List
 
-import utils
+from . import utils
 
 from hermes_gen.lalr1_automata import Node, AnnotRule, LALR1Automata
 from hermes_gen.grammar import Grammar, Rule, parse_grammar

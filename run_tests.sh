@@ -3,4 +3,6 @@
 home=`realpath $(dirname $0)`
 cd $home
 
-python3 -m unittest discover -s ./tests/py_tests -p test_*.py
+cmake --preset default
+cmake --build --preset tests
+ctest --preset all

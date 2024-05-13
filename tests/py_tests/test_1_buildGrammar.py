@@ -2,7 +2,7 @@ import unittest
 
 from hermes_gen.main import parse_grammar
 from hermes_gen.grammar import Rule
-from utils import getTestFilename
+from .utils import getTestFilename
 
 
 class TestBuildgrammar(unittest.TestCase):

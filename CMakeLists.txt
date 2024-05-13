@@ -63,7 +63,8 @@ install(
     EXPORT hermesTargets
     FILE_SET
         HEADERS
-        DESTINATION hermes_cpp/inc
+        DESTINATION include
+    INCLUDES DESTINATION include
 )
 
 install(
@@ -96,12 +97,13 @@ install(
     FILES 
     "${CMAKE_CURRENT_BINARY_DIR}/hermesConfig.cmake" 
     "${CMAKE_CURRENT_BINARY_DIR}/cmake/hermesConfigVersion.cmake"
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/add_hermes_grammar.cmake"
     DESTINATION cmake
 )
 
 
 if(${HERMES_TESTS})
     add_subdirectory(third-party)
+    enable_testing()
+    list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/third-party/Catch2/extras)
     add_subdirectory(tests)
 endif()

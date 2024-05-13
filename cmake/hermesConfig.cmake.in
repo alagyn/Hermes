@@ -9,6 +9,10 @@ find_dependency(Python3
 )
 
 set(HERMES_ROOT ${CMAKE_CURRENT_LIST_DIR}/..)
+cmake_path(
+    NORMAL_PATH HERMES_ROOT
+    OUTPUT_VARIABLE HERMES_ROOT
+)
 
 function(add_hermes_grammar)
     set(options DEBUG)
@@ -90,15 +94,14 @@ function(add_hermes_grammar)
 
     target_include_directories(${ARGS_TARGET}
         PUBLIC
-            ${HERMES_ROOT}/hermes_cpp/inc
             ${PUBLIC_INC}
         PRIVATE
             ${PRIVATE_INC}
     )
     
     target_link_libraries(${ARGS_TARGET}
-        PRIVATE
-            hermes
+        PUBLIC
+            hermes::hermes
     )
     
     if(${ARGS_DEBUG})

@@ -1,6 +1,6 @@
 import unittest
 
-import utils
+from . import utils
 from hermes_gen.grammar import Grammar, parse_grammar
 from hermes_gen.lalr1_automata import LALR1Automata, ParseTable, Action, TableType, ParseAction
 
