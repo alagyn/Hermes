@@ -31,7 +31,7 @@ target_link_libraries(yourTarget myParser)
 
 ## A minimal example: The amazing calculator
 
-Grammer:
+Grammar:
 ```
 %return int
 %include <iostream>

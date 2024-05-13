@@ -20,7 +20,7 @@ The parser takes in a stream of tokens, and performs a number of actions as defi
 `LALR(1) => Look-Ahead Left-To-Right with 1 token look ahead.`  
 What this exactly means is mostly unimportant, but know that it means that there are some CFGs that cannot be parsed by Hermes. Sometimes this can be solved with a bit of grammar massaging, but hopefully you aren't creating monster grammars that will cause parse table conflicts.
 
-## [Grammer File Documentation](grammar-files.md)
+## [Grammar File Documentation](grammar-files.md)
 
 ## CMake Stuff
 

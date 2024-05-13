@@ -8,7 +8,7 @@ They have three main components:
 
 All three of these can be defined in an arbitrary order and interleaving, but the key thing to note is that __tokens have precedence based upon the order they are defined in.__ I.E. in case of a tie, the token that is defined first will win.
 
-__Hermes grammers can contain line comments starting with # anywhere except code blocks. Pounds are safe to use within regex.__
+__Hermes grammars can contain line comments starting with # anywhere except code blocks. Pounds are safe to use within regex.__
 
 ### Tokens
 Tokens are defined as name+regex tuple. By convention, tokens are usually named with full uppercase, but they can be any combination of letters and underscores.
@@ -20,7 +20,7 @@ STRING = "\"[^\"]+\"";
 Regex strings can be wrapped in either single or double quotes to the same effect, and inner quotes can be escaped with backslashes. Otherwise, regex follow the specification [described here](regex.md). You cannot have more than one token with the same name, and you cannot have an empty regex string.
 
 ### Rules
-Rules describe your Context-Free-Grammer. They are composed of Tokens (a.k.a Terminals) and Nonterminals. Nonterminals are best described as intermediate steps, where terminals are your base building blocks. New nonterminals are created simply by creating a rule with a new name on the left hand side. The right hand side is composed of any number of "symbols" (Terminals and Nonterminals), then a code block enclosed in curly brackets (more on that later) and ends with a semicolon. By convention, nonterminals are all lowercase, but again they can be any combination of letters and underscores.
+Rules describe your Context-Free-Grammar. They are composed of Tokens (a.k.a Terminals) and Nonterminals. Nonterminals are best described as intermediate steps, where terminals are your base building blocks. New nonterminals are created simply by creating a rule with a new name on the left hand side. The right hand side is composed of any number of "symbols" (Terminals and Nonterminals), then a code block enclosed in curly brackets (more on that later) and ends with a semicolon. By convention, nonterminals are all lowercase, but again they can be any combination of letters and underscores.
 ```
 expression = expression PLUS term {};
 ```
@@ -78,7 +78,7 @@ expr
 Directives are special statements that define extra data for the generated c++ code. All directives start with a `%` immediately followed by the directive name.  
 Available directives:
 
-`%return`: This directive is required for every grammer, and can only be defined once. It declares the c++ datatype that is returned by the rule code blocks.
+`%return`: This directive is required for every grammar, and can only be defined once. It declares the c++ datatype that is returned by the rule code blocks.
 ```
 %return int
 # Or something else

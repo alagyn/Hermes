@@ -27,9 +27,10 @@ target_include_directories(tests
 
 add_executable(calculator test_execs/calculator.cpp)
 
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 include(add_hermes_grammar)
 
-add_hermes_grammer(
+add_hermes_grammar(
     TARGET calc
     GRAMMAR grammars/calculator.hm
 )

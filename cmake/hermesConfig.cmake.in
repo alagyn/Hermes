@@ -1,3 +1,14 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/hermesTargets.cmake")
+
+include(CMakeFindDependencyMacro)
+find_dependency(Python3 
+    REQUIRED 
+        COMPONENTS Interpreter
+)
+
+set(HERMES_ROOT ${CMAKE_CURRENT_LIST_DIR}/..)
 
 function(add_hermes_grammar)
     set(options DEBUG)
@@ -40,6 +51,7 @@ function(add_hermes_grammar)
     set(PRIVATE_INC ${CMAKE_CURRENT_BINARY_DIR}/hidden)
     # Public generated include files
     set(PUBLIC_INC ${CMAKE_CURRENT_BINARY_DIR}/inc)
+
 
     set(GRAMMAR_FILE ${PRIVATE_INC}/hermes/${ARGS_TARGET}_grammar.h)
     set(LOADER_HEADER_FILE ${PUBLIC_INC}/hermes/${ARGS_TARGET}_loader.h)
