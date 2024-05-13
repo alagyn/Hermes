@@ -1,3 +1,7 @@
+%return int
+
+%include ""
+
 asdf = "asdf";
 
 one = two three

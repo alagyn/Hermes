@@ -86,9 +86,17 @@
             ]
         },
         "directives": {
-            "name": "meta.preprocessor",
+            "name": "keyword.control.directive",
             "begin": "%",
-            "end": "\\s"
+            "end": "\n",
+            "patterns": [
+                {
+                    "include": "#string-single"
+                },
+                {
+                    "include": "#string-double"
+                }
+            ]
         }
     },
     "scopeName": "source.ebnf"

@@ -24,13 +24,15 @@ output = expr { return $0; };
 expr
     = expr PLUS term
     {
-        std::cout << ">> " << $0 << " + " << $2 << "\n";
-        return $0 + $2;
+        int out = $0 + $2;
+        std::cout << ">> " << $0 << " + " << $2 << " = " << out <<"\n";
+        return out;
     }
     | expr MINUS term
     {
-        std::cout << ">> " << $0 << " - " << $2 << "\n";
-        return $0 - $2;
+        int out = $0 - $2;
+        std::cout << ">> " << $0 << " - " << $2 << " = " << out << "\n";
+        return out;
     }
     | term { return $0; }
     ;
@@ -38,13 +40,15 @@ expr
 term
     = term STAR factor
     {
-        std::cout << ">> " << $0 << " * " << $2 << "\n";
-        return $0 * $2;
+        int out = $0 * $2;
+        std::cout << ">> " << $0 << " * " << $2 << " = " << out << "\n";
+        return out;
     }
     | term SLASH factor
     {
-        std::cout << ">> " << $0 << " / " << $2 << "\n";
-        return $0 / $2;
+        int out = $0 / $2;
+        std::cout << ">> " << $0 << " / " << $2 << " = " << out << "\n";
+        return out;
     }
     | factor { return $0; }
     ;

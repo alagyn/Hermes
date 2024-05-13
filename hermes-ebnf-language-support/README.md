@@ -7,6 +7,8 @@ Language highlighting for Hermes EBNF files
 packaging:
 ```
 vsce package
+or 
+npx @vscode/vsce package
 ```
 
 installing:
