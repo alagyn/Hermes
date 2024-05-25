@@ -1,0 +1,41 @@
+# From "Finding Counterexamples from Parsing Conflicts"
+##
+stmt -> IF expr THEN stmt ELSE stmt
+    | IF expr THEN stmt
+    | expr QMARK stmt stmt
+    | ARR OPEN_SQUARE expr CLOSE_SQAURE WALRUS expr
+
+expr -> num
+    | expr PLUS expr
+
+num -> DIGIT
+    | num DIGIT
+##
+
+%return int
+
+IF = "if";
+THEN = "then";
+ELSE = "else";
+QMARK = "?";
+OPEN_SQUARE = '\[';
+CLOSE_SQAURE  = '\]';
+WALRUS = ":=";
+PLUS = "+";
+DIGIT = "\d";
+ARR = "arr";
+
+stmt 
+    = IF expr THEN stmt ELSE stmt {}
+    | expr QMARK stmt stmt {}
+    | ARR OPEN_SQUARE expr CLOSE_SQAURE WALRUS expr {}
+    ;
+
+expr 
+    = num {}
+    | expr PLUS expr {}
+    ;
+
+num = DIGIT {}
+    | num DIGIT {}
+    ;

@@ -3,11 +3,12 @@ import re
 from hermes_gen.writers.hermesHeader import writeHermesHeader
 from hermes_gen.grammar import Grammar
 from hermes_gen.directives import Directive
-from hermes_gen.lalr1_automata import ParseTable, Action
+from hermes_gen.parseTable import ParseTable, Action
 from hermes_gen.consts import ARG_VECTOR
 
+# TODO change parse table to a list of lists, since most columns are empty
 
-# FIXME
+
 def writeParseTable(filename: str, grammarFile: str, grammar: Grammar, table: ParseTable):
     with open(filename, mode='w') as f:
         writeHermesHeader(f)

@@ -2,7 +2,8 @@ import unittest
 
 from . import utils
 from hermes_gen.grammar import Grammar, parse_grammar
-from hermes_gen.lalr1_automata import LALR1Automata, ParseTable, Action, TableType, ParseAction
+from hermes_gen.lalr1_automata import LALR1Automata
+from hermes_gen.parseTable import ParseTable, Action, TableType, ParseAction
 
 PA = ParseAction
 

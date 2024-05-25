@@ -1,6 +1,6 @@
 import unittest
 
-from hermes_gen.main import parse_grammar
+from hermes_gen.__main__ import parse_grammar
 from hermes_gen.grammar import Rule
 from .utils import getTestFilename
 

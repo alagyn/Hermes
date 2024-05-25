@@ -1,0 +1,23 @@
+# From "Finding Counterexamples from Parsing Conflicts"
+##
+    S -> T | S T
+    T -> X | Y
+    X -> a
+    Y -> a a b
+##
+
+%return int
+
+a = 'a';
+b = 'b';
+
+S = T {}
+  | S T {}
+  ;
+
+T = X {}
+  | Y {}
+  ;
+
+X = a {};
+Y = a a b {};

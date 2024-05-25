@@ -5,6 +5,15 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "hermes_gen",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "hermes_gen",
+            "args": [
+                "tests/grammars/conflicts/unambiguous-shift-reduce.hm"
+            ]
+        },
+        {
             "name": "cpp tests",
             "type": "cppdbg",
             "request": "launch",
@@ -43,6 +52,6 @@
                     "ignoreFailures": true
                 }
             ]
-        }
+        },
     ]
 }
