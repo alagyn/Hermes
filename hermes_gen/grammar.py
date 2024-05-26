@@ -1,4 +1,4 @@
-from typing import List, Dict, Set, Tuple, Optional, TextIO
+from typing import List, Dict, Set, Tuple, Optional, TextIO, Iterable
 import re
 import os
 
@@ -6,12 +6,71 @@ from hermes_gen.errors import HermesError
 from hermes_gen.consts import ARG_VECTOR, EMPTY, END
 from hermes_gen.directives import Directive
 
-EMPTY_STR = "EMPTY"
+_EMPTY_STR = "EMPTY"
+
+
+class Symbol:
+    _ID_GEN = 0
+    _SYMBOL_MAP: Dict[str, 'Symbol'] = {}
+
+    EMPTY_SYMBOL: 'Symbol' = None  # type: ignore
+    END_SYMBOL: 'Symbol' = None  # type: ignore
+
+    @classmethod
+    def reset(cls):
+        cls._ID_GEN = 0
+        cls._SYMBOL_MAP = {}
+        cls.EMPTY_SYMBOL = Symbol(EMPTY, "", False)
+        cls.END_SYMBOL = Symbol(END, "", False)
+
+    @classmethod
+    def get(cls, name: str) -> 'Symbol':
+        return cls._SYMBOL_MAP[name]
+
+    @classmethod
+    def exists(cls, name: str) -> bool:
+        return name in cls._SYMBOL_MAP
+
+    @classmethod
+    def all(cls) -> Iterable['Symbol']:
+        return cls._SYMBOL_MAP.values()
+
+    def __init__(self, name: str, regex: str, nullable: bool) -> None:
+        self.id = Symbol._ID_GEN
+        self.name = name
+        self.regex = regex
+        self.isTerminal = len(regex) > 0
+        self.nullable = nullable
+        self.first: Set['Symbol'] = set()
+        self.follow: Set['Symbol'] = set()
+        Symbol._ID_GEN += 1
+        Symbol._SYMBOL_MAP[self.name] = self
+
+    def __str__(self) -> str:
+        return f'Symbol("{self.name}" {"term" if self.isTerminal else "nonterm"})'
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, Symbol):
+            return False
+
+        return self.id == value.id
+
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, Symbol):
+            raise NotImplementedError()
+
+        return self.name.lower() < other.name.lower()
+
+    def __hash__(self) -> int:
+        return self.id
 
 
 class Rule:
 
-    def __init__(self, id: int, nonterm: str, symbols: List[str], code: str, lineNum: int, codeLine: int) -> None:
+    def __init__(self, id: int, nonterm: Symbol, symbols: List[Symbol], code: str, lineNum: int, codeLine: int) -> None:
         self.id = id
         self.nonterm = nonterm
         self.symbols = symbols
@@ -26,18 +85,15 @@ class Rule:
         return self.nonterm == other.nonterm and self.symbols == other.symbols
 
     def __str__(self) -> str:
-        return f'Rule {self.id} @line {self.lineNum}: {self.nonterm} = {" ".join(self.symbols)}'
+        return f'Rule {self.id} @line {self.lineNum}: {self.nonterm} = {" ".join([str(x) for x in self.symbols])}'
 
     def compare(self, other) -> int:
         if not isinstance(other, Rule):
             raise NotImplementedError(f'Cannot compare Rule to {type(other)}')
 
-        snt = self.nonterm.lower()
-        ont = other.nonterm.lower()
-
-        if snt < ont:
+        if self.nonterm < other.nonterm:
             return -1
-        elif snt > ont:
+        elif self.nonterm > other.nonterm:
             return 1
 
         if len(self.symbols) < len(other.symbols):
@@ -46,8 +102,8 @@ class Rule:
             return 1
 
         for x, y in zip(self.symbols, other.symbols):
-            x = x.lower()
-            y = y.lower()
+            x = x.id
+            y = y.id
             if x < y:
                 return -1
             if x > y:
@@ -68,81 +124,94 @@ class Rule:
         return self.compare(other) >= 0
 
 
+class _RuleDef:
+
+    def __init__(self, id: int, nonterm: str, symbols: List[str], code: str, lineNum: int, codeLine: int) -> None:
+        self.id = id
+        self.nonterm = nonterm
+        self.symbols = symbols
+        self.code = code
+        self.lineNum = lineNum
+        self.codeLine = codeLine
+
+
 class Grammar:
 
     def __init__(
-        self, terminals: List[Tuple[str, str]], rules: List[Rule], nulls: Set[str], directives: Dict[str, List[str]]
+        self,
+        terminals: List[Tuple[str, str]],
+        ruleDefs: List[_RuleDef],
+        nulls: Set[str],
+        directives: Dict[str, List[str]]
     ) -> None:
-        # List of each rule
-        self.rules = rules
-        # Set of nonterminals that can go to null
-        self.nulls = nulls
-        # Map of name -> regex
-        self.terminalList = terminals
-        self.terminals = {
-            x[0]: x[1]
-            for x in self.terminalList
-        }
+        # List of terminals, in order as defined
+        self._terminals: List[Symbol] = [Symbol(x[0], x[1], False) for x in terminals]
 
-        # The set of every symbol defined in our grammar
-        self.symbols = set(self.terminals.keys())
-        for rule in self.rules:
-            self.symbols.add(rule.nonterm)
-            self.symbols.update(rule.symbols)
+        # List of each rule
+        self.rules: List[Rule] = []
+        # construct real rules from definitions
+        for rule in ruleDefs:
+            try:
+                lhs = Symbol.get(rule.nonterm)
+            except KeyError:
+                lhs = Symbol(rule.nonterm, "", rule.nonterm in nulls)
+
+            rhs = []
+            for symbol in rule.symbols:
+                # At this point, every terminal has been defined, assume any
+                # new symbols are nonterminals (also we error checked this in parse_grammar)
+                try:
+                    s = Symbol.get(symbol)
+                except KeyError:
+                    s = Symbol(symbol, "", symbol in nulls)
+                rhs.append(s)
+            self.rules.append(Rule(rule.id, lhs, rhs, rule.code, rule.lineNum, rule.codeLine))
+
         # Set the start symbol to the first rule
         self.startSymbol = self.rules[0].nonterm
 
         self.directives = directives
-        self.first: Dict[str, set[str]] = {}
 
         self._gen_first_and_follow()
 
     def _gen_first_and_follow(self):
-        for symbol in self.symbols:
-            self.first[symbol] = set()
-            if symbol in self.nulls:
-                self.first[symbol].add(EMPTY)
-
-        # Initialize the .irst set to contain the terminals
-        for term in self.terminals:
-            self.first[term] = set([term])
+        for symbol in Symbol.all():
+            # Initialize the first set to contain nulls
+            if symbol.nullable:
+                symbol.first.add(Symbol.EMPTY_SYMBOL)
+            # Initialize the first set to contain the terminals
+            if symbol.isTerminal:
+                symbol.first.add(symbol)
 
         changed = True
         while changed:
             changed = False
             for rule in self.rules:
-                curSet = self.first[rule.nonterm].copy()
+                curSet = rule.nonterm.first.copy()
 
                 nullable = True
                 for symbol in rule.symbols:
-                    curSet.update(self.first[symbol])
-                    if symbol not in self.nulls:
+                    curSet.update(symbol.first)
+                    if not symbol.nullable:
                         nullable = False
                         break
 
                 if nullable:
-                    curSet.add(EMPTY)
+                    curSet.add(Symbol.EMPTY_SYMBOL)
 
-                if curSet > self.first[rule.nonterm]:
-                    self.first[rule.nonterm] = curSet
+                if curSet > rule.nonterm.first:
+                    rule.nonterm.first = curSet
                     changed = True
             # End for rule
         # End while changed
 
-        self.follow: Dict[str, set[str]] = {
-            x.nonterm: set()
-            for x in self.rules
-        }
-        for x in self.terminals:
-            self.follow[x] = set()
-
-        self.follow[self.startSymbol] = {END}
+        self.startSymbol.follow.add(Symbol.END_SYMBOL)
 
         changed = True
         while changed:
             changed = False
             for rule in self.rules:
-                left = self.follow[rule.nonterm]
+                left = rule.nonterm.follow
                 # True if the previous symbol had EMPTy in their first set
                 lastEmpty = True
                 # Iterate backwards to keep track of when the next symbol can be empty
@@ -152,31 +221,28 @@ class Grammar:
                         break
 
                     if lastEmpty:
-                        right = self.follow[curSymbol]
+                        right = curSymbol.follow
                         new = left.union(right)
                         if new > right:
-                            self.follow[curSymbol] = new
+                            curSymbol.follow = new
                             changed = True
-                        lastEmpty = EMPTY in self.first[curSymbol]
+                        lastEmpty = Symbol.EMPTY_SYMBOL in curSymbol.first
                     if i > 0:
                         prior = rule.symbols[i - 1]
-                        curFirst = self.first[curSymbol].difference({EMPTY})
-                        priorFollow = self.follow[prior]
+                        curFirst = curSymbol.first.difference({Symbol.EMPTY_SYMBOL})
+                        priorFollow = prior.follow
                         new = priorFollow.union(curFirst)
                         if new > priorFollow:
-                            self.follow[prior] = new
+                            prior.follow = new
                             changed = True
                 # End for symbols
             # End for rules
         # End while changed
 
-        for x in self.terminals:
-            del self.follow[x]
-
 
 class _Reader:
     """
-    Lets us pass thse numbers by reference
+    Lets us pass these numbers by reference
     """
 
     def __init__(self, filename: str) -> None:
@@ -244,12 +310,14 @@ H_ARG_RE = re.compile(r'\$((?P<idx>\d+)|(?P<name>\w+))')
 def parse_grammar(filename: str) -> Grammar:
     terminalNames: Set[str] = set()
     terminals: List[Tuple[str, str]] = []
-    rules: List[Rule] = []
+    ruleDefs: List[_RuleDef] = []
     nonterminals: Set[str] = set()
     nulls: Set[str] = set()
     directives: Dict[str, List[str]] = {}
 
     f = _Reader(filename)
+
+    Symbol.reset()
 
     while True:
         nextChar = f.get()
@@ -293,7 +361,7 @@ def parse_grammar(filename: str) -> Grammar:
 
             lhs += nextChar
 
-        if lhs == EMPTY_STR:
+        if lhs == _EMPTY_STR:
             raise HermesError(f'{f} LHS cannot be EMPTY')
 
         # Find equals
@@ -346,10 +414,10 @@ def parse_grammar(filename: str) -> Grammar:
             continue
 
         nonterminals.add(lhs)
-        if parse_rules(f, lhs, rules):
+        if parse_rules(f, lhs, ruleDefs):
             nulls.add(lhs)
 
-    for rule in rules:
+    for rule in ruleDefs:
         for symbol in rule.symbols:
             if symbol not in terminalNames and symbol not in nonterminals:
                 raise HermesError(
@@ -382,7 +450,7 @@ def parse_grammar(filename: str) -> Grammar:
         # Replace the ignores list
         directives[Directive.ignore] = processedIgnores
 
-    for rule in rules:
+    for rule in ruleDefs:
 
         def preproc(m: re.Match) -> str:
             name = m.group('name')
@@ -420,7 +488,7 @@ def parse_grammar(filename: str) -> Grammar:
         # Replace all arg substitutions
         rule.code = H_ARG_RE.sub(preproc, rule.code)
 
-    return Grammar(terminals, rules, nulls, directives)
+    return Grammar(terminals, ruleDefs, nulls, directives)
 
 
 def parse_directive(f: _Reader) -> Tuple[str, str]:
@@ -502,13 +570,13 @@ def parse_terminal(f: _Reader, quoteType: str) -> str:
     return "".join(out)
 
 
-def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
+def parse_rules(f: _Reader, lhs: str, rules: List[_RuleDef]) -> bool:
     """
     Parse and add rules to the list, returns true if one of the rules is EMPTY
     """
     isNull = False
     while True:
-        curSymbolList: List[str] = []
+        curStrSymbolList: List[str] = []
         curSymbol = ''
         curCode = ''
         startingLine = f.lineNum
@@ -523,7 +591,7 @@ def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
 
             if nextChar == '{':
                 if len(curSymbol) > 0:
-                    curSymbolList.append(curSymbol)
+                    curStrSymbolList.append(curSymbol)
                     curSymbol = ''
                 break
 
@@ -533,7 +601,7 @@ def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
 
             if nextChar in ' \t\n':
                 if len(curSymbol) > 0:
-                    curSymbolList.append(curSymbol)
+                    curStrSymbolList.append(curSymbol)
                     curSymbol = ''
                 continue
 
@@ -544,7 +612,7 @@ def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
             if nextChar in '|;':
                 curCodeStart = -1
                 if len(curSymbol) > 0:
-                    curSymbolList.append(curSymbol)
+                    curStrSymbolList.append(curSymbol)
                     curSymbol = ''
                 break
 
@@ -552,17 +620,17 @@ def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
 
         # Check for null
         newNull = False
-        for symbol in curSymbolList:
-            if symbol == EMPTY_STR:
+        for symbol in curStrSymbolList:
+            if symbol == _EMPTY_STR:
                 isNull = True
                 newNull = True
-                if len(curSymbolList) > 1:
+                if len(curStrSymbolList) > 1:
                     raise HermesError(f"{f} EMPTY cannot be used in a rule with other symbols")
                 break
 
         # Do this after to not potentially bork the iteration
         if newNull:
-            curSymbolList = []
+            curStrSymbolList = []
 
         if curCodeStart >= 0:
             while True:
@@ -593,7 +661,7 @@ def parse_rules(f: _Reader, lhs: str, rules: List[Rule]) -> bool:
             f.unget()
 
         nextID = len(rules)
-        rules.append(Rule(nextID, lhs, curSymbolList, curCode, startingLine, curCodeStart))
+        rules.append(_RuleDef(nextID, lhs, curStrSymbolList, curCode, startingLine, curCodeStart))
 
         hitSemi = False
         while True:

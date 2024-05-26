@@ -1,32 +1,26 @@
-from ..grammar import Grammar
+from collections import deque
+from typing import Deque, List, Dict, Set, Tuple
+import time
+
+from ..grammar import Grammar, Symbol
 from ..lalr1_automata import LALR1Automata, Node, AnnotRule
 
 from .stateItem import StateItem
-from .transitionTable import TransitionTable
-
-from collections import deque
-from typing import Deque, List, Dict, Set, Tuple
-
-
-class _Configuration:
-
-    def __init__(self) -> None:
-        self.items = deque()
-        self.derivs = deque()
+from .configurations import Configuration, ComplexityQueue, ComplexityConfiguration
 
 
 class CounterExampleGen:
 
     def __init__(self, automata: LALR1Automata) -> None:
         self.automata = automata
-        self.trans = TransitionTable(automata)
+        StateItem.initLookups(automata)
 
     def generate_counterexample(
         self,
         conflictState: Node,
         conflictRule1: AnnotRule,
         conflictRule2: AnnotRule,
-        conflictSymbol: str,
+        conflictSymbol: Symbol,
     ):
         """
         Counterexample algorithm as described in 
@@ -58,22 +52,49 @@ class CounterExampleGen:
             # S/S conflicts are impossible
             raise RuntimeError("generate_counterexample() Expected at least one reduce rule")
 
-        path = self._getShortestPathFromStart(conflictState, item1, conflictSymbol)
+        # Get the shortest path to the reduce rule
+        shortestConflictPath = self._getShortestPathFromStart(conflictState, item1, conflictSymbol)
+        # set of nodes used in the shortest path
+        scpSet: Set[Node] = set()
+        # set of states that use the conflicted nonterminal
+        reduceProdSet: Set[Node] = set()
 
-        for x in path:
-            print(x.rule.rule.nonterm, end=" ")
-        print("")
+        reduceProdReached = False
+        for state in shortestConflictPath:
+            scpSet.add(state.node)
+            reduceProdReached = reduceProdReached or state.rule.rule.nonterm == item1.rule.nonterm
+            if reduceProdReached:
+                reduceProdSet.add(state.node)
+
+        # Actually compute counterexample
+        startTime = time.perf_counter()
+
+        # priority queue of search states
+        pq = ComplexityQueue()
+        complexityMap: Dict[int, ComplexityConfiguration] = {}
+        visited = {}
+
+        def addSearchState(state: Configuration):
+            visited1 = visited[state.states1]
+            if state.states2 in visited1:
+                return
+            try:
+                cconfig = complexityMap[state.complexity]
+            except KeyError:
+                cconfig = ComplexityConfiguration(state.complexity)
+                complexityMap[state.complexity] = cconfig
+            cconfig.add(state)
 
     def _getShortestPathFromStart(
         self,
         tgtNode: Node,
         tgtRule: AnnotRule,
-        conflictSym: str,
+        conflictSym: Symbol,
         optimized: bool = True,
     ) -> Deque[StateItem]:
 
-        source = self.trans.getStateItem(self.automata.start, self.automata.start.rules[0])
-        target = self.trans.getStateItem(tgtNode, tgtRule)
+        source = StateItem.getStateItem(self.automata.start, self.automata.start.rules[0])
+        target = StateItem.getStateItem(tgtNode, tgtRule)
 
         eligible = self._eligibleStateItemsToConflict(target) if optimized else None
 
@@ -83,7 +104,7 @@ class CounterExampleGen:
         # add any other rules for the start symbol
         for rule in self.automata.start.rules[1:]:
             if rule.rule.nonterm == source.rule.rule.nonterm:
-                queue.append(deque([self.trans.getStateItem(self.automata.start, rule)]))
+                queue.append(deque([StateItem.getStateItem(self.automata.start, rule)]))
 
         visited: Set[StateItem] = set()
 
@@ -100,7 +121,7 @@ class CounterExampleGen:
                 return path
             # transitions
             try:
-                for symbold, nextSI in self.trans.fwd[last].items():
+                for symbold, nextSI in StateItem.FWD_TRANS[last].items():
                     if eligible is not None and nextSI not in eligible:
                         continue
                     nextPath = path.copy()
@@ -110,7 +131,7 @@ class CounterExampleGen:
                 pass
             # productions
             try:
-                for nextSI in self.trans.prods[last]:
+                for nextSI in StateItem.FWD_PROD[last]:
                     if eligible is not None and nextSI not in eligible:
                         continue
                     nextPath = path.copy()
@@ -134,14 +155,14 @@ class CounterExampleGen:
             out.add(state)
             # consider reverse transitions and reverse productions
             try:
-                for prevSet in self.trans.rev[state].values():
+                for prevSet in StateItem.REV_TRANS[state].values():
                     queue.extend(prevSet)
             except KeyError:
                 pass
             if state.rule.parseIndex == 0:
                 symbol = state.rule.rule.nonterm
                 try:
-                    revProd = self.trans.revProds[state.node]
+                    revProd = StateItem.REV_PROD[state.node]
                     for prev in revProd[symbol]:
                         queue.append(prev)
                 except KeyError:

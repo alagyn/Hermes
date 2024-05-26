@@ -14,15 +14,21 @@ set(HERMES_GEN_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/hermes_gen)
 set(HERMES_CPP_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/hermes_cpp)
 
 set(PY_FILES
+    ${HERMES_GEN_ROOT}/__main__.py
+    ${HERMES_GEN_ROOT}/__init__.py
     ${HERMES_GEN_ROOT}/consts.py
     ${HERMES_GEN_ROOT}/directives.py
     ${HERMES_GEN_ROOT}/errors.py
     ${HERMES_GEN_ROOT}/grammar.py
     ${HERMES_GEN_ROOT}/lalr1_automata.py
-    ${HERMES_GEN_ROOT}/main.py
+    ${HERMES_GEN_ROOT}/parseTable.py
+    ${HERMES_GEN_ROOT}/counterexample/configurations.py
+    ${HERMES_GEN_ROOT}/counterexample/costs.py
+    ${HERMES_GEN_ROOT}/counterexample/counterexample.py
+    ${HERMES_GEN_ROOT}/counterexample/stateItem.py
     ${HERMES_GEN_ROOT}/writers/hermesHeader.py
     ${HERMES_GEN_ROOT}/writers/loader.py
-    ${HERMES_GEN_ROOT}/writers/parseTable.py
+    ${HERMES_GEN_ROOT}/writers/table.py
 )
 
 add_library(hermes)

@@ -1,23 +1,59 @@
 import unittest
-from typing import Dict
+from typing import Dict, Set
 
 from . import utils
-from hermes_gen.grammar import parse_grammar
+from hermes_gen.grammar import parse_grammar, Symbol
 from hermes_gen.consts import EMPTY, END
+
+
+def _convert(d: Dict[str, Set[str]]) -> Dict[Symbol, Set[Symbol]]:
+    out = {}
+    for k, v in d.items():
+        kSym = Symbol.get(k)
+        vSet = set()
+        for s in v:
+            vSet.add(Symbol.get(s))
+
+        out[kSym] = vSet
+
+    return out
 
 
 class TestFirstAndFollow(unittest.TestCase):
 
-    def _checkSet(self, setType: str, expected: Dict[str, set[str]], actual: Dict[str, set[str]]):
-        for key, val in actual.items():
-            self.assertTrue(key in expected, f'Symbol "{key}" not in epected {setType} dict')
-            expSet = expected[key]
-            diff = expSet ^ val
-            self.assertEqual(0, len(diff), f'Bad {setType} set for symbol: "{key}", expected: {expSet} got {val}')
+    def _check(self, expectedFirstStr: Dict[str, Set[str]], expectedFollowStr: Dict[str, Set[str]]):
 
-        self.assertEqual(len(expected), len(actual), f'Len of {setType} set not equal to expected')
+        expectedFirst = _convert(expectedFirstStr)
+        expectedFollow = _convert(expectedFollowStr)
 
-    def test_1_FandFtest1(self):
+        seenFirst = 0
+        seenFollow = 0
+
+        for val in Symbol._SYMBOL_MAP.values():
+            if val in {Symbol.EMPTY_SYMBOL, Symbol.END_SYMBOL}:
+                continue
+
+            self.assertTrue(val in expectedFirst, f'{val} not in expected FIRST dict')
+
+            expFirst = expectedFirst[val]
+            diff = expFirst ^ val.first
+            self.assertEqual(0, len(diff), f'Bad FIRST set for {val}\n\texp: {expFirst}\n\tgot: {val.first}')
+            seenFirst += 1
+
+            if not val.isTerminal:
+                self.assertTrue(val in expectedFollow, f'{val} not in expected FOLLOW dict')
+
+                expFollow = expectedFollow[val]
+                diff = expFollow ^ val.follow
+                self.assertEqual(0, len(diff), f'Bad FOLLOW set for {val}\n\texp: {expFollow}\n\tgot: {val.follow}')
+
+                seenFollow += 1
+
+        # TODO log missing stuff
+        self.assertEqual(len(expectedFirst), seenFirst, "Missing symbols from FIRST set")
+        self.assertEqual(len(expectedFollow), seenFollow, "Missing symbols from FOLLOW set")
+
+    def test_1(self):
         """
         From compiler book by Thain
         """
@@ -38,8 +74,6 @@ class TestFirstAndFollow(unittest.TestCase):
             'int': {'int'}
         }
 
-        self._checkSet("First", EXP_FIRST, grammar.first)
-
         EXP_FOLLOW = {
             'P': {END},
             'E': {'close_p', END},
@@ -49,9 +83,9 @@ class TestFirstAndFollow(unittest.TestCase):
             'F': {'plus', 'star', 'close_p', END}
         }
 
-        self._checkSet("Follow", EXP_FOLLOW, grammar.follow)
+        self._check(EXP_FIRST, EXP_FOLLOW)
 
-    def test_2_FandFtest2(self):
+    def test_2(self):
         """
         Test from https://people.cs.pitt.edu/~jmisurda/teaching/cs1622/handouts/cs1622-first_and_follow.pdf
         """
@@ -70,8 +104,6 @@ class TestFirstAndFollow(unittest.TestCase):
             'int': {'int'}
         }
 
-        self._checkSet("First", EXP_FIRST, g.first)
-
         EXP_FOLLOW = {
             'Y': {'close_p', END, 'plus'},
             'X': {'close_p', END},
@@ -79,7 +111,7 @@ class TestFirstAndFollow(unittest.TestCase):
             'E': {'close_p', END}
         }
 
-        self._checkSet("Follow", EXP_FOLLOW, g.follow)
+        self._check(EXP_FIRST, EXP_FOLLOW)
 
     def test_3_G10(self):
         """
@@ -98,15 +130,13 @@ class TestFirstAndFollow(unittest.TestCase):
             "T": {"id"}
         }
 
-        self._checkSet("First", EXP_FIRST, g.first)
-
         EXP_FOLLOW = {
             "P": {END},
             "E": {"plus", END, "close_p"},
             "T": {"close_p", "plus", END}
         }
 
-        self._checkSet("Follow", EXP_FOLLOW, g.follow)
+        self._check(EXP_FIRST, EXP_FOLLOW)
 
     def test_4_epsilon(self):
         testFile = utils.getTestFilename('epsilon.hm')
@@ -120,11 +150,7 @@ class TestFirstAndFollow(unittest.TestCase):
             "A": {"b", "a", EMPTY},
             "B": {"a", EMPTY}
         }
-        # yapf: enable
 
-        self._checkSet("First", EXP_FIRST, g.first)
-
-        # yapf: disable
         EXP_FOLLOW = {
             "S": {END},
             "A": {END},
@@ -132,4 +158,4 @@ class TestFirstAndFollow(unittest.TestCase):
         }
         # yapf: enable
 
-        self._checkSet("Follow", EXP_FOLLOW, g.follow)
+        self._check(EXP_FIRST, EXP_FOLLOW)

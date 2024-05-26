@@ -1,6 +1,7 @@
 from typing import Optional, Dict, List
 
 from .lalr1_automata import AnnotRule, Node, LALR1Automata
+from .grammar import Symbol
 from hermes_gen.consts import END, EMPTY
 from .counterexample.counterexample import CounterExampleGen
 from .errors import HermesError
@@ -30,6 +31,9 @@ class ParseAction:
     def __str__(self) -> str:
         return f'{self.action}{self.state} {self.rule}'
 
+    def __repr__(self) -> str:
+        return str(self)
+
 
 RowType = List[ParseAction]
 TableType = List[RowType]
@@ -37,7 +41,7 @@ TableType = List[RowType]
 
 class ParseTable:
 
-    def _conflict(self, node: Node, symbol: str, first: ParseAction, second: ParseAction):
+    def _conflict(self, node: Node, symbol: Symbol, first: ParseAction, second: ParseAction):
         if self._counterExampleGen is None:
             self._counterExampleGen = CounterExampleGen(self.automata)
 
@@ -56,15 +60,30 @@ class ParseTable:
 
         self._counterExampleGen: Optional[CounterExampleGen] = None
 
+        # Every symbol in the order they appear in the parse table
         self.symbolList = [automata.grammar.startSymbol]
-        for x in sorted(automata.ruleLookup.keys()):
-            if x != automata.grammar.startSymbol:
-                self.symbolList.append(x)
 
-        self.symbolList.extend([x[0] for x in automata.grammar.terminalList])
-        self.symbolList.append(END)
+        self.terminals: List[Symbol] = []
+        self.nonterminals: List[Symbol] = []
 
-        self.symbolIDs: Dict[str, int] = {
+        for x in Symbol.all():
+            if x not in {automata.grammar.startSymbol, Symbol.EMPTY_SYMBOL, Symbol.END_SYMBOL}:
+                if x.isTerminal:
+                    self.terminals.append(x)
+                else:
+                    self.nonterminals.append(x)
+
+        # Sort by ID so that they are put in the order they were defined
+        # since this defines precedence
+        self.terminals.sort(key=lambda x: x.id)
+        # Sort nonterminals alphabetically
+        self.nonterminals.sort()
+
+        self.symbolList.extend(self.nonterminals)
+        self.symbolList.extend(self.terminals)
+        self.symbolList.append(Symbol.END_SYMBOL)
+
+        self.symbolIDs: Dict[Symbol, int] = {
             x: idx - 1
             for idx, x in enumerate(self.symbolList)
         }
@@ -93,7 +112,7 @@ class ParseTable:
                 nextSymbolID = self.symbolIDs[nextSymbol]
                 nextNode = node.trans[nextSymbol].id
 
-                if nextSymbol in automata.grammar.terminals:
+                if nextSymbol.isTerminal:
                     nextAction = Action.S
                 else:
                     nextAction = Action.G

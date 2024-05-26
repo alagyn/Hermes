@@ -1,11 +1,24 @@
 import unittest
 
 from . import utils
-from hermes_gen.grammar import Grammar, parse_grammar
+from hermes_gen.grammar import Grammar, parse_grammar, Symbol
 from hermes_gen.lalr1_automata import LALR1Automata
 from hermes_gen.parseTable import ParseTable, Action, TableType, ParseAction
 
-PA = ParseAction
+
+def G(x: int) -> ParseAction:
+    return ParseAction(Action.G, x)
+
+
+E = ParseAction(Action.E, 0)
+
+
+def S(x: int) -> ParseAction:
+    return ParseAction(Action.S, x)
+
+
+def R(x: int) -> ParseAction:
+    return ParseAction(Action.R, x)
 
 
 class TestParseTable(unittest.TestCase):
@@ -24,20 +37,39 @@ class TestParseTable(unittest.TestCase):
         lalr = LALR1Automata(grammar)
         table = ParseTable(lalr)
 
-        # symbol order
-        # P E T id plus open_p close_p END
+        symbols = [
+            Symbol.get("P"),
+            Symbol.get("E"),
+            Symbol.get("T"),
+            Symbol.get("id"),
+            Symbol.get("plus"),
+            Symbol.get("open_p"),
+            Symbol.get("close_p"),
+            Symbol.END_SYMBOL
+        ]
+
+        for x, y in zip(symbols, table.symbolList):
+            self.assertEqual(x, y, f"Symbols out of order, exp: {x} got: {y}")
+
+        self.assertEqual(
+            len(symbols),
+            len(table.symbolList),
+            f"Symbol list not correct\n\tExp: {symbols}\n\tAct: {table.symbolList}"
+        )
 
         # yapf: disable
         EXP_TABLE: TableType = [
-            [PA(Action.G, 1), PA(Action.G, 2), PA(Action.S, 3), PA(Action.E, 0), PA(Action.E, 0), PA(Action.E, 0), PA(Action.E, 0)],
-            [PA(Action.E, 0), PA(Action.E, 0), PA(Action.E, 0), PA(Action.S, 4), PA(Action.E, 0), PA(Action.E, 0), PA(Action.R, 0)],
-            [PA(Action.E, 0), PA(Action.E, 0), PA(Action.E, 0), PA(Action.R, 2), PA(Action.E, 0), PA(Action.R, 2), PA(Action.R, 2)],
-            [PA(Action.E, 0), PA(Action.E, 0), PA(Action.E, 0), PA(Action.R, 4), PA(Action.S, 5), PA(Action.R, 4), PA(Action.R, 4)],
-            [PA(Action.E, 0), PA(Action.G, 6), PA(Action.S, 3), PA(Action.E, 0), PA(Action.E, 0), PA(Action.E, 0), PA(Action.E, 0)],
-            [PA(Action.G, 7), PA(Action.G, 2), PA(Action.S, 3), PA(Action.E, 0), PA(Action.E, 0), PA(Action.E, 0), PA(Action.E, 0)],
-            [PA(Action.E, 0), PA(Action.E, 0), PA(Action.E, 0), PA(Action.R, 1), PA(Action.E, 0), PA(Action.R, 1), PA(Action.R, 1)],
-            [PA(Action.E, 0), PA(Action.E, 0), PA(Action.E, 0), PA(Action.S, 4), PA(Action.E, 0), PA(Action.S, 8), PA(Action.E, 0)],
-            [PA(Action.E, 0), PA(Action.E, 0), PA(Action.E, 0), PA(Action.R, 3), PA(Action.E, 0), PA(Action.R, 3), PA(Action.R, 3)]
+            #  E     T     id    +     (     )     $
+            #-----------------------------------------
+            [G(1), G(2), S(3), E   , E   , E   , E   ],
+            [E   , E   , E   , S(4), E   , E   , R(0)],
+            [E   , E   , E   , R(2), E   , R(2), R(2)],
+            [E   , E   , E   , R(4), S(5), R(4), R(4)],
+            [E   , G(6), S(3), E   , E   , E   , E   ],
+            [G(7), G(2), S(3), E   , E   , E   , E   ],
+            [E   , E   , E   , R(1), E   , R(1), R(1)],
+            [E   , E   , E   , S(4), E   , S(8), E   ],
+            [E   , E   , E   , R(3), E   , R(3), R(3)]
         ]
         # yapf: enable
 
@@ -49,15 +81,15 @@ class TestParseTable(unittest.TestCase):
         lalr = LALR1Automata(grammar)
         table = ParseTable(lalr)
 
-        # symbol order S A B b a END
-
         # yapf: disable
         EXP_TABLE: TableType = [
-            [PA(Action.G, 1), PA(Action.G, 2), PA(Action.R, 3), PA(Action.R, 3), PA(Action.E, 0)],
-            [PA(Action.E, 0), PA(Action.E, 0), PA(Action.E, 0), PA(Action.E, 0), PA(Action.R, 0)],
-            [PA(Action.E, 0), PA(Action.E, 0), PA(Action.S, 3), PA(Action.S, 4), PA(Action.E, 0)],
-            [PA(Action.E, 0), PA(Action.E, 0), PA(Action.E, 0), PA(Action.E, 0), PA(Action.R, 1)],
-            [PA(Action.E, 0), PA(Action.E, 0), PA(Action.R, 2), PA(Action.R, 2), PA(Action.E, 0)]
+            #  A     B     b     a     $
+            #-----------------------------
+            [G(1), G(2), R(3), R(3), E   ],
+            [E   , E   , E   , E   , R(0)],
+            [E   , E   , S(3), S(4), E   ],
+            [E   , E   , E   , E   , R(1)],
+            [E   , E   , R(2), R(2), E   ]
         ]
         # yapf: enable
 

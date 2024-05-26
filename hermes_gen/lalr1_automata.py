@@ -2,8 +2,7 @@ from typing import Dict, List, Tuple, Optional, Set
 from collections import deque
 import itertools
 
-from hermes_gen.grammar import Grammar, Rule
-from hermes_gen.consts import END
+from hermes_gen.grammar import Grammar, Rule, Symbol
 from hermes_gen.errors import HermesError
 # TODO condense symbol strings to int IDs
 
@@ -13,7 +12,7 @@ class AnnotRule:
     A rule combined with a parse index and a look ahead
     """
 
-    def __init__(self, rule: Rule, parseIndex: int, lookAhead: set[str]) -> None:
+    def __init__(self, rule: Rule, parseIndex: int, lookAhead: set[Symbol]) -> None:
         """
         :param rule: The Rule
         :param parseIndex: The index of the symbol AFTER the dot, i.e. the symbol we are looking for
@@ -33,12 +32,12 @@ class AnnotRule:
         out = f'{self.rule.nonterm} ='
 
         for i in range(self.parseIndex):
-            out += " " + self.rule.symbols[i]
+            out += " " + str(self.rule.symbols[i])
 
         out += " ."
 
         for i in range(self.parseIndex, len(self.rule.symbols)):
-            out += " " + self.rule.symbols[i]
+            out += " " + str(self.rule.symbols[i])
 
         return out
 
@@ -74,13 +73,13 @@ class AnnotRule:
         """
         return self.parseIndex == len(self.rule.symbols)
 
-    def nextSymbol(self) -> str:
+    def nextSymbol(self) -> Symbol:
         """
         Get the next symbol
         """
         return self.rule.symbols[self.parseIndex]
 
-    def getNewLA(self, g: Grammar) -> set[str]:
+    def getNewLA(self, g: Grammar) -> set[Symbol]:
         """
         Returns the lookahead for closure rules generated from this rule
         Uses set of symbols that can be collapsed after the next symbol to be
@@ -93,8 +92,8 @@ class AnnotRule:
         out = set()
         for i in range(self.parseIndex + 1, len(self.rule.symbols)):
             symbol = self.rule.symbols[i]
-            out.update(g.first[symbol])
-            if symbol not in g.nulls:
+            out.update(symbol.first)
+            if not symbol.nullable:
                 return out
 
         # If we got here, every symbol after the next can be nulled
@@ -112,7 +111,7 @@ class Node:
         self.id = id
         self.rules: List[AnnotRule] = []
         # Map of transitions
-        self.trans: Dict[str, Node] = {}
+        self.trans: Dict[Symbol, Node] = {}
 
     def __str__(self) -> str:
         return f'Node#{self.id}'
@@ -120,7 +119,7 @@ class Node:
     def __repr__(self) -> str:
         return self.__str__()
 
-    def addRule(self, rule: Rule, parseIndex: int, lookAhead: set[str]) -> bool:
+    def addRule(self, rule: Rule, parseIndex: int, lookAhead: set[Symbol]) -> bool:
         """
         Attempts to add a rule to the node. If a duplicate is found,
         the new LA is merged into the existing rule.
@@ -168,7 +167,7 @@ class Node:
 
         return out
 
-    def addTrans(self, nt: str, node: 'Node'):
+    def addTrans(self, nt: Symbol, node: 'Node'):
         if nt in self.trans:
             raise HermesError(
                 f"LALR: Node: {str(self)}\n"
@@ -194,7 +193,7 @@ class LALR1Automata:
         self.grammar = g
 
         # Lookup rules for each nonterminal
-        self.ruleLookup: Dict[str, List[Rule]] = {}
+        self.ruleLookup: Dict[Symbol, List[Rule]] = {}
         for rule in g.rules:
             try:
                 self.ruleLookup[rule.nonterm].append(rule)
@@ -203,7 +202,7 @@ class LALR1Automata:
 
         # Add all the rules for the start symbol to the start node
         for rule in self.ruleLookup[g.startSymbol]:
-            self.start.addRule(rule, 0, {END})
+            self.start.addRule(rule, 0, {Symbol.END_SYMBOL})
 
         # Make the closure for the start node
         self.makeClosure(self.start)
@@ -247,7 +246,7 @@ class LALR1Automata:
                     continue
 
                 nextSym = annotRule.nextSymbol()
-                if nextSym in self.grammar.terminals:
+                if nextSym.isTerminal:
                     # the next symbol is a terminal, skip
                     continue
 
@@ -260,7 +259,7 @@ class LALR1Automata:
             # End for annotRule
         # End while changed
 
-    def makeNewNode(self, curNode: Node, symbol: str) -> Node:
+    def makeNewNode(self, curNode: Node, symbol: Symbol) -> Node:
         newNode = Node(self.nodeIDs)
         self.nodeIDs += 1
 

@@ -12,6 +12,10 @@
                     "type": "BOOL",
                     "value": "ON"
                 },
+                "HERMES_PYTHON_TESTS":{
+                    "type": "BOOL",
+                    "value": "ON"
+                },
                 "CMAKE_EXPORT_COMPILE_COMMANDS": {
                     "type": "BOOL",
                     "value": "ON"
@@ -19,6 +23,17 @@
                 "CMAKE_INSTALL_PREFIX": {
                     "type": "PATH",
                     "value": "dist"
+                }
+            }
+        },
+        // Disable python tests since the python extensions handle it already
+        {
+            "name": "VSCode",
+            "inherits": ["default"],
+            "cacheVariables": {
+                "HERMES_PYTHON_TESTS": {
+                    "type": "BOOL",
+                    "value": "OFF"
                 }
             }
         }
@@ -29,8 +44,15 @@
             "configurePreset": "default",
             "configuration": "Debug",
             "targets": ["tests"]
+        },
+        {
+            "name": "VSCode Tests",
+            "configurePreset": "VSCode",
+            "configuration": "Debug",
+            "targets": ["tests"]
         }
     ],
+    
     "testPresets": [
         {
             "name": "all",
@@ -39,6 +61,15 @@
             "inheritConfigureEnvironment": true,
             "output": {
                 "outputOnFailure": true
+            }
+        },
+        {
+            "name": "VSCode",
+            "configurePreset": "VSCode",
+            "configuration": "Debug",
+            "inheritConfigureEnvironment": true,
+            "output":{
+                "outputOnFailure":true
             }
         }
     ]

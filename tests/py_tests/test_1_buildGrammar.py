@@ -1,7 +1,7 @@
 import unittest
 
 from hermes_gen.__main__ import parse_grammar
-from hermes_gen.grammar import Rule
+from hermes_gen.grammar import Rule, Symbol
 from .utils import getTestFilename
 
 
@@ -25,18 +25,30 @@ class TestBuildgrammar(unittest.TestCase):
             "quote": '"'
         }
 
-        self.assertEqual(len(EXP_TERMS), len(g.terminals), 'Len of terminal definitions not equal')
+        numTerminals = 0
+        for key, val in Symbol._SYMBOL_MAP.items():
+            if val.isTerminal:
+                numTerminals += 1
+                self.assertTrue(key in EXP_TERMS, 'Terminal name is not expected')
+                self.assertEqual(EXP_TERMS[key], val.regex, 'Terminal definition is not expected')
 
-        for key, val in g.terminals.items():
-            self.assertTrue(key in EXP_TERMS, 'Terminal name is not expected')
-            self.assertEqual(EXP_TERMS[key], val, 'Terminal definition is not expected')
+        self.assertEqual(len(EXP_TERMS), numTerminals, 'Len of terminal definitions not equal')
+
+        program = Symbol.get("PROGRAM")
+        stmt = Symbol.get('stmt')
+        name = Symbol.get('name')
+        equ = Symbol.get('equals_sign')
+        integer = Symbol.get('integer')
+        semicolon = Symbol.get('semicolon')
+        open_curly = Symbol.get('open_curly')
+        close_curly = Symbol.get('close_curly')
 
         EXP_RULES = [
-            Rule(0, 'PROGRAM', ['stmt'], "return values[0]->nt();", 0, 0),
-            Rule(1, 'stmt', ['name', 'equals_sign', 'integer', 'semicolon'], "return 0;", 0, 0),
+            Rule(0, program, [stmt], "return values[0]->nt();", 0, 0),
+            Rule(1, stmt, [name, equ, integer, semicolon], "return 0;", 0, 0),
             Rule(
                 2,
-                'stmt', ['open_curly', 'integer', 'close_curly'],
+                stmt, [open_curly, integer, close_curly],
                 "#this is a preprocessor thing\n"
                 "    //this is some code;\n"
                 '    //"this is an inner string";\n'
@@ -48,7 +60,7 @@ class TestBuildgrammar(unittest.TestCase):
                 0,
                 0
             ),
-            Rule(3, "stmt", [], "return 0;", 0, 0)
+            Rule(3, stmt, [], "return 0;", 0, 0)
         ]
 
         self.assertEqual(len(EXP_RULES), len(g.rules), 'Len of rules not equal')

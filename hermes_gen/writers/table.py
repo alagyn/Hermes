@@ -55,13 +55,13 @@ def writeParseTable(filename: str, grammarFile: str, grammar: Grammar, table: Pa
 
         f.write("namespace Symbol {\n")
         for idx, terminal in enumerate(table.symbolList):
-            f.write(f"unsigned {terminal} = {idx};\n")
+            f.write(f"unsigned {terminal.name} = {idx};\n")
         f.write(f"unsigned __IGNORE__ = {len(table.symbolList)};\n")
         f.write("} // end namespace Symbol\n\n")
 
         f.write("const std::vector<std::string> SYMBOL_LOOKUP = {\n")
         for symbol in table.symbolList:
-            f.write(f'   "{symbol}",\n')
+            f.write(f'   "{symbol.name}",\n')
         f.write('    "__IGNORE__"\n')
         f.write("}; // End SYMBOL_LOOKUP\n\n")
 
@@ -72,10 +72,10 @@ def writeParseTable(filename: str, grammarFile: str, grammar: Grammar, table: Pa
             regex = re.sub(r'"', r'\\"', regex)
             return regex
 
-        for idx, terminal in enumerate(grammar.terminalList):
-            regex = escape_regex(terminal[1])
-            f.write(f'    {{Symbol::{terminal[0]}, "{regex}"}}')
-            if idx < len(grammar.terminalList) - 1:
+        for idx, terminal in enumerate(table.terminals):
+            regex = escape_regex(terminal.regex)
+            f.write(f'    {{Symbol::{terminal.name}, "{regex}"}}')
+            if idx < len(table.terminals) - 1:
                 f.write(",\n")
         # Write ignored terminals
         if Directive.ignore in grammar.directives:

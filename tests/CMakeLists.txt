@@ -24,6 +24,8 @@ target_include_directories(tests
     cpp_tests
 )
 
+option(HERMES_PYTHON_TESTS "Enable Python Unit Tests in CTEST" ON)
+
 include(CTest)
 include(Catch)
 catch_discover_tests(tests)
@@ -48,11 +50,12 @@ function(pythonTest)
 
 endfunction()
 
-pythonTest(TEST test_1_buildGrammar)
-pythonTest(TEST test_2_FandF)
-pythonTest(TEST test_3_LR1Closure)
-pythonTest(TEST test_4_parseTable)
-
+if(${HERMES_PYTHON_TESTS})
+    pythonTest(TEST test_1_buildGrammar)
+    pythonTest(TEST test_2_FandF)
+    pythonTest(TEST test_3_LR1Closure)
+    pythonTest(TEST test_4_parseTable)
+endif()
 
 # Calculator test app
 add_executable(calculator test_execs/calculator.cpp)
