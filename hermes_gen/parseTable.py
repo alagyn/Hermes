@@ -3,7 +3,7 @@ from typing import Optional, Dict, List
 from .lalr1_automata import AnnotRule, Node, LALR1Automata
 from .grammar import Symbol
 from hermes_gen.consts import END, EMPTY
-from .counterexample.counterexample import CounterExampleGen
+from .counterexample.counterexampleGen import CounterExampleGen
 from .errors import HermesError
 
 
