@@ -1,13 +1,14 @@
 from collections import deque
 from typing import Deque, Set, Optional, List
 import heapq
-import itertools
 
 from ..lalr1_automata import Node, AnnotRule
 from ..grammar import Symbol
 from ..errors import HermesError
 from .stateItem import StateItem
+from .derivation import Derivation
 from . import costs
+from .utils import sliceDeque
 
 
 def countProductionSteps(items: List[StateItem], last: StateItem):
@@ -20,11 +21,16 @@ def countProductionSteps(items: List[StateItem], last: StateItem):
     return count
 
 
-def nullableClosure(rule: AnnotRule, pos: int, siLast: StateItem, states: List[StateItem], derivs: List[str]) -> None:
+def nullableClosure(
+    rule: AnnotRule, pos: int, siLast: StateItem, states: Deque[StateItem], derivs: Deque[Derivation]
+) -> None:
     for i in range(pos, len(rule.rule.symbols)):
         symbol = rule.rule.symbols[i]
-
-    pass
+        if symbol.isTerminal or not symbol.nullable:
+            break
+        siLast = StateItem.FWD_TRANS[siLast][symbol]
+        derivs.append(Derivation(symbol, []))
+        states.append(siLast)
 
 
 class Configuration:
@@ -32,8 +38,8 @@ class Configuration:
     def __init__(self) -> None:
         self.states1: Deque[StateItem] = deque()
         self.states2: Deque[StateItem] = deque()
-        self.derivs1: Deque[Symbol] = deque()
-        self.derivs2: Deque[Symbol] = deque()
+        self.derivs1: Deque[Derivation] = deque()
+        self.derivs2: Deque[Derivation] = deque()
         self.complexity = 0
         # The number of production steps made since the reduce conflict item.
         #   If this is -1, the reduce conflict item has been completed.
@@ -109,8 +115,8 @@ class Configuration:
                         # Both are reverse transitions; add appropriate
                         # derivation of the corresponding symbol used for
                         # the reverse transition.
-                        copy.derivs1.appendleft(sym)
-                        copy.derivs2.appendleft(sym)
+                        copy.derivs1.appendleft(Derivation(sym))
+                        copy.derivs2.appendleft(Derivation(sym))
                     else:
                         continue
                 elif psis2 is not None and psis2.rule.parseIndex + 1 == copy.states2[1].rule.parseIndex:
@@ -147,8 +153,8 @@ class Configuration:
 
         # remove every symbol used
         # TODO check this indexing
-        derivs = deque(itertools.islice(self.derivs1, -ruleLen))
-        derivs.append(lhs)
+        derivs = sliceDeque(self.derivs1, -ruleLen, len(self.derivs1))
+        derivs.append(Derivation(lhs, list(sliceDeque(self.derivs1, 0, -ruleLen))))
 
         if len(states) == ruleLen + 1:
             # The head StateItem is a production item, so we need to prepend
@@ -157,7 +163,7 @@ class Configuration:
             for psis in prev:
                 copy = self.copy()
                 copy.derivs1 = derivs
-                copy.states1 = deque(itertools.islice(self.states1, 0, len(states) - ruleLen - 1))
+                copy.states1 = sliceDeque(self.states1, 0, len(states) - ruleLen - 1)
                 copy.states1.append(StateItem.FWD_TRANS[copy.states1[-1]][lhs])
                 copy.complexity += costs.REDUCE_COST
                 if depth == 0:
@@ -167,7 +173,7 @@ class Configuration:
         else:
             copy = self.copy()
             copy.derivs1 = derivs
-            copy.states1 = deque(itertools.islice(self.states1, 0, len(states) - ruleLen - 1))
+            copy.states1 = sliceDeque(self.states1, 0, len(states) - ruleLen - 1)
             copy.states1.append(StateItem.FWD_TRANS[copy.states1[-1]][lhs])
             copy.complexity += costs.REDUCE_COST
             if depth == 0:
@@ -179,13 +185,13 @@ class Configuration:
         finalizedResult = []
         for ss in out:
             nextS = ss.states1[-1]
-            derivs1 = []
-            states1 = []
+            derivs1 = deque()
+            states1 = deque()
             nullableClosure(nextS.rule, nextS.rule.parseIndex, nextS, states1, derivs1)
 
         return finalizedResult
 
-    def reduce2(self, nextSym: str):
+    def reduce2(self, nextSym: Optional[Symbol]) -> List['Configuration']:
         # TODO
         pass
 
@@ -203,13 +209,13 @@ class ComplexityConfiguration:
 
     def __init__(self, complexity: int) -> None:
         self.complexity = complexity
-        self.states: Set[Configuration] = set()
+        self.configs: Set[Configuration] = set()
 
     def __lt__(self, other: 'ComplexityConfiguration') -> bool:
         return self.complexity < other.complexity
 
     def add(self, state: Configuration):
-        self.states.add(state)
+        self.configs.add(state)
 
 
 class ComplexityQueue:
@@ -225,3 +231,6 @@ class ComplexityQueue:
 
     def pop(self) -> ComplexityConfiguration:
         return heapq.heappop(self._q)[1]
+
+    def __len__(self) -> int:
+        return len(self._q)

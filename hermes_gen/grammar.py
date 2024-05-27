@@ -47,10 +47,10 @@ class Symbol:
         Symbol._SYMBOL_MAP[self.name] = self
 
     def __str__(self) -> str:
-        return f'Symbol("{self.name}" {"term" if self.isTerminal else "nonterm"})'
+        return self.name
 
     def __repr__(self) -> str:
-        return str(self)
+        return f'Symbol("{self.name}" {"term" if self.isTerminal else "nonterm"})'
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, Symbol):

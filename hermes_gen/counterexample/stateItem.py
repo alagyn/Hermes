@@ -25,6 +25,12 @@ class StateItem:
     def initLookups(cls, automata: LALR1Automata) -> None:
         cls.AUTOMATA = automata
 
+        cls.FWD_TRANS.clear()
+        cls.REV_TRANS.clear()
+        cls.FWD_PROD.clear()
+        cls.REV_PROD.clear()
+        cls.STATE_ITEM_LOOKUP.clear()
+
         # Compute transition maps
 
         for src in automata.nodes:
@@ -173,7 +179,7 @@ class SearchState:
             return out
 
         for prev in prevs:
-            if not self.productionAllowed(prev):
+            if not productionAllowed(prev, si):
                 continue
             prevLen = len(prev.rule.rule.symbols)
             prevPos = prev.rule.parseIndex + 1
@@ -213,6 +219,7 @@ class SearchState:
 
         return out
 
-    def productionAllowed(self, prev: 'StateItem') -> bool:
-        # TODO this is supposed to use precendence and associativity, which Hermes doesn't do yet
-        return True
+
+def productionAllowed(prod: StateItem, prev: StateItem) -> bool:
+    # TODO this is supposed to use precendence and associativity, which Hermes doesn't do yet
+    return True
