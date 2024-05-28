@@ -104,6 +104,12 @@ class AnnotRule:
     def __hash__(self) -> int:
         return hash(self.rule.id) + hash(self.parseIndex)
 
+    def __getitem__(self, idx: int) -> Symbol:
+        return self.rule.symbols[idx]
+
+    def __len__(self) -> int:
+        return len(self.rule.symbols)
+
 
 class Node:
 

@@ -181,7 +181,7 @@ class SearchState:
         for prev in prevs:
             if not productionAllowed(prev, si):
                 continue
-            prevLen = len(prev.rule.rule.symbols)
+            prevLen = len(prev.rule)
             prevPos = prev.rule.parseIndex + 1
             prevLookahead = prev.rule.lookAhead
             nextLookahead: Set[Symbol] = set()
@@ -203,7 +203,7 @@ class SearchState:
                     nullable = True
                     i = prevPos
                     while not applicable and nullable and i < prevLen:
-                        nextSym = prev.rule.rule.symbols[i]
+                        nextSym = prev.rule[i]
                         if nextSym.isTerminal:
                             applicable = nextSym in self.lookahead
                             nullable = False

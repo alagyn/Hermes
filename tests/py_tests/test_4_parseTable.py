@@ -24,12 +24,12 @@ def R(x: int) -> ParseAction:
 class TestParseTable(unittest.TestCase):
 
     def _checkTable(self, exp: TableType, act: TableType):
+        self.assertEqual(len(exp), len(act), f"Table not of equal size")
         for rowIdx, (expRow, actRow) in enumerate(zip(exp, act)):
             for colIdx, (expCol, actCol) in enumerate(zip(expRow, actRow)):
                 self.assertEqual(expCol, actCol, f"Error at [{rowIdx}][{colIdx}] expected {expCol} got {actCol}")
 
             self.assertEqual(len(expRow), len(actRow), f"Row {rowIdx} not of equal length")
-        self.assertEqual(len(exp), len(act), f"Table not of equal size")
 
     def test_1_G10(self):
         testFile = utils.getTestFilename("G10.hm")

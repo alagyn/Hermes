@@ -3,7 +3,7 @@ import re
 import os
 
 from hermes_gen.errors import HermesError
-from hermes_gen.consts import ARG_VECTOR, EMPTY, END
+from hermes_gen.consts import ARG_VECTOR, EMPTY, END, START
 from hermes_gen.directives import Directive
 
 _EMPTY_STR = "EMPTY"
@@ -487,6 +487,19 @@ def parse_grammar(filename: str) -> Grammar:
 
         # Replace all arg substitutions
         rule.code = H_ARG_RE.sub(preproc, rule.code)
+
+    startSymbol = ruleDefs[0].nonterm
+    needsNewStart = False
+    for r in ruleDefs[1:]:
+        if r.nonterm == startSymbol:
+            needsNewStart = True
+            break
+
+    if needsNewStart:
+        # we have more than one production for the start symbol
+        # condense this into a single production for the start symbol
+        # like: __START__ = [start symbol]
+        ruleDefs = [_RuleDef(len(ruleDefs), "__START__", [startSymbol], "return $0;", 0, 0), *ruleDefs]
 
     return Grammar(terminals, ruleDefs, nulls, directives)
 

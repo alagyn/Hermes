@@ -3,7 +3,7 @@ from typing import Dict, Set
 
 from . import utils
 from hermes_gen.grammar import parse_grammar, Symbol
-from hermes_gen.consts import EMPTY, END
+from hermes_gen.consts import EMPTY, END, START
 
 
 def _convert(d: Dict[str, Set[str]]) -> Dict[Symbol, Set[Symbol]]:
@@ -30,7 +30,7 @@ class TestFirstAndFollow(unittest.TestCase):
         seenFollow = 0
 
         for val in Symbol._SYMBOL_MAP.values():
-            if val in {Symbol.EMPTY_SYMBOL, Symbol.END_SYMBOL}:
+            if val in {Symbol.EMPTY_SYMBOL, Symbol.END_SYMBOL, Symbol.START_SYMBOL}:
                 continue
 
             self.assertTrue(val in expectedFirst, f'{val} not in expected FIRST dict')

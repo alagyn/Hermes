@@ -6,12 +6,12 @@ from ..lalr1_automata import Node, AnnotRule
 from ..grammar import Symbol
 from ..errors import HermesError
 from .stateItem import StateItem
-from .derivation import Derivation
+from .derivation import Derivation, DOT
 from . import costs
 from .utils import sliceDeque
 
 
-def countProductionSteps(items: List[StateItem], last: StateItem):
+def countProductionSteps(items: Deque[StateItem], last: StateItem):
     count = 0
     lastState = last
     for x in reversed(items):
@@ -24,8 +24,8 @@ def countProductionSteps(items: List[StateItem], last: StateItem):
 def nullableClosure(
     rule: AnnotRule, pos: int, siLast: StateItem, states: Deque[StateItem], derivs: Deque[Derivation]
 ) -> None:
-    for i in range(pos, len(rule.rule.symbols)):
-        symbol = rule.rule.symbols[i]
+    for i in range(pos, len(rule)):
+        symbol = rule[i]
         if symbol.isTerminal or not symbol.nullable:
             break
         siLast = StateItem.FWD_TRANS[siLast][symbol]
@@ -135,8 +135,10 @@ class Configuration:
 
         return out
 
-    def reduce1(self, nextSym: Optional[Symbol], depth: int) -> List['Configuration']:
+    def reduce1(self, nextSym: Optional[Symbol], item1: StateItem) -> List['Configuration']:
         states = self.states1
+        derivs = self.derivs1
+        sSize = len(states)
         item = states[-1].rule
         if not item.indexAtEnd():
             raise HermesError("Configuration.reduce1() Cannot reduce item without dot at end")
@@ -145,40 +147,43 @@ class Configuration:
         symbolSet = {nextSym} if nextSym is not None else item.lookAhead
 
         lhs = item.rule.nonterm
-        if depth == 0:
-            # TODO UnifiedExample.java:1113
-            pass
+        ruleLen = len(item)
+        dSize = len(derivs)
 
-        ruleLen = len(item.rule.symbols)
+        deriv = Derivation(lhs, list(sliceDeque(self.derivs1, dSize - ruleLen, dSize)))
+        if self.reduceDepth == 0:
+            # We are reducing the reduce conflict item.
+            # Add a dot for visual inspection of the resulting counterexample.
+            if deriv.deriv is not None:
+                deriv.deriv.insert(item1.rule.parseIndex, DOT)
 
-        # remove every symbol used
-        # TODO check this indexing
-        derivs = sliceDeque(self.derivs1, -ruleLen, len(self.derivs1))
-        derivs.append(Derivation(lhs, list(sliceDeque(self.derivs1, 0, -ruleLen))))
-
-        if len(states) == ruleLen + 1:
+        derivs = sliceDeque(derivs, dSize - ruleLen, dSize)
+        derivs.append(deriv)
+        if sSize == ruleLen + 1:
             # The head StateItem is a production item, so we need to prepend
             # with possible source StateItems.
             prev = states[0].reverseProduction(symbolSet)
             for psis in prev:
                 copy = self.copy()
                 copy.derivs1 = derivs
-                copy.states1 = sliceDeque(self.states1, 0, len(states) - ruleLen - 1)
+                copy.states1 = sliceDeque(self.states1, 0, sSize - ruleLen - 1)
+                copy.states1.extendleft(reversed(psis))
                 copy.states1.append(StateItem.FWD_TRANS[copy.states1[-1]][lhs])
-                copy.complexity += costs.REDUCE_COST
-                if depth == 0:
-                    # TODO
-                    depth -= 1
+
+                pSteps = countProductionSteps(copy.states1, states[0])
+                copy.complexity += costs.UNSHIFT_COST * (len(copy.states1) - pSteps)
+                copy.complexity += costs.PRODUCTION_COST * pSteps
+                if copy.reduceDepth == 0:
+                    copy.reduceDepth -= 1
                 out.append(copy)
         else:
             copy = self.copy()
             copy.derivs1 = derivs
-            copy.states1 = sliceDeque(self.states1, 0, len(states) - ruleLen - 1)
+            copy.states1 = sliceDeque(self.states1, 0, sSize - ruleLen - 1)
             copy.states1.append(StateItem.FWD_TRANS[copy.states1[-1]][lhs])
             copy.complexity += costs.REDUCE_COST
-            if depth == 0:
-                # TODO
-                depth -= 1
+            if copy.reduceDepth == 0:
+                copy.reduceDepth -= 1
             out.append(copy)
 
         # Transition on nullable symbols
@@ -188,12 +193,83 @@ class Configuration:
             derivs1 = deque()
             states1 = deque()
             nullableClosure(nextS.rule, nextS.rule.parseIndex, nextS, states1, derivs1)
+            finalizedResult.append(ss)
+            for i in range(1, len(derivs1)):
+                subderivs1 = sliceDeque(derivs1, 0, i)
+                substates1 = sliceDeque(states1, 0, i)
+                copy = ss.copy()
+                copy.derivs1.extend(subderivs1)
+                copy.states1.extend(substates1)
+                finalizedResult.append(copy)
 
         return finalizedResult
 
-    def reduce2(self, nextSym: Optional[Symbol]) -> List['Configuration']:
-        # TODO
-        pass
+    def reduce2(self, nextSym: Optional[Symbol], item2: StateItem) -> List['Configuration']:
+        states = self.states2
+        derivs = self.derivs2
+        item = states[-1].rule
+        sSize = len(states)
+        if not item.indexAtEnd():
+            raise HermesError("Configuration.reduce2() Cannot reduce item without dot at end")
+        out: List[Configuration] = []
+        symbolSet = item.lookAhead if nextSym is None else {nextSym}
+        if len(symbolSet & item.lookAhead) == 0:
+            return out
+        lhs = item.rule.nonterm
+        ruleLen = len(item)
+        dSize = len(derivs)
+        deriv = Derivation(item.rule.nonterm, list(sliceDeque(derivs, dSize - ruleLen, dSize)))
+        if self.shiftDepth == 0:
+            # We are reducing the shift conflict item (for shift/reduce conflict),
+            # or the other reduce conflict item (for reduce/reduce conflict).
+            # Add a dot for visual inspection of the resulting counterexample.
+            if deriv.deriv is not None:
+                deriv.deriv.insert(item2.rule.parseIndex, DOT)
+        derivs = sliceDeque(derivs, dSize - ruleLen, dSize)
+        derivs.append(deriv)
+        if sSize == ruleLen + 1:
+            # The head StateItem is a production item, so we need to prepend
+            # with possible source StateItems.
+            prev = states[0].reverseProduction(symbolSet)
+            for psis in prev:
+                copy = self.copy()
+                copy.derivs2 = derivs
+                copy.states2 = sliceDeque(states, 0, sSize - ruleLen - 1)
+                copy.states2.extendleft(reversed(psis))
+                copy.states2.append(StateItem.FWD_TRANS[copy.states2[-1]][lhs])
+
+                pSteps = countProductionSteps(copy.states2, states[0])
+                copy.complexity += costs.SHIFT_COST * (len(copy.states2) - pSteps)
+                copy.complexity += costs.PRODUCTION_COST * pSteps
+                if copy.shiftDepth >= 0:
+                    copy.shiftDepth -= 1
+                out.append(copy)
+        else:
+            copy = self.copy()
+            copy.derivs2 = derivs
+            copy.states2 = sliceDeque(states, 0, sSize - ruleLen - 1)
+            copy.states2.append(StateItem.FWD_TRANS[copy.states2[-1]][lhs])
+            copy.complexity += costs.REDUCE_COST
+            if copy.shiftDepth >= 0:
+                copy.shiftDepth -= 1
+            out.append(copy)
+        # transition on nullable symbols
+        finalizedResult = []
+        for ss in out:
+            nextS = ss.states2[-1]
+            derivs2: Deque[Derivation] = deque()
+            states2: Deque[StateItem] = deque()
+            nullableClosure(nextS.rule, nextS.rule.parseIndex, nextS, states2, derivs2)
+            finalizedResult.append(ss)
+            for i in range(1, len(derivs2)):
+                subderivs2 = sliceDeque(derivs2, 0, i)
+                substates2 = sliceDeque(states2, 0, i)
+                copy = ss.copy()
+                copy.derivs2.extend(subderivs2)
+                copy.states2.extend(substates2)
+                finalizedResult.append(copy)
+
+        return finalizedResult
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, Configuration):

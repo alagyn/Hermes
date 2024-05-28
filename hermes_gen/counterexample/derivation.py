@@ -17,3 +17,9 @@ class Derivation:
 
     def __hash__(self):
         return hash(self.symbol)
+
+
+_DOT = Symbol(".", "", False)
+del Symbol._SYMBOL_MAP['.']
+
+DOT = Derivation(_DOT)
