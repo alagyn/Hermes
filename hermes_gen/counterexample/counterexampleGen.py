@@ -17,6 +17,35 @@ ASSURANCE_LIMIT_SEC = 2
 TIME_LIMIT_SEC = 5
 
 
+def isConflictShiftReduce(rule1: AnnotRule, rule2: AnnotRule) -> Tuple[bool, AnnotRule, AnnotRule]:
+    # If this is a S/R conflict, we want the R to be item 1
+    # otherwise, it doesn't matter
+    if rule1.indexAtEnd():
+        # our first rule is a reduce rule, check the second
+        if rule2.indexAtEnd():
+            # we have a R/R conflict
+            isShiftReduce = False
+        else:
+            # we have a S/R
+            isShiftReduce = True
+
+        # order doesn't matter if R/R, but we def want item1
+        # to be a reduce item
+        item1 = rule1
+        item2 = rule2
+    elif rule2.indexAtEnd():
+        # out second rule is a reduce, but the first is a shift
+        isShiftReduce = True
+        item1 = rule2
+        item2 = rule1
+    else:
+        # shouldn't ever reach here?
+        # S/S conflicts are impossible
+        raise RuntimeError("generate_counterexample() Expected at least one reduce rule")
+
+    return isShiftReduce, item1, item2
+
+
 class CounterExampleGen:
 
     def __init__(self, automata: LALR1Automata) -> None:
@@ -41,30 +70,7 @@ class CounterExampleGen:
 
         self._conflictSymbol = conflictSymbol
 
-        # If this is a S/R conflict, we want the R to be item 1
-        # otherwise, it doesn't matter
-        if conflictRule1.indexAtEnd():
-            # our first rule is a reduce rule, check the second
-            if conflictRule2.indexAtEnd():
-                # we have a R/R conflict
-                isShiftReduce = False
-            else:
-                # we have a S/R
-                isShiftReduce = True
-
-            # order doesn't matter if R/R, but we def want item1
-            # to be a reduce item
-            item1 = conflictRule1
-            item2 = conflictRule2
-        elif conflictRule2.indexAtEnd():
-            # out second rule is a reduce, but the first is a shift
-            isShiftReduce = True
-            item1 = conflictRule2
-            item2 = conflictRule1
-        else:
-            # shouldn't ever reach here?
-            # S/S conflicts are impossible
-            raise RuntimeError("generate_counterexample() Expected at least one reduce rule")
+        isShiftReduce, item1, item2 = isConflictShiftReduce(conflictRule1, conflictRule2)
 
         # Get the shortest path to the reduce rule
         shortestConflictPath = self._getShortestPathFromStart(conflictState, item1)

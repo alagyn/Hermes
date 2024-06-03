@@ -27,10 +27,16 @@ def main():
     )
     parser.add_argument("-l", "--loader", help="The loader header filename", default="")
     parser.add_argument("-i", "--impl", help="The loader implementation filename", default="")
+    parser.add_argument("--no-examples", help="Disable counterexample generation for conflicts", action="store_true")
+    parser.add_argument("-s", "--strict", help="Return an error if an unresolved conflict occurs", action="store_true")
+    parser.add_argument("--hide-conflicts", help="Do not print out conflict warnings", action="store_true")
 
     args = parser.parse_args()
 
-    grammar_file = args.grammar_file
+    grammar_file: str = args.grammar_file
+    genExamples: bool = not args.no_examples
+    strict: bool = args.strict
+    hideConflicts: bool = args.hide_conflicts
 
     if not os.path.exists(grammar_file):
         print("Cannot open grammar file:", grammar_file)
@@ -56,6 +62,13 @@ def main():
     except HermesError as err:
         print("Unable to generate parse table:", err)
         exit(1)
+
+    if len(parseTable.conflicts) > 0:
+        if not hideConflicts:
+            parseTable.printConflicts(genExamples)
+        if strict:
+            print("Strict mode enabled and conflicts found, refusing to generate parser")
+            exit(2)
 
     tableFile: str = args.table
     loaderHeaderFile: str = args.loader
