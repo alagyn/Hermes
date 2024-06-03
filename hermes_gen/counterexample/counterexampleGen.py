@@ -22,7 +22,7 @@ class CounterExampleGen:
         self.automata = automata
         StateItem.initLookups(automata)
 
-        self.timeLimitEnforced = True
+        self.timeLimitEnforced = False
 
         self._conflictSymbol: Symbol = None  # type: ignore
 
@@ -96,6 +96,7 @@ class CounterExampleGen:
             except KeyError:
                 cconfig = ComplexityConfiguration(cfg.complexity)
                 complexityMap[cfg.complexity] = cconfig
+                pq.push(cconfig)
             cconfig.add(cfg)
 
         def addVisited(cfg: Configuration):
@@ -110,8 +111,13 @@ class CounterExampleGen:
 
         addSearchState(initial)
         stage3Result: Optional[Configuration] = None
+        iteration = 0
         while len(pq) > 0:
+            iteration += 1
             css = pq.pop()
+            # print(f'Iteration {iteration}')
+            # print("FCSS, Complexity:", css.complexity, "Configs:", len(css.configs))
+            # css.print()
             for cfg in css.configs:
                 si1src = cfg.states1[0]
                 si2src = cfg.states2[0]
@@ -127,7 +133,9 @@ class CounterExampleGen:
                             # they are the same.  This means that the derivation
                             # of this symbol is the unifying counterexample we are
                             # looking for.
-                            return CounterExample(cfg.derivs1[0], cfg.derivs2[0], True)
+                            return CounterExample(
+                                cfg.derivs1[0], cfg.derivs2[0], unifying=True, isShiftReduce=isShiftReduce
+                            )
                         # Otherwise, we have found a symbol that can begin the
                         # same sequence of symbols up to the conflict point.
                         # If unifying counterexample is not found, we will use
@@ -142,11 +150,12 @@ class CounterExampleGen:
                     # TODO log thinking...
                     if time.perf_counter() - startTime > TIME_LIMIT_SEC:
                         # TODO log timelimit exceeded
+                        print("Time limit exceeded")
                         if stage3Result is not None:
-                            return self._completeDivergingExamples(stage3Result, True)
+                            return self._completeDivergingExamples(stage3Result, isShiftReduce, timeout=True)
                         else:
                             return self._exampleFromShortestPath(
-                                isShiftReduce, conflictState, conflictSymbol, item1, item2, shortestConflictPath, True
+                                isShiftReduce, conflictState, item2, shortestConflictPath, True
                             )
                 # end if timelimit
 
@@ -155,8 +164,8 @@ class CounterExampleGen:
                 si2 = cfg.states2[-1]
                 si1reduce = si1.rule.indexAtEnd()
                 si2reduce = si2.rule.indexAtEnd()
-                si1sym = None if si1reduce else si1.rule.nextSymbol()
-                si2sym = None if si2reduce else si2.rule.nextSymbol()
+                si1sym = si1.transSymbol
+                si2sym = si2.transSymbol
                 if not si1reduce and not si2reduce:
                     # Both paths are not reduce items, so it is possible to
                     # search forward in the parser state diagram.
@@ -170,8 +179,11 @@ class CounterExampleGen:
                     if si1sym == si2sym:
                         # Transition on the same next symbol, taking nullable
                         # symbol into account.
-                        si1last = StateItem.FWD_TRANS[si1][si1sym]
-                        si2last = StateItem.FWD_TRANS[si2][si2sym]
+                        if si1.transItem is None or si2.transItem is None:
+                            raise RuntimeError()
+
+                        si1last = si1.transItem
+                        si2last = si2.transItem
 
                         states1: Deque[StateItem] = deque()
                         states1.append(si1last)
@@ -187,10 +199,10 @@ class CounterExampleGen:
 
                         nullableClosure(si2.rule, si2.rule.parseIndex + 1, si2last, states2, derivs2)
 
-                        for i in range(1, len(derivs1)):
+                        for i in range(1, len(derivs1) + 1):
                             subderivs1 = sliceDeque(derivs1, 0, i)
                             substates1 = sliceDeque(states1, 0, i)
-                            for j in range(1, len(derivs2)):
+                            for j in range(1, len(derivs2) + 1):
                                 subderivs2 = sliceDeque(derivs2, 0, j)
                                 substates2 = sliceDeque(states2, 0, j)
 
@@ -205,9 +217,9 @@ class CounterExampleGen:
                     # end if same symbol
 
                     def takeProdStep(symbol1: Symbol, symbol2: Symbol, si: StateItem, side: int):
-                        if symbol1.isTerminal or si not in StateItem.FWD_PROD:
+                        if symbol1.isTerminal:
                             return
-                        for item in StateItem.FWD_PROD[si]:
+                        for item in si.fwdProd:
                             # Take production step only if lhs is not nullable and
                             # if first rhs symbol is compatible with the other path
                             applicable = not item.rule.indexAtEnd() and self._compatible(
@@ -219,9 +231,9 @@ class CounterExampleGen:
                             states: Deque[StateItem] = deque()
                             states.append(item)
                             nullableClosure(item.rule, 0, item, states, derivs)
-                            for i in range(len(derivs)):
+                            for i in range(len(derivs) + 1):
                                 subderivs = sliceDeque(derivs, 0, i)
-                                substates = sliceDeque(states, 0, i)
+                                substates = sliceDeque(states, 0, i + 1)
                                 copy = cfg.copy()
                                 if side == 1:
                                     d = copy.derivs1
@@ -234,6 +246,8 @@ class CounterExampleGen:
 
                                 if item in s:
                                     copy.complexity += costs.DUPLICATE_PRODUCTION_COST
+                                if side == 2 and cfg.shiftDepth >= 0:
+                                    copy.shiftDepth += 1
                                 copy.complexity += costs.PRODUCTION_COST
                                 addSearchState(copy)
                         # end for production
@@ -244,7 +258,6 @@ class CounterExampleGen:
                     takeProdStep(si1sym, si2sym, si1, 1)
                     takeProdStep(si2sym, si1sym, si2, 2)
 
-                    # end if production 1
                 # end if both shift
                 else:
                     # one of the paths requires a reduction
@@ -291,16 +304,12 @@ class CounterExampleGen:
 
         # No unifying counterexamples.  Construct a counterexample from the
         # shortest lookahead-sensitive path.
-        return self._exampleFromShortestPath(
-            isShiftReduce, conflictState, conflictSymbol, item1, item2, shortestConflictPath, False
-        )
+        return self._exampleFromShortestPath(isShiftReduce, conflictState, item2, shortestConflictPath, False)
 
     def _exampleFromShortestPath(
         self,
         isShiftReduce: bool,
         conflictNode: Node,
-        conflictSym: Symbol,
-        item1: AnnotRule,
         item2: AnnotRule,
         shortestConflictPath1: Deque[StateItem],
         timeout: bool
@@ -311,7 +320,7 @@ class CounterExampleGen:
             shortestConflictPath2 = self._getShortestPathFromStart(conflictNode, item2)
             deriv1 = self._completeDivergingExample(shortestConflictPath1, deque())
             deriv2 = self._completeDivergingExample(shortestConflictPath2, deque())
-            return CounterExample(deriv1, deriv2, False, timeout)
+            return CounterExample(deriv1, deriv2, False, isShiftReduce, timeout=timeout)
         si = StateItem.getStateItem(conflictNode, item2)
         out: Deque[StateItem] = deque()
         out.append(si)
@@ -348,7 +357,7 @@ class CounterExampleGen:
                     pass
                 deriv1 = self._completeDivergingExample(shortestConflictPath1, deque())
                 deriv2 = self._completeDivergingExample(out, deque())
-                return CounterExample(deriv1, deriv2, False, timeout)
+                return CounterExample(deriv1, deriv2, False, isShiftReduce, timeout=timeout)
 
             pos = si.rule.parseIndex
             if pos == 0:
@@ -367,7 +376,7 @@ class CounterExampleGen:
                     srcpos = sisrc.rule.parseIndex
                     if srcpos > 0:
                         sym = sisrc.rule[srcpos - 1]
-                        for prevsi in StateItem.REV_TRANS[sisrc][sym]:
+                        for prevsi in sisrc.revTrans[sym]:
                             if prevrefsi is not None and prevsi.node != prevrefsi.node:
                                 continue
                             sis.pop()
@@ -379,7 +388,7 @@ class CounterExampleGen:
                             break
                     else:
                         # take a reverse production step if possible
-                        for prevsi in StateItem.REV_PROD[sisrc.node][sisrc.rule.rule.nonterm]:
+                        for prevsi in sisrc.revProd[sisrc.rule.rule.nonterm]:
                             if prevsi in sis:
                                 continue
                             prevsis = sis.copy()
@@ -390,7 +399,7 @@ class CounterExampleGen:
             # end if pos == 0
             else:
                 # if not a production item, make a reverse transition
-                for prevsi in StateItem.REV_TRANS[si][si.rule[pos - 1]]:
+                for prevsi in si.revTrans[si.rule[pos - 1]]:
                     # Only look for state compatible with the shortest path.
                     if prevrefsi is not None and prevsi.node != prevrefsi.node:
                         continue
@@ -403,10 +412,10 @@ class CounterExampleGen:
 
         raise HermesError("Cannot find derivation to conflict node")
 
-    def _completeDivergingExamples(self, cfg: Configuration, timeout: bool) -> CounterExample:
+    def _completeDivergingExamples(self, cfg: Configuration, isShiftReduce: bool, timeout: bool) -> CounterExample:
         derivs1 = self._completeDivergingExample(cfg.states1, cfg.derivs1)
         derivs2 = self._completeDivergingExample(cfg.states2, cfg.derivs2)
-        return CounterExample(derivs1, derivs2, False, timeout)
+        return CounterExample(derivs1, derivs2, False, isShiftReduce, timeout=timeout)
 
     def _completeDivergingExample(self, states: Deque[StateItem], derivs: Deque[Derivation]) -> Derivation:
         out: Deque[Derivation] = deque()
@@ -433,7 +442,9 @@ class CounterExampleGen:
                 if lookaheadRequired:
                     if sym != self._conflictSymbol:
                         if not sym.nullable or self._conflictSymbol in sym.first:
-                            nextDerivs = self._expandFirst(StateItem.FWD_TRANS[si][si.rule[pos]])
+                            if si.transItem is None:
+                                raise RuntimeError()
+                            nextDerivs = self._expandFirst(si.transItem)
                             out.extend(nextDerivs)
                             i += len(nextDerivs) - 1
                             lookaheadRequired = False
@@ -495,14 +506,14 @@ class CounterExampleGen:
                         out = deque()
                         out.append(deriv)
                     else:
-                        deriv = Derivation(si.rule[pos - 1])
+                        deriv = Derivation(si.rule[pos - 1], [])
                         out.appendleft(deriv)
                 # end while iter
                 out.popleft()
                 return out
             # end if sym is conflict
             if not sym.isTerminal:
-                for item in StateItem.FWD_PROD[silast]:
+                for item in silast.fwdProd:
                     if item in states:
                         continue
                     new = states.copy()
@@ -511,14 +522,16 @@ class CounterExampleGen:
                 if sym.nullable:
                     # If the nonterminal after dot is nullable,
                     # we need to look further.
-                    nextsi = StateItem.FWD_TRANS[silast][sym]
+                    if silast.transItem is None or silast.transSymbol != sym:
+                        raise RuntimeError()
+                    nextsi = silast.transItem
                     new = states.copy()
                     new.append(nextsi)
                     queue.append(new)
             # end if not terminal
         # end while queue
         raise HermesError(
-            f"Should not reach here (expected symbol: {self._conflictSymbol}, item to be expanded: {start})"
+            f"CounterExampleGen._expandFirst() Should not reach here (expected symbol: {self._conflictSymbol}, item to be expanded: {repr(start)})"
         )
 
     def _getShortestPathFromStart(
@@ -533,44 +546,71 @@ class CounterExampleGen:
         source = StateItem.getStateItem(self.automata.start, self.automata.start.rules[0])
         target = StateItem.getStateItem(tgtNode, tgtRule)
 
+        class StateItemWithLookahead:
+
+            def __init__(self, si: StateItem, la: Set[Symbol]) -> None:
+                self.si = si
+                self.la = la
+
+            def hash(self) -> int:
+                return hash(self.si) * 31 + hash(tuple(self.la))
+
         eligible = self._eligibleStateItemsToConflict(target) if optimized else None
 
-        queue: Deque[Deque[StateItem]] = deque()
-        queue.append(deque([source]))
+        queue: Deque[Deque[StateItemWithLookahead]] = deque()
+        queue.append(deque([StateItemWithLookahead(source, source.rule.lookAhead)]))
 
-        visited: Set[StateItem] = set()
+        visited: Set[int] = set()
 
         # breadth-first search
         while len(queue) > 0:
             path = queue.popleft()
             last = path[-1]
             #print(last.node, last.rule)
-            if last in visited:
+            h = last.hash()
+            if h in visited:
                 continue
-            visited.add(last)
-            if target == last and self._conflictSymbol in last.rule.lookAhead:
+            visited.add(h)
+            if target == last.si and self._conflictSymbol in last.la:
                 # done
-                return path
+                return deque([x.si for x in path])
             # transitions
-            try:
-                for symbold, nextSI in StateItem.FWD_TRANS[last].items():
-                    if eligible is not None and nextSI not in eligible:
-                        continue
+            nextSI = last.si.transItem
+            if nextSI is not None:
+                if eligible is None or nextSI in eligible:
                     nextPath = path.copy()
-                    nextPath.append(nextSI)
+                    nextPath.append(StateItemWithLookahead(nextSI, last.la))
                     queue.append(nextPath)
-            except KeyError:
-                pass
             # productions
-            try:
-                for nextSI in StateItem.FWD_PROD[last]:
+            if len(last.si.fwdProd) > 0:
+                ruleLen = len(last.si.rule)
+                pos = last.si.rule.parseIndex + 1
+                # Compute possible terminals that can follow this production.
+                lookahead: Set[Symbol] = set()
+                while True:
+                    if pos == ruleLen:
+                        lookahead.update(last.la)
+                        break
+                    else:
+                        sym = last.si.rule[pos]
+                        if sym.isTerminal:
+                            lookahead.add(sym)
+                            break
+                        else:
+                            lookahead.update(sym.first)
+                            if not sym.nullable:
+                                break
+                    pos += 1
+                    if pos > ruleLen:
+                        break
+                # Try all possible production steps within this parser state.
+                for nextSI in last.si.fwdProd:
                     if eligible is not None and nextSI not in eligible:
                         continue
-                    nextPath = path.copy()
-                    nextPath.append(nextSI)
-                    queue.append(nextPath)
-            except KeyError:
-                pass
+                    new = StateItemWithLookahead(nextSI, lookahead)
+                    newPath = path.copy()
+                    newPath.append(new)
+                    queue.append(newPath)
 
         raise RuntimeError("Failed to find shortest path")
 
@@ -587,14 +627,14 @@ class CounterExampleGen:
             out.add(state)
             # consider reverse transitions and reverse productions
             try:
-                for prevSet in StateItem.REV_TRANS[state].values():
+                for prevSet in state.revTrans.values():
                     queue.extend(prevSet)
             except KeyError:
                 pass
             if state.rule.parseIndex == 0:
                 symbol = state.rule.rule.nonterm
                 try:
-                    revProd = StateItem.REV_PROD[state.node]
+                    revProd = state.revProd
                     for prev in revProd[symbol]:
                         queue.append(prev)
                 except KeyError:

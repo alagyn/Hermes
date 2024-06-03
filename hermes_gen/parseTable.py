@@ -48,12 +48,58 @@ class ParseTable:
         if first.rule is None or second.rule is None:
             raise RuntimeError("Invalid parse actions")
 
-        self._counterExampleGen.generate_counterexample(node, first.rule, second.rule, symbol)
-        raise HermesError(
-            f'Parse Table: Cannot build parse table, conflict: {node}, Symbol: {symbol}\n'
-            f'\tA1: {first}\n'
-            f'\tA2: {second}'
-        )
+        message = [
+            f'Parse Table: Cannot build parse table, conflict: {node}, Symbol: {symbol}',
+            f'\tA1: {first}',
+            f'\tA2: {second}',
+        ]
+
+        try:
+            ce = self._counterExampleGen.generate_counterexample(node, first.rule, second.rule, symbol)
+
+            message.append(f"Conflict Type: {'Shift-Reduce' if ce.isShiftReduce else 'Reduce-Reduce'}")
+
+            if ce.unifying:
+                message.append("Unifying example found")
+                message.append(f"Ambiguity for nonterminal: {ce.nonTerminal()}")
+                message.append("Example:")
+                message.append(f'\t{ce.prettyExample1()}')
+
+                if ce.isShiftReduce:
+                    message.append("Derivation using reduction:")
+                else:
+                    message.append("Derivation using reduction 1:")
+                message.append(f'\t{ce.example1()}')
+
+                if ce.isShiftReduce:
+                    message.append("Derivation using shift:")
+                else:
+                    message.append("Derivation using reduction 2:")
+
+                message.append(f'\t{ce.example2()}')
+            else:
+                message.append("No Unifying example found")
+
+                if ce.isShiftReduce:
+                    message.append("Example using reduction:")
+                else:
+                    message.append("Example using reduction 1:")
+                message.append(f'\t{ce.prettyExample1()}')
+                message.append("\tDerivation:")
+                message.append(f'\t{ce.example1()}')
+
+                if ce.isShiftReduce:
+                    message.append("Example using shift:")
+                else:
+                    message.append("Example using reduction 2:")
+                message.append(f'\t{ce.prettyExample2()}')
+                message.append("\tDerivation:")
+                message.append(f'\t{ce.example2()}')
+            print("\n".join(message))
+            print("")
+        except Exception as err:
+            print("\n".join(message))
+            print("Unable to generate counterexample:", err)
 
     def __init__(self, automata: LALR1Automata) -> None:
         self.automata = automata

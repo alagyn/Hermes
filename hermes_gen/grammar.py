@@ -22,6 +22,7 @@ class Symbol:
         cls._SYMBOL_MAP = {}
         cls.EMPTY_SYMBOL = Symbol(EMPTY, "", False)
         cls.END_SYMBOL = Symbol(END, "", False)
+        cls.END_SYMBOL.isTerminal = True
 
     @classmethod
     def get(cls, name: str) -> 'Symbol':
@@ -50,7 +51,7 @@ class Symbol:
         return self.name
 
     def __repr__(self) -> str:
-        return f'Symbol("{self.name}" {"term" if self.isTerminal else "nonterm"})'
+        return str(self)
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, Symbol):
@@ -499,7 +500,7 @@ def parse_grammar(filename: str) -> Grammar:
         # we have more than one production for the start symbol
         # condense this into a single production for the start symbol
         # like: __START__ = [start symbol]
-        ruleDefs = [_RuleDef(len(ruleDefs), "__START__", [startSymbol], "return $0;", 0, 0), *ruleDefs]
+        ruleDefs = [_RuleDef(len(ruleDefs), "__START__", [startSymbol, END], "return $0;", 0, 0), *ruleDefs]
 
     return Grammar(terminals, ruleDefs, nulls, directives)
 

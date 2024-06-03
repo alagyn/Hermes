@@ -18,6 +18,31 @@ class Derivation:
     def __hash__(self):
         return hash(self.symbol)
 
+    def prettyPrint(self) -> str:
+        if self.deriv is None:
+            return self.symbol.name
+
+        out = []
+        for d in self.deriv:
+            x = d.prettyPrint()
+            out.append(x)
+
+        return " ".join(out)
+
+    def __str__(self) -> str:
+        out = [self.symbol.name]
+
+        if self.deriv is not None:
+            out.append("= [")
+            for d in self.deriv:
+                out.append(str(d))
+            out.append("]")
+
+        return " ".join(out)
+
+    def __repr__(self) -> str:
+        return str(self)
+
 
 _DOT = Symbol(".", "", False)
 del Symbol._SYMBOL_MAP['.']

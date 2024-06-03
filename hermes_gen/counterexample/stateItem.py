@@ -5,15 +5,30 @@ from hermes_gen.lalr1_automata import Node, AnnotRule, LALR1Automata
 from hermes_gen.grammar import Symbol
 
 
-class StateItem:
-    # Map a state item to the corresponding state item after a shift action is taken
-    FWD_TRANS: Dict['StateItem', Dict[Symbol, 'StateItem']] = defaultdict(dict)
-    # Same, but in reverse. There can maybe be more than on SI that shifts to any particular SI
-    REV_TRANS: Dict['StateItem', Dict[Symbol, Set['StateItem']]] = defaultdict(dict)
+def intersect(terminal: Symbol, syms: Optional[Set[Symbol]]) -> bool:
+    if syms is None:
+        return True
+    for sym in syms:
+        if sym == terminal:
+            return True
+        elif not sym.isTerminal and terminal in sym.first:
+            return True
 
-    # Map a state item to its possible productions
-    FWD_PROD: Dict['StateItem', Set['StateItem']] = defaultdict(set)
-    REV_PROD: Dict[Node, Dict[Symbol, Set['StateItem']]] = defaultdict(dict)
+    return False
+
+
+def intersectSet(terminals: Set[Symbol], syms: Optional[Set[Symbol]]) -> bool:
+    if syms is None:
+        return True
+    for sym in syms:
+        if sym in terminals:
+            return True
+        elif not sym.isTerminal and len(sym.first & terminals) > 0:
+            return True
+    return False
+
+
+class StateItem:
 
     # lookup map for a specific state item with the given state and rule
     STATE_ITEM_LOOKUP: Dict[Tuple[Node, AnnotRule], 'StateItem'] = {}
@@ -25,10 +40,6 @@ class StateItem:
     def initLookups(cls, automata: LALR1Automata) -> None:
         cls.AUTOMATA = automata
 
-        cls.FWD_TRANS.clear()
-        cls.REV_TRANS.clear()
-        cls.FWD_PROD.clear()
-        cls.REV_PROD.clear()
         cls.STATE_ITEM_LOOKUP.clear()
 
         # Compute transition maps
@@ -49,14 +60,11 @@ class StateItem:
                     srcSI = cls.getStateItem(src, rule)
                     dstSI = cls.getStateItem(dst, dstRule)
 
-                    cls.FWD_TRANS[srcSI][nextSymbol] = dstSI
+                    srcSI.transSymbol = nextSymbol
+                    srcSI.transItem = dstSI
 
-                    try:
-                        cls.REV_TRANS[dstSI][nextSymbol].add(srcSI)
-                    except KeyError:
-                        revSet = set()
-                        revSet.add(srcSI)
-                        cls.REV_TRANS[dstSI][nextSymbol] = revSet
+                    dstSI.revTrans[nextSymbol].add(srcSI)
+
                     break
 
         # Compute production maps
@@ -71,9 +79,12 @@ class StateItem:
                     closureMap[lhs].add(cls.getStateItem(src, rule))
 
             # rev prods for this node
-            revProd = cls.REV_PROD[src]
+            revProd: Dict[Symbol, Set['StateItem']] = {}
 
             for rule in src.rules:
+                # always set the revProd map
+                state = cls.getStateItem(src, rule)
+                state.revProd = revProd
                 # Avoid reduce items, which cannot make a production step.
                 if rule.indexAtEnd():
                     continue
@@ -85,9 +96,9 @@ class StateItem:
                     closures = closureMap[symbol]
                 except KeyError:
                     continue
-                state = cls.getStateItem(src, rule)
+
                 # union the set
-                cls.FWD_PROD[state] |= closures
+                state.fwdProd.update(closures)
 
                 try:
                     revItems = revProd[symbol]
@@ -109,12 +120,19 @@ class StateItem:
     def __init__(self, node: Node, rule: AnnotRule) -> None:
         self.node = node
         self.rule = rule
+        self.transSymbol: Optional[Symbol] = None if rule.indexAtEnd() else rule.nextSymbol()
+        self.transItem: Optional[StateItem] = None
+        self.revTrans: Dict[Symbol, Set[StateItem]] = defaultdict(set)
+        self.fwdProd: Set[StateItem] = set()
+        self.revProd: Dict[Symbol, Set[StateItem]] = {}
+
+        self._name = f'n{node.id}r{node.rules.index(rule)}'
 
     def __str__(self) -> str:
         return f'{str(self.node)} {str(self.rule)}'
 
     def __repr__(self) -> str:
-        return self.__str__()
+        return self._name
 
     def reverseTransition(self, symbol: Symbol, lookahead: Set[Symbol],
                           guide: Optional[Set[Node]]) -> List[Optional['StateItem']]:
@@ -128,7 +146,7 @@ class StateItem:
 
         out: List[Optional[StateItem]] = [None]
         if self.rule.parseIndex > 0:
-            prevs = self.REV_TRANS[self][symbol]
+            prevs = self.revTrans[symbol]
             if len(prevs) == 0:
                 return out
 
@@ -136,7 +154,7 @@ class StateItem:
                 if guide is not None and prev.node not in guide:
                     continue
                 # check if the lookaheads don't intersect
-                if len(lookahead & prev.rule.lookAhead) == 0:
+                if not intersectSet(prev.rule.lookAhead, ss.lookahead):
                     continue
 
                 out.append(prev)
@@ -160,7 +178,7 @@ class StateItem:
 
 class SearchState:
 
-    def __init__(self, stateItems: List[StateItem], lookahead: Set[Symbol]) -> None:
+    def __init__(self, stateItems: List[StateItem], lookahead: Optional[Set[Symbol]]) -> None:
         self.items = stateItems
         self.lookahead = lookahead
 
@@ -168,7 +186,7 @@ class SearchState:
         out: List[SearchState] = []
 
         si = self.items[0]
-        revProd = StateItem.REV_PROD[si.node]
+        revProd = si.revProd
         if len(revProd) == 0:
             return out
 
@@ -188,12 +206,13 @@ class SearchState:
             # reduce item
             if (prevPos == prevLen):
                 # check for LA intersection
-                if len(prevLookahead & si.rule.lookAhead) == 0:
+                if not intersectSet(prevLookahead, self.lookahead):
                     continue
-                nextLookahead = prevLookahead & self.lookahead
+                if self.lookahead is not None:
+                    nextLookahead = prevLookahead & self.lookahead
             # shift item
             else:
-                if len(self.lookahead) > 0:
+                if self.lookahead is not None:
                     # Check that lookahead is compatible with the first
                     # possible symbols in the rest of the production.
                     # Alternatively, if the rest of the production is
@@ -205,17 +224,17 @@ class SearchState:
                     while not applicable and nullable and i < prevLen:
                         nextSym = prev.rule[i]
                         if nextSym.isTerminal:
-                            applicable = nextSym in self.lookahead
+                            applicable = intersect(nextSym, self.lookahead)
                             nullable = False
                         else:
-                            applicable = len(nextSym.first & self.lookahead) > 0
+                            applicable = intersectSet(nextSym.first, self.lookahead)
                             if not applicable:
                                 nullable = nextSym.nullable
                         i += 1
                     if not applicable and not nullable:
                         continue
                 nextLookahead = prevLookahead
-            out.append(SearchState([prev], nextLookahead))
+            out.append(SearchState([prev, *self.items], nextLookahead))
 
         return out
 

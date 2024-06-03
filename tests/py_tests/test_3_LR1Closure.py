@@ -8,6 +8,10 @@ from hermes_gen.grammar import Grammar, Rule, parse_grammar, Symbol
 from hermes_gen.consts import END
 
 
+def rule(id: int, nonterm: Symbol, symbols: List[Symbol]) -> Rule:
+    return Rule(id, nonterm, symbols, "", 0, 0)
+
+
 class TestLALRClosure(unittest.TestCase):
 
     def _checkNodes(self, expNodes: List[Node], actNodes: List[Node]):
@@ -29,9 +33,9 @@ class TestLALRClosure(unittest.TestCase):
         a = Symbol('a', "a", False)
         b = Symbol('b', "b", False)
 
-        r0 = Rule(1, SP, [S], "", 0, 0)
-        r1 = Rule(2, S, [X, X], "", 0, 0)
-        r2 = Rule(3, X, [a, X], "", 0, 0)
+        r0 = rule(1, SP, [S])
+        r1 = rule(2, S, [X, X])
+        r2 = rule(3, X, [a, X])
 
         n0 = Node(0)
         n0.addRule(r0, 0, {Symbol.END_SYMBOL})
@@ -64,10 +68,10 @@ class TestLALRClosure(unittest.TestCase):
         a = Symbol.get('a')
         b = Symbol.get('b')
 
-        r0 = Rule(1, SP, [S], "", 0, 0)
-        r1 = Rule(2, S, [X, X], "", 0, 0)
-        r2 = Rule(3, X, [a, X], "", 0, 0)
-        r3 = Rule(4, X, [b], "", 0, 0)
+        r0 = rule(1, SP, [S])
+        r1 = rule(2, S, [X, X])
+        r2 = rule(3, X, [a, X])
+        r3 = rule(4, X, [b])
 
         n0 = Node(0)
         n0.addRule(r0, 0, {Symbol.END_SYMBOL})
@@ -196,10 +200,10 @@ class TestLALRClosure(unittest.TestCase):
         a = Symbol.get("a")
         b = Symbol.get("b")
 
-        r0 = Rule(0, S, [A], "", 0, 0)
-        r1 = Rule(1, A, [B, b], "", 0, 0)
-        r2 = Rule(2, B, [B, a], "", 0, 0)
-        r3 = Rule(3, B, [], "", 0, 0)
+        r0 = rule(0, S, [A])
+        r1 = rule(1, A, [B, b])
+        r2 = rule(2, B, [B, a])
+        r3 = rule(3, B, [])
 
         n0 = Node(0)
         n0.addRule(r0, 0, {Symbol.END_SYMBOL})
@@ -229,5 +233,88 @@ class TestLALRClosure(unittest.TestCase):
 
         n2.addTrans(b, n3)
         n2.addTrans(a, n4)
+
+        self._checkTransitions(EXP_NODES, lalr.nodes)
+
+    def test_4_unambiguous_SR(self):
+        testFile = utils.getTestFilename("conflicts/unambiguous-shift-reduce.hm")
+        g = parse_grammar(testFile)
+        lalr = LALR1Automata(g)
+
+        START = Symbol.get("__START__")
+        S = Symbol.get("S")
+        T = Symbol.get("T")
+        X = Symbol.get("X")
+        Y = Symbol.get("Y")
+        a = Symbol.get("a")
+        b = Symbol.get("b")
+
+        r0 = rule(0, START, [S])
+        r1 = rule(1, S, [T])
+        r2 = rule(2, S, [S, T])
+        r3 = rule(3, T, [X])
+        r4 = rule(4, T, [Y])
+        r5 = rule(5, X, [a])
+        r6 = rule(6, Y, [a, a, b])
+
+        la = {Symbol.END_SYMBOL, a}
+
+        n0 = Node(0)
+        n0.addRule(r0, 0, {Symbol.END_SYMBOL})
+        n0.addRule(r1, 0, la)
+        n0.addRule(r2, 0, la)
+        n0.addRule(r3, 0, la)
+        n0.addRule(r4, 0, la)
+        n0.addRule(r5, 0, la)
+        n0.addRule(r6, 0, la)
+
+        n1 = Node(1)
+        n1.addRule(r0, 1, {Symbol.END_SYMBOL})
+        n1.addRule(r2, 1, la)
+        n1.addRule(r3, 0, la)
+        n1.addRule(r4, 0, la)
+        n1.addRule(r5, 0, la)
+        n1.addRule(r6, 0, la)
+
+        n2 = Node(2)
+        n2.addRule(r1, 1, la)
+
+        n3 = Node(3)
+        n3.addRule(r3, 1, la)
+
+        n4 = Node(4)
+        n4.addRule(r4, 1, la)
+
+        n5 = Node(5)
+        n5.addRule(r5, 1, la)
+        n5.addRule(r6, 1, la)
+
+        n6 = Node(6)
+        n6.addRule(r2, 2, la)
+
+        n7 = Node(7)
+        n7.addRule(r6, 2, la)
+
+        n8 = Node(8)
+        n8.addRule(r6, 3, la)
+
+        EXP_NODES = [n0, n1, n2, n3, n4, n5, n6, n7, n8]
+
+        self._checkNodes(EXP_NODES, lalr.nodes)
+
+        n0.addTrans(S, n1)
+        n0.addTrans(T, n2)
+        n0.addTrans(X, n3)
+        n0.addTrans(Y, n4)
+        n0.addTrans(a, n5)
+
+        n1.addTrans(X, n3)
+        n1.addTrans(Y, n4)
+        n1.addTrans(a, n5)
+        n1.addTrans(T, n6)
+
+        n5.addTrans(a, n7)
+
+        n7.addTrans(b, n8)
 
         self._checkTransitions(EXP_NODES, lalr.nodes)

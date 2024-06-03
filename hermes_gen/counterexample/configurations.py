@@ -5,7 +5,7 @@ import heapq
 from ..lalr1_automata import Node, AnnotRule
 from ..grammar import Symbol
 from ..errors import HermesError
-from .stateItem import StateItem
+from .stateItem import StateItem, intersect, intersectSet
 from .derivation import Derivation, DOT
 from . import costs
 from .utils import sliceDeque
@@ -13,11 +13,11 @@ from .utils import sliceDeque
 
 def countProductionSteps(items: Deque[StateItem], last: StateItem):
     count = 0
-    lastState = last
+    lastState = last.node
     for x in reversed(items):
-        if x == lastState:
+        if x.node == lastState:
             count += 1
-        lastState = x
+        lastState = x.node
     return count
 
 
@@ -28,7 +28,9 @@ def nullableClosure(
         symbol = rule[i]
         if symbol.isTerminal or not symbol.nullable:
             break
-        siLast = StateItem.FWD_TRANS[siLast][symbol]
+        if siLast.transItem is None:
+            break
+        siLast = siLast.transItem
         derivs.append(Derivation(symbol, []))
         states.append(siLast)
 
@@ -83,22 +85,22 @@ class Configuration:
         else:
             si2lookahead = {nextSym2}
 
-        prev1: Set[Optional[StateItem]] = set()
-        prev2: Set[Optional[StateItem]] = set()
+        prev1: Optional[Set[Optional[StateItem]]] = None
+        prev2: Optional[Set[Optional[StateItem]]] = None
         if extendedSearch:
             prev1 = set(si1src.reverseTransition(sym, si1lookahead, guide))
             prev2 = set(si2src.reverseTransition(sym, si2lookahead, guide))
 
-        prev1ext: Set[Optional[StateItem]
-                      ] = set(si1src.reverseTransition(sym, si1lookahead, None if extendedSearch else guide))
-        prev2ext: Set[Optional[StateItem]
-                      ] = set(si2src.reverseTransition(sym, si2lookahead, None if extendedSearch else guide))
+        prev1ext: List[Optional[StateItem]
+                       ] = si1src.reverseTransition(sym, si1lookahead, None if extendedSearch else guide)
+        prev2ext: List[Optional[StateItem]
+                       ] = si2src.reverseTransition(sym, si2lookahead, None if extendedSearch else guide)
 
         for psis1 in prev1ext:
-            guided1 = psis1 in prev1 if extendedSearch else True
+            guided1 = psis1 in prev1 if prev1 is not None else True
             psi1 = si1src if psis1 is None else psis1
             for psis2 in prev2ext:
-                guided2 = psis2 in prev2 if extendedSearch else True
+                guided2 = psis2 in prev2 if prev2 is not None else True
                 psi2 = si2src if psis2 is None else psis2
 
                 if psi1 == si1src and psi2 == si2src:
@@ -125,8 +127,8 @@ class Configuration:
                 # or reverse production is made on both paths.
                 # Now, compute the complexity of the new search state.
                 prependSize = (0 if psis1 is None else 1) + (0 if psis2 is None else 1)
-                productionSteps = 1 if psis1 is not None and psis1 == si1src else 0
-                productionSteps += 1 if psis2 is not None and psis2 == si2src else 0
+                productionSteps = 0 if psis1 is None else countProductionSteps(deque([psis1]), si1src)
+                productionSteps += 0 if psis2 is None else countProductionSteps(deque([psis2]), si2src)
                 copy.complexity += costs.UNSHIFT_COST * (prependSize - productionSteps)
                 copy.complexity += costs.PRODUCTION_COST * productionSteps
                 if not guided1 or not guided2:
@@ -146,6 +148,9 @@ class Configuration:
 
         symbolSet = {nextSym} if nextSym is not None else item.lookAhead
 
+        if not intersectSet(item.lookAhead, symbolSet):
+            return out
+
         lhs = item.rule.nonterm
         ruleLen = len(item)
         dSize = len(derivs)
@@ -155,9 +160,9 @@ class Configuration:
             # We are reducing the reduce conflict item.
             # Add a dot for visual inspection of the resulting counterexample.
             if deriv.deriv is not None:
-                deriv.deriv.insert(item1.rule.parseIndex, DOT)
+                deriv.deriv.append(DOT)
 
-        derivs = sliceDeque(derivs, dSize - ruleLen, dSize)
+        derivs = sliceDeque(derivs, 0, dSize - ruleLen)
         derivs.append(deriv)
         if sSize == ruleLen + 1:
             # The head StateItem is a production item, so we need to prepend
@@ -168,7 +173,10 @@ class Configuration:
                 copy.derivs1 = derivs
                 copy.states1 = sliceDeque(self.states1, 0, sSize - ruleLen - 1)
                 copy.states1.extendleft(reversed(psis))
-                copy.states1.append(StateItem.FWD_TRANS[copy.states1[-1]][lhs])
+                dst = copy.states1[-1].transItem
+                if dst is None:
+                    raise RuntimeError("Configuration.reduce1() Transition item not setup")
+                copy.states1.append(dst)
 
                 pSteps = countProductionSteps(copy.states1, states[0])
                 copy.complexity += costs.UNSHIFT_COST * (len(copy.states1) - pSteps)
@@ -180,7 +188,11 @@ class Configuration:
             copy = self.copy()
             copy.derivs1 = derivs
             copy.states1 = sliceDeque(self.states1, 0, sSize - ruleLen - 1)
-            copy.states1.append(StateItem.FWD_TRANS[copy.states1[-1]][lhs])
+            # copy.states1.append(StateItem.FWD_TRANS[copy.states1[-1]][lhs])
+            dst = copy.states1[-1].transItem
+            if dst is None:
+                raise RuntimeError("Configuration.reduce1() Transition item not setup")
+            copy.states1.append(dst)
             copy.complexity += costs.REDUCE_COST
             if copy.reduceDepth == 0:
                 copy.reduceDepth -= 1
@@ -224,8 +236,9 @@ class Configuration:
             # or the other reduce conflict item (for reduce/reduce conflict).
             # Add a dot for visual inspection of the resulting counterexample.
             if deriv.deriv is not None:
-                deriv.deriv.insert(item2.rule.parseIndex, DOT)
-        derivs = sliceDeque(derivs, dSize - ruleLen, dSize)
+                deriv.deriv.append(DOT)
+
+        derivs = sliceDeque(derivs, 0, dSize - ruleLen)
         derivs.append(deriv)
         if sSize == ruleLen + 1:
             # The head StateItem is a production item, so we need to prepend
@@ -236,7 +249,10 @@ class Configuration:
                 copy.derivs2 = derivs
                 copy.states2 = sliceDeque(states, 0, sSize - ruleLen - 1)
                 copy.states2.extendleft(reversed(psis))
-                copy.states2.append(StateItem.FWD_TRANS[copy.states2[-1]][lhs])
+                dst = copy.states2[-1].transItem
+                if dst is None:
+                    raise RuntimeError("Configuration.reduce2() Transition item not setup")
+                copy.states2.append(dst)
 
                 pSteps = countProductionSteps(copy.states2, states[0])
                 copy.complexity += costs.SHIFT_COST * (len(copy.states2) - pSteps)
@@ -248,7 +264,10 @@ class Configuration:
             copy = self.copy()
             copy.derivs2 = derivs
             copy.states2 = sliceDeque(states, 0, sSize - ruleLen - 1)
-            copy.states2.append(StateItem.FWD_TRANS[copy.states2[-1]][lhs])
+            dst = copy.states2[-1].transItem
+            if dst is None:
+                raise RuntimeError("Configuration.reduce2() Transition item not setup")
+            copy.states2.append(dst)
             copy.complexity += costs.REDUCE_COST
             if copy.shiftDepth >= 0:
                 copy.shiftDepth -= 1
@@ -277,6 +296,9 @@ class Configuration:
         # TODO make sure this checks the list correctly
         return self.states1 == value.states1 and self.states2 == value.states2
 
+    def __hash__(self) -> int:
+        return hash((tuple(self.states1), tuple(self.states2)))
+
 
 class ComplexityConfiguration:
     """
@@ -292,6 +314,25 @@ class ComplexityConfiguration:
 
     def add(self, state: Configuration):
         self.configs.add(state)
+
+    def print(self):
+        # TODO remove
+        print("FCSS, Complexity:", self.complexity)
+        for idx, ss in enumerate(self.configs):
+            print("Search State", idx)
+            print("States1:")
+            for si in ss.states1:
+                print("   ", si)
+            print("States2:")
+            for si in ss.states2:
+                print("   ", si)
+
+            print("Derivs1:")
+            for d in ss.derivs1:
+                print("   ", d)
+            print("Derivs2:")
+            for d in ss.derivs2:
+                print("   ", d)
 
 
 class ComplexityQueue:

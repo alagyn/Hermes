@@ -28,6 +28,9 @@ class AnnotRule:
 
         return out
 
+    def __repr__(self) -> str:
+        return str(self)
+
     def strRule(self) -> str:
         out = f'{self.rule.nonterm} ='
 
@@ -295,13 +298,12 @@ def writeDescription(filename: str, lalr: LALR1Automata):
             f.write("\n  Rules:\n")
 
             for rule in node.rules:
-                f.write(f"    {rule.strRule()}\n"
-                        f"    LA: {rule.lookAhead}\n\n")
+                f.write(f"    {rule.strRule()} {rule.lookAhead}\n")
 
             if len(node.trans) > 0:
                 f.write('\n  Transitions:\n')
 
                 for key, val in node.trans.items():
-                    f.write(f"    Symbol: {key} -> {val}\n")
+                    f.write(f"    on {key} -> {val}\n")
 
             f.write("\n")

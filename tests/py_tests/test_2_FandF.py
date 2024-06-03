@@ -30,7 +30,7 @@ class TestFirstAndFollow(unittest.TestCase):
         seenFollow = 0
 
         for val in Symbol._SYMBOL_MAP.values():
-            if val in {Symbol.EMPTY_SYMBOL, Symbol.END_SYMBOL, Symbol.START_SYMBOL}:
+            if val in {Symbol.EMPTY_SYMBOL, Symbol.END_SYMBOL}:
                 continue
 
             self.assertTrue(val in expectedFirst, f'{val} not in expected FIRST dict')
@@ -155,6 +155,32 @@ class TestFirstAndFollow(unittest.TestCase):
             "S": {END},
             "A": {END},
             "B": {'b', 'a'}
+        }
+        # yapf: enable
+
+        self._check(EXP_FIRST, EXP_FOLLOW)
+
+    def test_5_unambiguous_SR(self):
+        testFile = utils.getTestFilename("conflicts/unambiguous-shift-reduce.hm")
+        g = parse_grammar(testFile)
+
+        # yapf: disable
+        EXP_FIRST = {
+            "__START__": {"a"},
+            "a": {"a"},
+            "b": {"b"},
+            "S": {"a"},
+            "T": {"a"},
+            "X": {"a"},
+            "Y": {"a"}
+        }
+
+        EXP_FOLLOW = {
+            "__START__": {END},
+            "S": {END, "a"},
+            "T": {END, "a"},
+            "X": {END, "a"},
+            "Y": {END, "a"}
         }
         # yapf: enable
 
