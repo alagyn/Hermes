@@ -23,9 +23,7 @@ class AnnotRule:
         self.lookAhead = lookAhead
 
     def __str__(self) -> str:
-        out = f'AnnotRule: {self.strRule()}'
-        out += f"  LA: {self.lookAhead}"
-
+        out = f'[ {self.strRule()} ] {self.lookAhead}'
         return out
 
     def __repr__(self) -> str:
@@ -37,7 +35,7 @@ class AnnotRule:
         for i in range(self.parseIndex):
             out += " " + str(self.rule.symbols[i])
 
-        out += " ."
+        out += " •"
 
         for i in range(self.parseIndex, len(self.rule.symbols)):
             out += " " + str(self.rule.symbols[i])

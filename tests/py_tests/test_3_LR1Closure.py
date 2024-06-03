@@ -248,8 +248,9 @@ class TestLALRClosure(unittest.TestCase):
         Y = Symbol.get("Y")
         a = Symbol.get("a")
         b = Symbol.get("b")
+        EOF = Symbol.get("__EOF__")
 
-        r0 = rule(0, START, [S])
+        r0 = rule(0, START, [S, EOF])
         r1 = rule(1, S, [T])
         r2 = rule(2, S, [S, T])
         r3 = rule(3, T, [X])
@@ -290,15 +291,18 @@ class TestLALRClosure(unittest.TestCase):
         n5.addRule(r6, 1, la)
 
         n6 = Node(6)
-        n6.addRule(r2, 2, la)
+        n6.addRule(r0, 2, {Symbol.END_SYMBOL})
 
         n7 = Node(7)
-        n7.addRule(r6, 2, la)
+        n7.addRule(r2, 2, la)
 
         n8 = Node(8)
-        n8.addRule(r6, 3, la)
+        n8.addRule(r6, 2, la)
 
-        EXP_NODES = [n0, n1, n2, n3, n4, n5, n6, n7, n8]
+        n9 = Node(9)
+        n9.addRule(r6, 3, la)
+
+        EXP_NODES = [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9]
 
         self._checkNodes(EXP_NODES, lalr.nodes)
 
@@ -311,10 +315,11 @@ class TestLALRClosure(unittest.TestCase):
         n1.addTrans(X, n3)
         n1.addTrans(Y, n4)
         n1.addTrans(a, n5)
-        n1.addTrans(T, n6)
+        n1.addTrans(EOF, n6)
+        n1.addTrans(T, n7)
 
-        n5.addTrans(a, n7)
+        n5.addTrans(a, n8)
 
-        n7.addTrans(b, n8)
+        n8.addTrans(b, n9)
 
         self._checkTransitions(EXP_NODES, lalr.nodes)

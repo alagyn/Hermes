@@ -13,6 +13,7 @@ from .derivation import Derivation, DOT
 from .utils import sliceDeque
 from . import costs
 
+ASSURANCE_LIMIT_SEC = 2
 TIME_LIMIT_SEC = 5
 
 
@@ -22,7 +23,7 @@ class CounterExampleGen:
         self.automata = automata
         StateItem.initLookups(automata)
 
-        self.timeLimitEnforced = False
+        self.timeLimitEnforced = True
 
         self._conflictSymbol: Symbol = None  # type: ignore
 
@@ -111,13 +112,9 @@ class CounterExampleGen:
 
         addSearchState(initial)
         stage3Result: Optional[Configuration] = None
-        iteration = 0
+        assurancePrinted = False
         while len(pq) > 0:
-            iteration += 1
             css = pq.pop()
-            # print(f'Iteration {iteration}')
-            # print("FCSS, Complexity:", css.complexity, "Configs:", len(css.configs))
-            # css.print()
             for cfg in css.configs:
                 si1src = cfg.states1[0]
                 si2src = cfg.states2[0]
@@ -147,9 +144,11 @@ class CounterExampleGen:
                 # end reduce/shift depth check
 
                 if self.timeLimitEnforced:
-                    # TODO log thinking...
-                    if time.perf_counter() - startTime > TIME_LIMIT_SEC:
-                        # TODO log timelimit exceeded
+                    dur = time.perf_counter() - startTime
+                    if not assurancePrinted and dur > ASSURANCE_LIMIT_SEC:
+                        print("Looking for conflict counterexamples...")
+                        assurancePrinted = True
+                    if dur > TIME_LIMIT_SEC:
                         print("Time limit exceeded")
                         if stage3Result is not None:
                             return self._completeDivergingExamples(stage3Result, isShiftReduce, timeout=True)
@@ -290,7 +289,7 @@ class CounterExampleGen:
                             sym = si1.rule[len(si1.rule) - len(cfg.states1)]
                         else:
                             sym = si2.rule[len(si2.rule) - len(cfg.states2)]
-                        # TODO extended search
+                        # TODO extended search?
                         for prepended in cfg.prepend(sym,
                                                      None,
                                                      None,

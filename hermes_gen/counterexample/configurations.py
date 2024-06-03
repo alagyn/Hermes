@@ -293,7 +293,6 @@ class Configuration:
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, Configuration):
             return False
-        # TODO make sure this checks the list correctly
         return self.states1 == value.states1 and self.states2 == value.states2
 
     def __hash__(self) -> int:
@@ -314,25 +313,6 @@ class ComplexityConfiguration:
 
     def add(self, state: Configuration):
         self.configs.add(state)
-
-    def print(self):
-        # TODO remove
-        print("FCSS, Complexity:", self.complexity)
-        for idx, ss in enumerate(self.configs):
-            print("Search State", idx)
-            print("States1:")
-            for si in ss.states1:
-                print("   ", si)
-            print("States2:")
-            for si in ss.states2:
-                print("   ", si)
-
-            print("Derivs1:")
-            for d in ss.derivs1:
-                print("   ", d)
-            print("Derivs2:")
-            for d in ss.derivs2:
-                print("   ", d)
 
 
 class ComplexityQueue:

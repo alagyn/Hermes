@@ -33,18 +33,24 @@ class Derivation:
         out = [self.symbol.name]
 
         if self.deriv is not None:
-            out.append("= [")
+            out.append(" = [")
+            first = True
             for d in self.deriv:
+                if first:
+                    first = False
+                else:
+                    out.append(" ")
                 out.append(str(d))
+
             out.append("]")
 
-        return " ".join(out)
+        return "".join(out)
 
     def __repr__(self) -> str:
         return str(self)
 
 
-_DOT = Symbol(".", "", False)
-del Symbol._SYMBOL_MAP['.']
+_DOT = Symbol("•", "", False)
+del Symbol._SYMBOL_MAP['•']
 
 DOT = Derivation(_DOT)

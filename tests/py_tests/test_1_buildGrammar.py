@@ -22,15 +22,18 @@ class TestBuildgrammar(unittest.TestCase):
             'pound': "#",
             'name': "[a-zA-Z][a-zA-Z0-9_]*",
             'integer': '[1-9][0-9]*',
-            "quote": '"'
+            "quote": '"',
+            "__EOF__": ""
         }
 
         numTerminals = 0
         for key, val in Symbol._SYMBOL_MAP.items():
             if val.isTerminal:
                 numTerminals += 1
-                self.assertTrue(key in EXP_TERMS, 'Terminal name is not expected')
-                self.assertEqual(EXP_TERMS[key], val.regex, 'Terminal definition is not expected')
+                self.assertTrue(key in EXP_TERMS, f'Terminal "{key}" is not expected')
+                self.assertEqual(
+                    EXP_TERMS[key], val.regex, f'Terminal definition "{key}": "{val.regex}" is not expected'
+                )
 
         self.assertEqual(len(EXP_TERMS), numTerminals, 'Len of terminal definitions not equal')
 

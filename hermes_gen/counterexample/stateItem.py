@@ -142,7 +142,7 @@ class StateItem:
         symbols are as given.
         """
 
-        ss = SearchState([self], lookahead)
+        ss = _SearchState([self], lookahead)
 
         out: List[Optional[StateItem]] = [None]
         if self.rule.parseIndex > 0:
@@ -161,8 +161,6 @@ class StateItem:
             return out
 
         # Consider items in the same state that might use this production.
-        # TODO is this necessary? This just discards the lookaheads...
-        # can maybe eliminate SearchState?
         for x in ss.reverseProduction():
             out.append(x.items[0])
         return out
@@ -170,20 +168,20 @@ class StateItem:
     def reverseProduction(self, lookahead: Set[Symbol]) -> List[List['StateItem']]:
         out = []
 
-        for ss in SearchState([self], lookahead).reverseProduction():
+        for ss in _SearchState([self], lookahead).reverseProduction():
             out.append(ss.items[:-1])
 
         return out
 
 
-class SearchState:
+class _SearchState:
 
     def __init__(self, stateItems: List[StateItem], lookahead: Optional[Set[Symbol]]) -> None:
         self.items = stateItems
         self.lookahead = lookahead
 
-    def reverseProduction(self) -> List['SearchState']:
-        out: List[SearchState] = []
+    def reverseProduction(self) -> List['_SearchState']:
+        out: List[_SearchState] = []
 
         si = self.items[0]
         revProd = si.revProd
@@ -234,7 +232,7 @@ class SearchState:
                     if not applicable and not nullable:
                         continue
                 nextLookahead = prevLookahead
-            out.append(SearchState([prev, *self.items], nextLookahead))
+            out.append(_SearchState([prev, *self.items], nextLookahead))
 
         return out
 

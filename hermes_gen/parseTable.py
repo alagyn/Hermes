@@ -49,57 +49,69 @@ class ParseTable:
             raise RuntimeError("Invalid parse actions")
 
         message = [
-            f'Parse Table: Cannot build parse table, conflict: {node}, Symbol: {symbol}',
-            f'\tA1: {first}',
-            f'\tA2: {second}',
+            f'Warning: conflict detected in {node}',
         ]
 
         try:
             ce = self._counterExampleGen.generate_counterexample(node, first.rule, second.rule, symbol)
 
-            message.append(f"Conflict Type: {'Shift-Reduce' if ce.isShiftReduce else 'Reduce-Reduce'}")
+            message.append(f"  Conflict Type: {'Shift-Reduce' if ce.isShiftReduce else 'Reduce-Reduce'}")
+
+            if ce.isShiftReduce:
+                if first.rule.indexAtEnd():
+                    message.append(f"  Reduce: {first.rule}")
+                    message.append(f'   Shift: {second.rule}')
+                else:
+                    message.append(f"  Reduce: {second.rule}")
+                    message.append(f'   Shift: {first.rule}')
+
+            message.append("")
 
             if ce.unifying:
-                message.append("Unifying example found")
-                message.append(f"Ambiguity for nonterminal: {ce.nonTerminal()}")
-                message.append("Example:")
-                message.append(f'\t{ce.prettyExample1()}')
+                message.append("  Unifying example found")
+                message.append(f"  Ambiguity for nonterminal: {ce.nonTerminal()}")
+                message.append("  Example:")
+                message.append(f'    {ce.prettyExample1()}')
+
+                message.append("")
 
                 if ce.isShiftReduce:
-                    message.append("Derivation using reduction:")
+                    message.append("  Derivation using reduction:")
                 else:
-                    message.append("Derivation using reduction 1:")
-                message.append(f'\t{ce.example1()}')
+                    message.append("  Derivation using reduction 1:")
+                message.append(f'    {ce.example1()}')
 
                 if ce.isShiftReduce:
-                    message.append("Derivation using shift:")
+                    message.append("  Derivation using shift:")
                 else:
-                    message.append("Derivation using reduction 2:")
+                    message.append("  Derivation using reduction 2:")
 
-                message.append(f'\t{ce.example2()}')
+                message.append(f'    {ce.example2()}')
             else:
-                message.append("No Unifying example found")
+                message.append("  No Unifying example found")
 
                 if ce.isShiftReduce:
-                    message.append("Example using reduction:")
+                    message.append("  Example using reduction:")
                 else:
-                    message.append("Example using reduction 1:")
-                message.append(f'\t{ce.prettyExample1()}')
-                message.append("\tDerivation:")
-                message.append(f'\t{ce.example1()}')
+                    message.append("  Example using reduction 1:")
+                message.append(f'    {ce.prettyExample1()}')
+                message.append("  Derivation:")
+                message.append(f'    {ce.example1()}')
+
+                message.append("")
 
                 if ce.isShiftReduce:
-                    message.append("Example using shift:")
+                    message.append("  Example using shift:")
                 else:
-                    message.append("Example using reduction 2:")
-                message.append(f'\t{ce.prettyExample2()}')
-                message.append("\tDerivation:")
-                message.append(f'\t{ce.example2()}')
+                    message.append("  Example using reduction 2:")
+                message.append(f'    {ce.prettyExample2()}')
+                message.append("  Derivation:")
+                message.append(f'    {ce.example2()}')
             print("\n".join(message))
             print("")
         except Exception as err:
             print("\n".join(message))
-            print("Unable to generate counterexample:", err)
+            print("  Unable to generate counterexample:", err)
 
     def __init__(self, automata: LALR1Automata) -> None:
         self.automata = automata
