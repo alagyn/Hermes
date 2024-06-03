@@ -9,41 +9,13 @@ from ..errors import HermesError
 from .stateItem import StateItem, productionAllowed
 from .configurations import Configuration, ComplexityQueue, ComplexityConfiguration, nullableClosure
 from .counterexample import CounterExample
+from .conflict import Conflict
 from .derivation import Derivation, DOT
 from .utils import sliceDeque
 from . import costs
 
 ASSURANCE_LIMIT_SEC = 2
 TIME_LIMIT_SEC = 5
-
-
-def isConflictShiftReduce(rule1: AnnotRule, rule2: AnnotRule) -> Tuple[bool, AnnotRule, AnnotRule]:
-    # If this is a S/R conflict, we want the R to be item 1
-    # otherwise, it doesn't matter
-    if rule1.indexAtEnd():
-        # our first rule is a reduce rule, check the second
-        if rule2.indexAtEnd():
-            # we have a R/R conflict
-            isShiftReduce = False
-        else:
-            # we have a S/R
-            isShiftReduce = True
-
-        # order doesn't matter if R/R, but we def want item1
-        # to be a reduce item
-        item1 = rule1
-        item2 = rule2
-    elif rule2.indexAtEnd():
-        # out second rule is a reduce, but the first is a shift
-        isShiftReduce = True
-        item1 = rule2
-        item2 = rule1
-    else:
-        # shouldn't ever reach here?
-        # S/S conflicts are impossible
-        raise RuntimeError("generate_counterexample() Expected at least one reduce rule")
-
-    return isShiftReduce, item1, item2
 
 
 class CounterExampleGen:
@@ -56,24 +28,20 @@ class CounterExampleGen:
 
         self._conflictSymbol: Symbol = None  # type: ignore
 
-    def generate_counterexample(
-        self,
-        conflictState: Node,
-        conflictRule1: AnnotRule,
-        conflictRule2: AnnotRule,
-        conflictSymbol: Symbol,
-    ) -> CounterExample:
+    def generate_counterexample(self, conflict: Conflict) -> CounterExample:
         """
         Counterexample algorithm as described in 
         'Finding Counterexamples from Parsing Conflicts' [Isradisaikul, Myers] (2015)
         """
 
-        self._conflictSymbol = conflictSymbol
+        self._conflictSymbol = conflict.symbol
 
-        isShiftReduce, item1, item2 = isConflictShiftReduce(conflictRule1, conflictRule2)
+        isShiftReduce = conflict.isShiftReduce
+        item1 = conflict.rule1
+        item2 = conflict.rule2
 
         # Get the shortest path to the reduce rule
-        shortestConflictPath = self._getShortestPathFromStart(conflictState, item1)
+        shortestConflictPath = self._getShortestPathFromStart(conflict.node, item1)
         # set of nodes used in the shortest path
         scpSet: Set[Node] = set()
         # set of states that use the conflicted nonterminal
@@ -111,8 +79,8 @@ class CounterExampleGen:
             visited1.add(tuple(cfg.states2))
 
         initial = Configuration()
-        stateItem1 = StateItem.getStateItem(conflictState, item1)
-        stateItem2 = StateItem.getStateItem(conflictState, item2)
+        stateItem1 = StateItem.getStateItem(conflict.node, item1)
+        stateItem2 = StateItem.getStateItem(conflict.node, item2)
         initial.states1.append(stateItem1)
         initial.states2.append(stateItem2)
 
@@ -136,9 +104,7 @@ class CounterExampleGen:
                             # they are the same.  This means that the derivation
                             # of this symbol is the unifying counterexample we are
                             # looking for.
-                            return CounterExample(
-                                cfg.derivs1[0], cfg.derivs2[0], unifying=True, isShiftReduce=isShiftReduce
-                            )
+                            return CounterExample(conflict, cfg.derivs1[0], cfg.derivs2[0], unifying=True)
                         # Otherwise, we have found a symbol that can begin the
                         # same sequence of symbols up to the conflict point.
                         # If unifying counterexample is not found, we will use
@@ -157,11 +123,9 @@ class CounterExampleGen:
                     if dur > TIME_LIMIT_SEC:
                         print("Time limit exceeded")
                         if stage3Result is not None:
-                            return self._completeDivergingExamples(stage3Result, isShiftReduce, timeout=True)
+                            return self._completeDivergingExamples(conflict, stage3Result, timeout=True)
                         else:
-                            return self._exampleFromShortestPath(
-                                isShiftReduce, conflictState, item2, shortestConflictPath, True
-                            )
+                            return self._exampleFromShortestPath(conflict, shortestConflictPath, True)
                 # end if timelimit
 
                 # Compute the successor configurations.
@@ -309,24 +273,19 @@ class CounterExampleGen:
 
         # No unifying counterexamples.  Construct a counterexample from the
         # shortest lookahead-sensitive path.
-        return self._exampleFromShortestPath(isShiftReduce, conflictState, item2, shortestConflictPath, False)
+        return self._exampleFromShortestPath(conflict, shortestConflictPath, False)
 
     def _exampleFromShortestPath(
-        self,
-        isShiftReduce: bool,
-        conflictNode: Node,
-        item2: AnnotRule,
-        shortestConflictPath1: Deque[StateItem],
-        timeout: bool
+        self, c: Conflict, shortestConflictPath1: Deque[StateItem], timeout: bool
     ) -> CounterExample:
-        if not isShiftReduce:
+        if not c.isShiftReduce:
             # For reduce/reduce conflicts, simply find the shortest
             # lookahead-sensitive path to the other conflict item.
-            shortestConflictPath2 = self._getShortestPathFromStart(conflictNode, item2)
+            shortestConflictPath2 = self._getShortestPathFromStart(c.node, c.rule2)
             deriv1 = self._completeDivergingExample(shortestConflictPath1, deque())
             deriv2 = self._completeDivergingExample(shortestConflictPath2, deque())
-            return CounterExample(deriv1, deriv2, False, isShiftReduce, timeout=timeout)
-        si = StateItem.getStateItem(conflictNode, item2)
+            return CounterExample(c, deriv1, deriv2, False, timeout=timeout)
+        si = StateItem.getStateItem(c.node, c.rule2)
         out: Deque[StateItem] = deque()
         out.append(si)
 
@@ -362,7 +321,7 @@ class CounterExampleGen:
                     pass
                 deriv1 = self._completeDivergingExample(shortestConflictPath1, deque())
                 deriv2 = self._completeDivergingExample(out, deque())
-                return CounterExample(deriv1, deriv2, False, isShiftReduce, timeout=timeout)
+                return CounterExample(c, deriv1, deriv2, False, timeout=timeout)
 
             pos = si.rule.parseIndex
             if pos == 0:
@@ -417,10 +376,10 @@ class CounterExampleGen:
 
         raise HermesError("Cannot find derivation to conflict node")
 
-    def _completeDivergingExamples(self, cfg: Configuration, isShiftReduce: bool, timeout: bool) -> CounterExample:
+    def _completeDivergingExamples(self, c: Conflict, cfg: Configuration, timeout: bool) -> CounterExample:
         derivs1 = self._completeDivergingExample(cfg.states1, cfg.derivs1)
         derivs2 = self._completeDivergingExample(cfg.states2, cfg.derivs2)
-        return CounterExample(derivs1, derivs2, False, isShiftReduce, timeout=timeout)
+        return CounterExample(c, derivs1, derivs2, False, timeout=timeout)
 
     def _completeDivergingExample(self, states: Deque[StateItem], derivs: Deque[Derivation]) -> Derivation:
         out: Deque[Derivation] = deque()

@@ -7,6 +7,7 @@ import os
 from hermes_gen.grammar import parse_grammar
 from hermes_gen.lalr1_automata import LALR1Automata, writeDescription
 from hermes_gen.parseTable import ParseTable
+from hermes_gen.counterexample.counterexampleGen import CounterExampleGen
 
 from hermes_gen.errors import HermesError
 from hermes_gen.directives import Directive
@@ -30,6 +31,7 @@ def main():
     parser.add_argument("--no-examples", help="Disable counterexample generation for conflicts", action="store_true")
     parser.add_argument("-s", "--strict", help="Return an error if an unresolved conflict occurs", action="store_true")
     parser.add_argument("--hide-conflicts", help="Do not print out conflict warnings", action="store_true")
+    parser.add_argument("--no-color", help="Disable terminal colors", action="store_true")
 
     args = parser.parse_args()
 
@@ -37,6 +39,7 @@ def main():
     genExamples: bool = not args.no_examples
     strict: bool = args.strict
     hideConflicts: bool = args.hide_conflicts
+    color: bool = not args.no_color
 
     if not os.path.exists(grammar_file):
         print("Cannot open grammar file:", grammar_file)
@@ -65,7 +68,22 @@ def main():
 
     if len(parseTable.conflicts) > 0:
         if not hideConflicts:
-            parseTable.printConflicts(genExamples)
+            if genExamples:
+                ceGen = CounterExampleGen(lalr)
+                for conflict in parseTable.conflicts:
+                    try:
+                        ce = ceGen.generate_counterexample(conflict)
+                        print(ce.prettyPrint(color))
+                        print("")
+                    except Exception as err:
+                        print("Error generating counterexample for:")
+                        print(conflict)
+                        print("Error:", err)
+            else:
+                for conflict in parseTable.conflicts:
+                    print(conflict)
+                    print("")
+
         if strict:
             print("Strict mode enabled and conflicts found, refusing to generate parser")
             exit(2)

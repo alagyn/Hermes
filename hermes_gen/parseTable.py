@@ -2,9 +2,8 @@ from typing import Optional, Dict, List
 
 from .lalr1_automata import AnnotRule, Node, LALR1Automata
 from .grammar import Symbol
-from hermes_gen.consts import END, EMPTY
-from .counterexample.counterexampleGen import CounterExampleGen, CounterExample, isConflictShiftReduce
-from .errors import HermesError
+from .counterexample.counterexampleGen import CounterExampleGen, CounterExample
+from .counterexample.conflict import Conflict
 
 
 class Action:
@@ -35,16 +34,6 @@ class ParseAction:
         return str(self)
 
 
-class Conflict:
-
-    def __init__(self, node: Node, symbol: Symbol, first: AnnotRule, second: AnnotRule) -> None:
-        self.node = node
-        self.symbol = symbol
-        self.rule1 = first
-        self.rule2 = second
-        self.counter: Optional[CounterExample] = None
-
-
 RowType = List[ParseAction]
 TableType = List[RowType]
 
@@ -54,7 +43,6 @@ class ParseTable:
     def __init__(self, automata: LALR1Automata) -> None:
         self.automata = automata
 
-        self._counterExampleGen: Optional[CounterExampleGen] = None
         self.conflicts: List[Conflict] = []
 
         # Every symbol in the order they appear in the parse table
@@ -94,7 +82,7 @@ class ParseTable:
             for rule in node.rules:
                 if rule.indexAtEnd():
                     for terminal in rule.lookAhead:
-                        if terminal == EMPTY:
+                        if terminal == Symbol.EMPTY_SYMBOL:
                             continue
                         termID = self.symbolIDs[terminal]
                         curActionTuple = curRow[termID]
@@ -149,92 +137,3 @@ class ParseTable:
             raise RuntimeError("Invalid parse actions")
 
         self.conflicts.append(Conflict(node, symbol, first.rule, second.rule))
-
-    def printConflicts(self, genCounterexamples: bool):
-        if genCounterexamples:
-            self._counterExampleGen = CounterExampleGen(self.automata)
-            for c in self.conflicts:
-                ce = self._counterExampleGen.generate_counterexample(c.node, c.rule1, c.rule2, c.symbol)
-                self._printCounterexample(c, ce)
-        else:
-            for c in self.conflicts:
-                message = [f"Warning: conflict detected in {c.node}"]
-                isShiftReduce, item1, item2 = isConflictShiftReduce(c.rule1, c.rule2)
-                message.append(f"  Conflict Type: {'Shift-Reduce' if isShiftReduce else 'Reduce-Reduce'}")
-                message.append(f"  Symbol: {c.symbol}")
-                if isShiftReduce:
-                    message.append(f'  Reduce: {item1}')
-                    message.append(f'   Shift: {item2}')
-                else:
-                    message.append(f'  Reduce 1: {item1}')
-                    message.append(f'  Reduce 2: {item2}')
-                message.append("")
-                print("\n".join(message))
-
-    def _printCounterexample(self, c: Conflict, ce: CounterExample):
-        message = [
-            f'Warning: conflict detected in {c.node}',
-        ]
-
-        try:
-
-            message.append(f"  Conflict Type: {'Shift-Reduce' if ce.isShiftReduce else 'Reduce-Reduce'}")
-
-            if ce.isShiftReduce:
-                if c.rule1.indexAtEnd():
-                    message.append(f"  Reduce: {c.rule1.rule}")
-                    message.append(f'   Shift: {c.rule2.rule}')
-                else:
-                    message.append(f"  Reduce: {c.rule2.rule}")
-                    message.append(f'   Shift: {c.rule1.rule}')
-            else:
-                message.append(f'  Reduce 1: {c.rule1.rule}')
-                message.append(f'  Reduce 2: {c.rule2.rule}')
-
-            message.append("")
-
-            if ce.unifying:
-                message.append("  Unifying example found")
-                message.append(f"  Ambiguity for nonterminal: {ce.nonTerminal()}")
-                message.append("  Example:")
-                message.append(f'    {ce.prettyExample1()}')
-
-                message.append("")
-
-                if ce.isShiftReduce:
-                    message.append("  Derivation using reduction:")
-                else:
-                    message.append("  Derivation using reduction 1:")
-                message.append(f'    {ce.example1()}')
-
-                if ce.isShiftReduce:
-                    message.append("  Derivation using shift:")
-                else:
-                    message.append("  Derivation using reduction 2:")
-
-                message.append(f'    {ce.example2()}')
-            else:
-                message.append("  No Unifying example found")
-
-                if ce.isShiftReduce:
-                    message.append("  Example using reduction:")
-                else:
-                    message.append("  Example using reduction 1:")
-                message.append(f'    {ce.prettyExample1()}')
-                message.append("  Derivation:")
-                message.append(f'    {ce.example1()}')
-
-                message.append("")
-
-                if ce.isShiftReduce:
-                    message.append("  Example using shift:")
-                else:
-                    message.append("  Example using reduction 2:")
-                message.append(f'    {ce.prettyExample2()}')
-                message.append("  Derivation:")
-                message.append(f'    {ce.example2()}')
-            print("\n".join(message))
-            print("")
-        except Exception as err:
-            print("\n".join(message))
-            print("  Unable to generate counterexample:", err)
