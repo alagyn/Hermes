@@ -10,7 +10,7 @@
             "request": "launch",
             "module": "hermes_gen",
             "args": [
-                "tests/grammars/conflicts/ambiguous-shift-reduce.hm"
+                "tests/grammars/conflicts/unambiguous-shift-reduce.hm"
             ]
         },
         {

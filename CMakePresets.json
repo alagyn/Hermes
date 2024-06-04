@@ -4,7 +4,6 @@
         {
             "name": "default",
             "generator": "Ninja Multi-Config",
-            //"generator": "Unix Makefiles",
             "binaryDir": "${sourceDir}/build",
             
             "cacheVariables": {
@@ -26,7 +25,6 @@
                 }
             }
         },
-        // Disable python tests since the python extensions handle it already
         {
             "name": "VSCode",
             "inherits": ["default"],
