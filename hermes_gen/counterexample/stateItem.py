@@ -3,6 +3,7 @@ from collections import defaultdict
 
 from hermes_gen.lalr1_automata import Node, AnnotRule, LALR1Automata
 from hermes_gen.grammar import Symbol
+from hermes_gen.counterexample.orderedSet import OrderedSet
 
 
 def intersect(terminal: Symbol, syms: Optional[Set[Symbol]]) -> bool:
@@ -72,14 +73,14 @@ class StateItem:
             # closureMap records all items with dot at the beginning of the
             # right-hand side in this state. In other words, the items
             # recorded are the productions added to this state by taking closure.
-            closureMap: Dict[Symbol, Set[StateItem]] = defaultdict(set)
+            closureMap: Dict[Symbol, OrderedSet[StateItem]] = defaultdict(OrderedSet)
             for rule in src.rules:
                 if rule.parseIndex == 0:
                     lhs = rule.rule.nonterm
                     closureMap[lhs].add(cls.getStateItem(src, rule))
 
             # rev prods for this node
-            revProd: Dict[Symbol, Set['StateItem']] = {}
+            revProd: Dict[Symbol, OrderedSet['StateItem']] = {}
 
             for rule in src.rules:
                 # always set the revProd map
@@ -98,12 +99,12 @@ class StateItem:
                     continue
 
                 # union the set
-                state.fwdProd.update(closures)
+                state.fwdProd = closures.copy()
 
                 try:
                     revItems = revProd[symbol]
                 except KeyError:
-                    revItems = set()
+                    revItems = OrderedSet[StateItem]()
                     revProd[symbol] = revItems
 
                 revItems.add(state)
@@ -122,9 +123,9 @@ class StateItem:
         self.rule = rule
         self.transSymbol: Optional[Symbol] = None if rule.indexAtEnd() else rule.nextSymbol()
         self.transItem: Optional[StateItem] = None
-        self.revTrans: Dict[Symbol, Set[StateItem]] = defaultdict(set)
-        self.fwdProd: Set[StateItem] = set()
-        self.revProd: Dict[Symbol, Set[StateItem]] = {}
+        self.revTrans: Dict[Symbol, OrderedSet[StateItem]] = defaultdict(OrderedSet)
+        self.fwdProd = OrderedSet[StateItem]()
+        self.revProd: Dict[Symbol, OrderedSet[StateItem]] = {}
 
         self._name = f'n{node.id}r{node.rules.index(rule)}'
 
