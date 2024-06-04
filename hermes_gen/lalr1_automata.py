@@ -23,7 +23,7 @@ class AnnotRule:
         self.lookAhead = lookAhead
 
     def __str__(self) -> str:
-        out = f'[ {self.strRule()} ] {self.lookAhead}'
+        out = f'[ {self.strRule()} ]'
         return out
 
     def __repr__(self) -> str:

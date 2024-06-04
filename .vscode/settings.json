@@ -74,7 +74,7 @@
     },
     "json.schemaDownload.enable": true,
     "python.analysis.exclude": [
-        "third-party"
+        "third-party", "dist"
     ],
     "python.analysis.typeCheckingMode": "basic",
     "python.testing.cwd": "${workspaceFolder}",

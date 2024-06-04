@@ -48,6 +48,12 @@
             "configurePreset": "VSCode",
             "configuration": "Debug",
             "targets": ["tests"]
+        },
+        {
+            "name": "libHermes",
+            "configurePreset": "default",
+            "configuration": "Release",
+            "targets": ["hermes"]
         }
     ],
     

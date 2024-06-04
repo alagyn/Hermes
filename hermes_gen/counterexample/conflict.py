@@ -43,3 +43,15 @@ class Conflict:
             message.append(f'  Reduce 1: {self.rule1}')
             message.append(f'  Reduce 2: {self.rule2}')
         return "\n".join(message)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Conflict):
+            return False
+
+        if self.node != other.node:
+            return False
+
+        if self.rule1 != other.rule1:
+            return False
+
+        return self.rule2 == other.rule2

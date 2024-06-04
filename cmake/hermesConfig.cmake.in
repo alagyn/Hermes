@@ -68,7 +68,7 @@ function(add_hermes_grammar)
         OUTPUT ${OUTPUTS}
         WORKING_DIRECTORY ${HERMES_ROOT}
         COMMAND
-            ${Python3_EXECUTABLE} -m hermes_gen.main
+            ${Python3_EXECUTABLE} -m hermes_gen
                 --name ${ARGS_TARGET}
                 --table ${GRAMMAR_FILE}
                 --loader ${LOADER_HEADER_FILE}

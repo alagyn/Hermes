@@ -50,9 +50,11 @@ class StackItem
 {
 public:
     HState state;
+    unsigned symbol;
 
-    StackItem(HState state)
+    StackItem(HState state, unsigned symbol)
         : state(state)
+        , symbol(symbol)
     {
     }
 
@@ -67,7 +69,7 @@ public:
     ParseToken token;
 
     StackToken(HState state, ParseToken token)
-        : StackItem<HermesReturn>(state)
+        : StackItem<HermesReturn>(state, token.symbol)
         , token(token)
     {
     }
@@ -94,15 +96,16 @@ class StackNonTerm : public StackItem<HermesReturn>
 public:
     HermesReturn hr;
 
-    StackNonTerm(HState state, HermesReturn hr)
-        : StackItem<HermesReturn>(state)
+    StackNonTerm(HState state, unsigned symbol, HermesReturn hr)
+        : StackItem<HermesReturn>(state, symbol)
         , hr(hr)
     {
     }
 
-    static inline std::shared_ptr<StackNonTerm> New(HState state, HermesReturn hr)
+    static inline std::shared_ptr<StackNonTerm>
+    New(HState state, unsigned symbol, HermesReturn hr)
     {
-        return std::make_shared<StackNonTerm>(state, hr);
+        return std::make_shared<StackNonTerm>(state, symbol, hr);
     }
 
     std::string t() override
@@ -232,7 +235,8 @@ public:
 
 #ifdef HERMES_PARSE_DEBUG
                 std::cout << "Reduce to \"" << lookupSymbol(reduction.nonterm)
-                          << "\"" << " via rule: " << nextAction.state << " {"
+                          << "\""
+                          << " via rule: " << nextAction.state << " {"
                           << " pops: " << reduction.numPops << " goto idx: "
                           << static_cast<unsigned>(reduction.nonterm) << " }\n";
 #endif
@@ -256,9 +260,11 @@ public:
                     ParseAction nextGoto =
                         getAction(stack.back()->state, reduction.nonterm);
 
-                    stack.push_back(
-                        StackNonTerm<HermesReturn>::New(nextGoto.state, hr)
-                    );
+                    stack.push_back(StackNonTerm<HermesReturn>::New(
+                        nextGoto.state,
+                        reduction.nonterm,
+                        hr
+                    ));
                 }
                 catch(const std::exception& err)
                 {
@@ -284,8 +290,9 @@ public:
 
                 for(auto& x : stack)
                 {
-                    ss << x->state << " ";
+                    ss << symbolLookup[x->symbol] << " ";
                 }
+
 #endif
                 ss << "Expected one of: ";
                 for(int i = 0; i < numCols; ++i)

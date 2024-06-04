@@ -109,8 +109,7 @@ class ParseTable:
 
                     # TODO conflict resolution
                     # right now we just always take the shift action
-                    if newActionTuple.action == Action.S:
-                        curRow[nextSymbolID] = newActionTuple
+                    curRow[nextSymbolID] = newActionTuple
                 else:
                     curRow[nextSymbolID] = newActionTuple
             # End for rule in node
@@ -136,4 +135,7 @@ class ParseTable:
         if first.rule is None or second.rule is None:
             raise RuntimeError("Invalid parse actions")
 
-        self.conflicts.append(Conflict(node, symbol, first.rule, second.rule))
+        c = Conflict(node, symbol, first.rule, second.rule)
+
+        if c not in self.conflicts:
+            self.conflicts.append(c)

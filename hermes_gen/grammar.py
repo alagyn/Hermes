@@ -135,6 +135,9 @@ class _RuleDef:
         self.lineNum = lineNum
         self.codeLine = codeLine
 
+    def __str__(self) -> str:
+        return f'Rule {self.id} @line {self.lineNum}: {self.nonterm} = {" ".join([str(x) for x in self.symbols])}'
+
 
 class Grammar:
 
