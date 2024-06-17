@@ -51,10 +51,12 @@ class StackItem
 public:
     HState state;
     unsigned symbol;
+    Location loc;
 
-    StackItem(HState state, unsigned symbol)
+    StackItem(HState state, unsigned symbol, Location loc)
         : state(state)
         , symbol(symbol)
+        , loc(loc)
     {
     }
 
@@ -69,7 +71,7 @@ public:
     ParseToken token;
 
     StackToken(HState state, ParseToken token)
-        : StackItem<HermesReturn>(state, token.symbol)
+        : StackItem<HermesReturn>(state, token.symbol, token.loc)
         , token(token)
     {
     }
@@ -96,16 +98,19 @@ class StackNonTerm : public StackItem<HermesReturn>
 public:
     HermesReturn hr;
 
-    StackNonTerm(HState state, unsigned symbol, HermesReturn hr)
-        : StackItem<HermesReturn>(state, symbol)
+    StackNonTerm(HState state, unsigned symbol, HermesReturn hr, Location loc)
+        : StackItem<HermesReturn>(state, symbol, loc)
         , hr(hr)
     {
     }
 
     static inline std::shared_ptr<StackNonTerm>
-    New(HState state, unsigned symbol, HermesReturn hr)
+    New(const HState state,
+        const unsigned symbol,
+        const HermesReturn hr,
+        const Location loc)
     {
-        return std::make_shared<StackNonTerm>(state, symbol, hr);
+        return std::make_shared<StackNonTerm>(state, symbol, hr, loc);
     }
 
     std::string t() override
@@ -209,21 +214,23 @@ public:
                 getAction(stack.back()->state, token.symbol);
 
 #ifdef HERMES_PARSE_DEBUG
-            std::cout << "S" << stack.back()->state << " "
-                      << lookupSymbol(token.symbol) << " Loc:" << token.lineNum
-                      << ":" << token.charNum << " '" << token.text << "' ";
+            std::cout << "State:" << stack.back()->state
+                      << " Token: " << lookupSymbol(token.symbol)
+                      << " Loc:" << token.loc.lineStart << ":"
+                      << token.loc.charStart << " Text: '" << token.text
+                      << "'\n\t↳ ";
 #endif
 
             switch(nextAction.action)
             {
             case S:
             {
-#ifdef HERMES_PARSE_DEBUG
-                std::cout << "S" << nextAction.state << "\n";
-#endif
                 stack.push_back(
                     StackToken<HermesReturn>::New(nextAction.state, token)
                 );
+#ifdef HERMES_PARSE_DEBUG
+                std::cout << "Shift to state " << nextAction.state << "\n";
+#endif
                 // We only get the next token after a shift
                 token = scanner->nextToken();
 
@@ -253,6 +260,9 @@ public:
 
                     if(nextAction.state == 0)
                     {
+#ifdef HERMES_PARSE_DEBUG
+                        std::cout << "Input Accepted";
+#endif
                         // Accept
                         return hr;
                     }
@@ -260,17 +270,31 @@ public:
                     ParseAction nextGoto =
                         getAction(stack.back()->state, reduction.nonterm);
 
+                    Location nextLoc;
+                    if(!items.empty())
+                    {
+                        nextLoc.lineStart = items[0]->loc.lineStart;
+                        nextLoc.charStart = items[0]->loc.charStart;
+                        nextLoc.lineEnd = items[items.size() - 1]->loc.lineEnd;
+                        nextLoc.lineEnd = items[items.size() - 1]->loc.lineEnd;
+                    }
+                    else
+                    {
+                        nextLoc = stack.back()->loc;
+                    }
+
                     stack.push_back(StackNonTerm<HermesReturn>::New(
                         nextGoto.state,
                         reduction.nonterm,
-                        hr
+                        hr,
+                        nextLoc
                     ));
                 }
                 catch(const std::exception& err)
                 {
                     std::stringstream ss;
-                    ss << "Reduce Error at " << token.lineNum << ":"
-                       << token.charNum << " token: " << token.text;
+                    ss << "Reduce Error at " << token.loc.lineStart << ":"
+                       << token.loc.charStart << " token: " << token.text;
                     ss << "\nThis token may/or may not be the issue\nError:\n"
                        << err.what();
                     throw HermesError(ss.str());
@@ -282,9 +306,10 @@ public:
                 // TODO convert to an exception?
                 std::cout << "\n";
                 std::stringstream ss;
-                ss << "Parse Error at line " << token.lineNum << " char "
-                   << token.charNum << " token: " << lookupSymbol(token.symbol)
-                   << " text:\n'" << token.text << "'\n";
+                ss << "Parse Error at line " << token.loc.lineStart << " char "
+                   << token.loc.charStart
+                   << " token: " << lookupSymbol(token.symbol) << " text:\n'"
+                   << token.text << "'\n";
 #ifdef HERMES_PARSE_DEBUG
                 ss << "Stack: ";
 
@@ -292,7 +317,7 @@ public:
                 {
                     ss << symbolLookup[x->symbol] << " ";
                 }
-
+                ss << '\n';
 #endif
                 ss << "Expected one of: ";
                 for(int i = 0; i < numCols; ++i)

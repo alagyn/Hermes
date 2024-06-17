@@ -103,8 +103,8 @@ ParseToken Scanner::nextToken()
 ParseToken Scanner::_nextToken()
 {
     ParseToken out;
-    out.lineNum = lineNum;
-    out.charNum = charNum;
+    out.loc.lineStart = lineNum;
+    out.loc.charStart = charNum;
 
     if(handle->eof())
     {
@@ -153,8 +153,8 @@ ParseToken Scanner::_nextToken()
                 }
                 // Else throw an error
                 std::stringstream ss;
-                ss << "Bad token: " << out.lineNum << ":" << out.charNum << " '"
-                   << out.text << "'";
+                ss << "Bad token: " << out.loc.lineStart << ":"
+                   << out.loc.charStart << " '" << out.text << "'";
                 throw HermesError(ss.str());
             }
             else
@@ -170,13 +170,17 @@ ParseToken Scanner::_nextToken()
                 We can't ignore all whitespace otherwise we break any tokens
                that can contain it, like strings
             */
-            out.lineNum = lineNum;
-            out.charNum = charNum;
+            out.loc.lineStart = lineNum;
+            out.loc.charStart = charNum;
+            out.loc.charEnd = charNum;
+            out.loc.lineEnd = lineNum;
             continue;
         }
         else
         {
             out.text.push_back(nextChar);
+            out.loc.charEnd = charNum;
+            out.loc.lineEnd = lineNum;
         }
 
         bool foundNewMatch = false;
@@ -228,8 +232,8 @@ ParseToken Scanner::_nextToken()
 
             // If we got here something bad happened and nothing matched
             std::stringstream ss;
-            ss << "Bad token: " << out.lineNum << ":" << out.charNum << " '"
-               << out.text << "'";
+            ss << "Bad token: " << out.loc.lineStart << ":" << out.loc.charStart
+               << " '" << out.text << "'";
             throw HermesError(ss.str());
         }
     }
@@ -242,8 +246,8 @@ ParseToken Scanner::_nextToken()
 
     // We only got here if we hit EOF and didn't have a match
     std::stringstream ss;
-    ss << "Bad token: " << out.lineNum << ":" << out.charNum << " '" << out.text
-       << "'";
+    ss << "Bad token: " << out.loc.lineStart << ":" << out.loc.charStart << " '"
+       << out.text << "'";
     throw HermesError(ss.str());
 };
 } //namespace hermes

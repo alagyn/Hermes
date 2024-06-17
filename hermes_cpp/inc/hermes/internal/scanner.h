@@ -8,12 +8,19 @@
 
 namespace hermes {
 
+struct Location
+{
+    unsigned lineStart;
+    unsigned charStart;
+    unsigned lineEnd;
+    unsigned charEnd;
+};
+
 struct ParseToken
 {
     unsigned symbol;
     std::string text;
-    unsigned lineNum;
-    unsigned charNum;
+    Location loc;
 };
 
 struct Terminal

@@ -1,4 +1,4 @@
-from typing import List, Dict, Set, Tuple, Iterable
+from typing import List, Dict, Set, Tuple, Iterable, Optional
 from collections import deque, defaultdict
 import re
 import os
@@ -8,6 +8,7 @@ from hermes_gen.consts import ARG_VECTOR, EMPTY, END, START
 from hermes_gen.directives import Directive
 
 _EMPTY_STR = "EMPTY"
+DEFAULT_CODE = "return $0;"
 
 
 class Symbol:
@@ -55,6 +56,8 @@ class Symbol:
         return str(self)
 
     def __eq__(self, value: object) -> bool:
+        if isinstance(value, str):
+            return self.name == value
         if not isinstance(value, Symbol):
             return False
 
@@ -91,6 +94,9 @@ class Rule:
             return False
 
         return self.nonterm == other.nonterm and self.symbols == other.symbols
+
+    def __repr__(self) -> str:
+        return str(self)
 
     def __str__(self) -> str:
         return f'Rule {self.id} @line {self.lineNum}: {self.nonterm} = {" ".join([str(x) for x in self.symbols])}'
@@ -135,7 +141,7 @@ class Rule:
 class _RuleDef:
 
     def __init__(
-        self, id: int, nonterm: str, symbols: List[str], code: str, file: str, lineNum: int, codeLine: int
+        self, id: int, nonterm: str, symbols: List[str], code: Optional[str], file: str, lineNum: int, codeLine: int
     ) -> None:
         # these are the same as in Rule
 
@@ -151,6 +157,10 @@ class _RuleDef:
         return f'Rule {self.id} @line {self.lineNum}: {self.nonterm} = {" ".join([str(x) for x in self.symbols])}'
 
 
+NAME_CHARS = set('abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
+H_ARG_RE = re.compile(r'(?P<cmd>\$|@)((?P<idx>\d+)|(?P<name>\w+))')
+
+
 class Grammar:
 
     def __init__(
@@ -162,11 +172,49 @@ class Grammar:
     ) -> None:
         # List of terminals, in order as defined
         self._terminals: List[Symbol] = [Symbol(x[0], x[1], False) for x in terminals]
+        self._terminalNames: Set[str] = {x[0]
+                                         for x in terminals}
 
         # List of each rule
         self.rules: List[Rule] = []
+
+        try:
+            temp = directives[Directive.default]
+            if len(temp) > 1:
+                raise HermesError(f"Cannot define more than one %default directive")
+            if len(temp) == 1:
+                defaultCode = temp[0]
+            else:
+                defaultCode = DEFAULT_CODE
+        except KeyError:
+            defaultCode = DEFAULT_CODE
+
+        try:
+            temp = directives[Directive.empty]
+            if len(temp) > 1:
+                raise HermesError(f"Cannot define more than one %empty directive")
+            if len(temp) == 1:
+                defaultEmpty = temp[0]
+            else:
+                defaultEmpty = None
+        except KeyError:
+            defaultEmpty = None
+
         # construct real rules from definitions
         for rule in ruleDefs:
+            if rule.code is None:
+                if len(rule.symbols) == 0:
+                    if defaultEmpty is None:
+                        raise HermesError(
+                            f"{rule.file}:{rule.lineNum} EMPTY action undefined. Add a code block or %empty directive"
+                        )
+                    else:
+                        rule.code = defaultEmpty
+                else:
+                    rule.code = defaultCode
+            # Replace all arg substitutions
+            rule.code = H_ARG_RE.sub(lambda m: self._preprocessRule(rule, m), rule.code)
+
             try:
                 lhs = Symbol.get(rule.nonterm)
             except KeyError:
@@ -189,6 +237,47 @@ class Grammar:
         self.directives = directives
 
         self._gen_first_and_follow()
+
+    def _preprocessRule(self, rule: _RuleDef, m: re.Match) -> str:
+        """
+        Preprocess rule, replacing $ and @ directives
+        """
+        name = m.group('name')
+        if name is not None:
+            try:
+                count = rule.symbols.count(name)
+                if count > 1:
+                    raise HermesError(
+                        f"{rule.file}:{rule.lineNum} Cannot substitue symbol '${name}', symbol is repeated in rule, use index instead, {rule}"
+                    )
+                elif count == 0:
+                    raise HermesError(
+                        f"{rule.file}:{rule.lineNum} Cannot substitute symbol '${name}', symbol not in rule, {rule}"
+                    )
+
+                sIdx = rule.symbols.index(name)
+            except ValueError:
+                raise HermesError(
+                    f"{rule.file}:{rule.lineNum} Invalid code substitution, symbol '{name}' not found, {rule}"
+                ) from None
+        else:
+            sIdx = int(m.group('idx'))
+            try:
+                name = rule.symbols[sIdx]
+            except IndexError:
+                raise HermesError(
+                    f'{rule.file}:{rule.lineNum} Invalid code substitution, index {sIdx} out of bounds, {rule}'
+                ) from None
+
+        # Have to invert the index because the stack items will be reversed
+        sIdx = len(rule.symbols) - sIdx - 1
+
+        cmd = m.group("cmd")
+        if cmd == "$":
+            func = "t()" if name in self._terminalNames else "nt()"
+        else:
+            func = "loc"
+        return f'{ARG_VECTOR}[{sIdx}]->{func}'
 
     def _gen_first_and_follow(self):
         for symbol in Symbol.all():
@@ -228,12 +317,12 @@ class Grammar:
             changed = False
             for rule in self.rules:
                 left = rule.nonterm.follow
-                # True if the previous symbol had EMPTy in their first set
+                # True if the previous symbol had EMPTY in their first set
                 lastEmpty = True
                 # Iterate backwards to keep track of when the next symbol can be empty
                 for i in reversed(range(len(rule.symbols))):
                     curSymbol = rule.symbols[i]
-                    if curSymbol == EMPTY:
+                    if curSymbol == Symbol.EMPTY_SYMBOL:
                         break
 
                     if lastEmpty:
@@ -319,10 +408,6 @@ class _Reader:
                 nextChar = self.get()
 
 
-NAME_CHARS = set('abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
-H_ARG_RE = re.compile(r'\$((?P<idx>\d+)|(?P<name>\w+))')
-
-
 class _GrammarFileParser:
 
     def __init__(self, rootfile: str) -> None:
@@ -377,47 +462,6 @@ class _GrammarFileParser:
                 processedIgnores.append(regex.replace(f"\\{quoteType}", quoteType))
             # Replace the ignores list
             self.directives[Directive.ignore] = processedIgnores
-
-        for rule in self.ruleDefs:
-
-            # TODO error message should have different filename if imported
-            # TODO error messages should have line numbers
-
-            def preproc(m: re.Match) -> str:
-                name = m.group('name')
-                if name is not None:
-                    try:
-                        count = rule.symbols.count(name)
-                        if count > 1:
-                            raise HermesError(
-                                f"{self.rootfile} Cannot substitue symbol '${name}', symbol is repeated in rule, use index instead, {rule}"
-                            )
-                        elif count == 0:
-                            raise HermesError(
-                                f"{self.rootfile} Cannot substitute symbol '${name}', symbol not in rule, {rule}"
-                            )
-
-                        sIdx = rule.symbols.index(name)
-                    except ValueError:
-                        raise HermesError(
-                            f"{self.rootfile} Invalid code substitution, symbol '{name}' not found, {rule}"
-                        ) from None
-                else:
-                    sIdx = int(m.group('idx'))
-                    try:
-                        name = rule.symbols[sIdx]
-                    except IndexError:
-                        raise HermesError(
-                            f'{self.rootfile} Invalid code substitution, index {sIdx} out of bounds, {rule}'
-                        ) from None
-
-                # Have to invert the index because the stack items will be reversed
-                sIdx = len(rule.symbols) - sIdx - 1
-                func = "t()" if name in self.terminalNames else "nt()"
-                return f'{ARG_VECTOR}[{sIdx}]->{func}'
-
-            # Replace all arg substitutions
-            rule.code = H_ARG_RE.sub(preproc, rule.code)
 
         startSymbol = self.ruleDefs[0].nonterm
         needsNewStart = False
@@ -592,6 +636,8 @@ def parse_directive(f: _Reader) -> Tuple[str, str]:
                 nextChar = f.get()
                 if nextChar == '%':
                     bracketed = True
+                    # skip opening %
+                    nextChar = f.get()
                 else:
                     value += '%'
                     f.unget()
@@ -727,9 +773,8 @@ def parse_rules(f: _Reader, lhs: str, rules: List[_RuleDef]) -> bool:
                 curCode += nextChar
             curCode = curCode.strip()
         else:
-            # TODO this is C++ specific
-            curCode = "return $0;"
-            curCodeStart = f.lineNum
+            curCode = None
+            curCodeStart = 0
             # unget so the next bit of code can grab the | or ;
             f.unget()
 

@@ -3,6 +3,7 @@ import unittest
 from hermes_gen.__main__ import parse_grammar
 from hermes_gen.grammar import Rule, Symbol
 from .utils import getTestFilename
+from hermes_gen.directives import Directive
 
 
 class TestBuildgrammar(unittest.TestCase):
@@ -45,6 +46,7 @@ class TestBuildgrammar(unittest.TestCase):
         semicolon = Symbol.get('semicolon')
         open_curly = Symbol.get('open_curly')
         close_curly = Symbol.get('close_curly')
+        x = Symbol.get("x")
 
         EXP_RULES = [
             Rule(0, program, [stmt], "return values[0]->nt();", "", 0, 0),
@@ -59,13 +61,15 @@ class TestBuildgrammar(unittest.TestCase):
                 "    {\n"
                 "        asdf;\n"
                 "    }\n"
+                "    std::cout << values[2]->loc.lineStart;\n"
                 "    return std::atoi(values[1]->t());",
                 "",
                 0,
                 0
             ),
             Rule(3, stmt, [], "return 0;", "", 0, 0),
-            Rule(4, stmt, [semicolon], "", "", 0, 0)
+            Rule(4, x, [], "return -1;", "", 0, 0),
+            Rule(5, stmt, [semicolon], "", "", 0, 0)
         ]
 
         self.assertEqual(len(EXP_RULES), len(g.rules), 'Len of rules not equal')
@@ -74,6 +78,9 @@ class TestBuildgrammar(unittest.TestCase):
             self.assertEqual(exp, act, "Rule definition is not as expected")
             self.assertEqual(exp.code, act.code)
 
-        # TODO check nulls
+        self.assertTrue(stmt.nullable)
+        self.assertTrue(x.nullable)
+        self.assertFalse(program.nullable)
+        self.assertEqual(g.directives[Directive.return_][0], "int")
 
     # TODO invalid test files?
