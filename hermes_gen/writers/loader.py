@@ -1,6 +1,7 @@
 from .hermesHeader import writeHermesHeader
 from hermes_gen.grammar import Grammar
 from hermes_gen.directives import Directive
+from .utils import writeUserHeader
 
 
 def writeLoader(headerFilename: str, implFilename: str, parseTableFilename: str, name: str, grammar: Grammar):
@@ -12,15 +13,8 @@ def writeLoader(headerFilename: str, implFilename: str, parseTableFilename: str,
                 "#include <memory>\n"
                 "#include <iostream>\n"
                 "#include <hermes/parser.h>\n")
-        try:
-            includes = grammar.directives[Directive.include]
-            f.write("// Begin user directed includes\n")
-            for inc in includes:
-                f.write(f"#include {inc}\n")
-            f.write('// End user directed includes\n\n')
 
-        except KeyError:
-            pass
+        writeUserHeader(f, grammar)
 
         lines = [
             "namespace hermes {",

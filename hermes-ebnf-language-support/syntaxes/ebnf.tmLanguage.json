@@ -95,6 +95,19 @@
                 },
                 {
                     "include": "#string-double"
+                },
+                {
+                    "include": "#multiline-directives"
+                }
+            ]
+        },
+        "multiline-directives":{
+            "name": "keyword.control.directive.multiline",
+            "begin": "%%",
+            "end": "%%",
+            "patterns": [
+                {
+                    "include": "source.cpp"
                 }
             ]
         }

@@ -7,7 +7,7 @@ find_package(Python3
         COMPONENTS Interpreter
 )
 
-set(HERMES_VERSION 1.0.0)
+set(HERMES_VERSION 1.1.0)
 
 set(HERMES_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(HERMES_GEN_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/hermes_gen)
@@ -29,6 +29,7 @@ set(PY_FILES
     ${HERMES_GEN_ROOT}/writers/hermesHeader.py
     ${HERMES_GEN_ROOT}/writers/loader.py
     ${HERMES_GEN_ROOT}/writers/table.py
+    ${HERMES_GEN_ROOT}/writers/utils.py
 )
 
 add_library(hermes)

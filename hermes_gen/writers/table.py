@@ -5,6 +5,7 @@ from hermes_gen.grammar import Grammar
 from hermes_gen.directives import Directive
 from hermes_gen.parseTable import ParseTable, Action
 from hermes_gen.consts import ARG_VECTOR
+from .utils import writeUserHeader
 
 # TODO change parse table to a list of lists, since most columns are empty
 
@@ -23,24 +24,7 @@ def writeParseTable(filename: str, grammarFile: str, grammar: Grammar, table: Pa
             "\n"
         )
 
-        try:
-            includes = grammar.directives[Directive.include]
-            f.write("// Begin user directed includes\n")
-            for inc in includes:
-                f.write(f"#include {inc}\n")
-            f.write('// End user directed includes\n\n')
-
-        except KeyError:
-            pass
-
-        try:
-            usings = grammar.directives[Directive.using]
-            f.write("// Begin user defined 'using'\n")
-            for x in usings:
-                f.write(f'using namespace {x};\n')
-            f.write("// End user defined 'using'\n")
-        except KeyError:
-            pass
+        writeUserHeader(f, grammar)
 
         f.write("namespace hermes\n"
                 "{\n"
@@ -125,7 +109,7 @@ def writeParseTable(filename: str, grammarFile: str, grammar: Grammar, table: Pa
             f.write(
                 f"{returnType} r{idx}(std::vector<StackItemPtr> {ARG_VECTOR})\n"
                 "{\n"
-                f'#line {rule.codeLine} "{grammarFile}"\n'
+                f'#line {rule.codeLine} "{rule.file}"\n'
                 f"    {rule.code}\n"
                 "}\n"
             )

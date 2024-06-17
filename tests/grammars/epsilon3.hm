@@ -1,0 +1,32 @@
+%return int
+
+A = "a";
+
+IF = "if";
+ELIF = "elif";
+ELSE = "else";
+
+start = ifs {return 0;};
+
+ifs = if ifs {return 0;}
+    | if {return 0;}
+    ;
+
+if = IF A trailing_else {return 0;}
+    ;
+
+trailing_else 
+    = elifs else {return 0;}
+    | else {return 0;}
+    ;
+
+elifs 
+    = elif elifs {return 0;}
+    | elif {return 0;}
+    ;
+
+elif = ELIF A {return 0;};
+else 
+    = ELSE A {return 0;}
+    | EMPTY { return 0; }
+    ;

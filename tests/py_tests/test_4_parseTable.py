@@ -94,3 +94,26 @@ class TestParseTable(unittest.TestCase):
         # yapf: enable
 
         self._checkTable(EXP_TABLE, table.table)
+
+    def test_3_epsilon2(self):
+        testFile = utils.getTestFilename("epsilon2.hm")
+        g = parse_grammar(testFile)
+        lalr = LALR1Automata(g)
+        table = ParseTable(lalr)
+
+        # yapf: disable
+        EXP_TABLE = [
+            #else, if  , ifs ,  A   , ELSE, IF  , $
+            [E   , G(2), G(1),  E   , E   , S(3), E   ],
+            [E   , E   , E   ,  E   , E   , E   , R(0)],
+            [E   , G(2), G(4),  E   , E   , S(3), R(2)],
+            [E   , E   , E   ,  S(5), E   , E   , E   ],
+            [E   , E   , E   ,  E   , E   , E   , R(1)],
+            [G(6), E   , E   ,  E   , S(7), R(5), R(5)],
+            [E   , E   , E   ,  E   , E   , R(3), R(3)],
+            [E   , E   , E   ,  S(8), E   , E   , E   ],
+            [E   , E   , E   ,  E   , E   , R(4), R(4)]
+        ]
+        # yapf: enable
+
+        self._checkTable(EXP_TABLE, table.table)

@@ -1,0 +1,19 @@
+%return int
+
+A = "a";
+ELSE = "else";
+IF = "if";
+
+s = ifs {return 0;};
+
+ifs = if_ ifs {return 0;}
+    | if_ {return 0;}
+    ;
+
+if_ = IF A else_ {return 0;}
+    ;
+
+else_ 
+    = ELSE A {return 0;}
+    | EMPTY { return 0; }
+    ;

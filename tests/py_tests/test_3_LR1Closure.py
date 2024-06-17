@@ -9,7 +9,7 @@ from hermes_gen.consts import END
 
 
 def rule(id: int, nonterm: Symbol, symbols: List[Symbol]) -> Rule:
-    return Rule(id, nonterm, symbols, "", 0, 0)
+    return Rule(id, nonterm, symbols, "", "", 0, 0)
 
 
 class TestLALRClosure(unittest.TestCase):
@@ -119,11 +119,11 @@ class TestLALRClosure(unittest.TestCase):
         open_p = Symbol.get("open_p")
         close_p = Symbol.get("close_p")
 
-        r1 = Rule(1, P, [E], "", 0, 0)
-        r2 = Rule(2, E, [E, plus, T], "", 0, 0)
-        r3 = Rule(3, E, [T], "", 0, 0)
-        r4 = Rule(4, T, [_id, open_p, E, close_p], "", 0, 0)
-        r5 = Rule(5, T, [_id], "", 0, 0)
+        r1 = Rule(1, P, [E], "", "", 0, 0)
+        r2 = Rule(2, E, [E, plus, T], "", "", 0, 0)
+        r3 = Rule(3, E, [T], "", "", 0, 0)
+        r4 = Rule(4, T, [_id, open_p, E, close_p], "", "", 0, 0)
+        r5 = Rule(5, T, [_id], "", "", 0, 0)
 
         n0 = Node(0)
         n0.addRule(r1, 0, {Symbol.END_SYMBOL})
@@ -321,5 +321,86 @@ class TestLALRClosure(unittest.TestCase):
         n5.addTrans(a, n8)
 
         n8.addTrans(b, n9)
+
+        self._checkTransitions(EXP_NODES, lalr.nodes)
+
+    def test_5_epsilon2(self):
+        testFile = utils.getTestFilename("epsilon2.hm")
+        g = parse_grammar(testFile)
+        lalr = LALR1Automata(g)
+
+        A = Symbol.get("A")
+        IF = Symbol.get("IF")
+        ELSE = Symbol.get("ELSE")
+
+        s = Symbol.get("s")
+        ifs = Symbol.get("ifs")
+        if_ = Symbol.get("if_")
+        else_ = Symbol.get("else_")
+
+        r0 = rule(0, s, [ifs])
+        r1 = rule(1, ifs, [if_, ifs])
+        r2 = rule(2, ifs, [if_])
+        r3 = rule(3, if_, [IF, A, else_])
+        r4 = rule(4, else_, [ELSE, A])
+        r5 = rule(5, else_, [])
+
+        laEnd = {Symbol.END_SYMBOL}
+        laIF = {Symbol.END_SYMBOL, IF}
+
+        n0 = Node(0)
+        n0.addRule(r0, 0, laEnd)
+        n0.addRule(r1, 0, laEnd)
+        n0.addRule(r2, 0, laEnd)
+        n0.addRule(r3, 0, laIF)
+
+        n1 = Node(1)
+        n1.addRule(r0, 1, laEnd)
+
+        n2 = Node(2)
+        n2.addRule(r1, 1, laEnd)
+        n2.addRule(r2, 1, laEnd)
+        n2.addRule(r1, 0, laEnd)
+        n2.addRule(r2, 0, laEnd)
+        n2.addRule(r3, 0, laIF)
+
+        n3 = Node(3)
+        n3.addRule(r3, 1, laIF)
+
+        n4 = Node(4)
+        n4.addRule(r1, 2, laEnd)
+
+        n5 = Node(5)
+        n5.addRule(r3, 2, laIF)
+        n5.addRule(r4, 0, laIF)
+        n5.addRule(r5, 0, laIF)
+
+        n6 = Node(6)
+        n6.addRule(r3, 3, laIF)
+
+        n7 = Node(7)
+        n7.addRule(r4, 1, laIF)
+
+        n8 = Node(8)
+        n8.addRule(r4, 2, laIF)
+
+        EXP_NODES = [n0, n1, n2, n3, n4, n5, n6, n7, n8]
+
+        self._checkNodes(EXP_NODES, lalr.nodes)
+
+        n0.addTrans(ifs, n1)
+        n0.addTrans(if_, n2)
+        n0.addTrans(IF, n3)
+
+        n2.addTrans(ifs, n4)
+        n2.addTrans(if_, n2)
+        n2.addTrans(IF, n3)
+
+        n3.addTrans(A, n5)
+
+        n5.addTrans(else_, n6)
+        n5.addTrans(ELSE, n7)
+
+        n7.addTrans(A, n8)
 
         self._checkTransitions(EXP_NODES, lalr.nodes)

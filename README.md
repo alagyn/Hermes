@@ -29,12 +29,18 @@ target_link_libraries(yourTarget myParser)
 
 ```
 
+See [the cmake docs](docs/cmake.md) for more info as well as build instructions
+
 ## A minimal example: The amazing calculator
 
 Grammar:
 ```
 %return int
-%include <iostream>
+
+%header %%
+#include <iostream>
+
+%%
 
 INT = "[0-9]+";
 PLUS = "\+";
@@ -44,7 +50,7 @@ SLASH = "/";
 OPEN_PAREN = "\(";
 CLOSE_PAREN = "\)";
 
-output = expr { return $0; };
+output = expr;
 
 expr
     = expr PLUS term
@@ -57,7 +63,7 @@ expr
         std::cout << $0 << " - " << $2 << "\n";
         return $0 - $2;
     }
-    | term { return $0; }
+    | term
     ;
 
 term
@@ -71,7 +77,7 @@ term
         std::cout << $0 << " / " << $2 << "\n";
         return $0 / $2;
     }
-    | factor { return $0; }
+    | factor
     ;
 
 factor

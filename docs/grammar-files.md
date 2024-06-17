@@ -63,7 +63,8 @@ arg_list
 ```
 This means a functions arguments can be a list, a single argument, or nothing.
 
-__Important__: The first rule/nonterminal you define is special. This defines your *starting rule* as well as what is considered a valid input. When your starting rule is matched, the input is considered valid and the parse is done. It is best practice to only have a single rule for your start symbol. If necessary, you can just have an intermediate nonterminal if you need to have alternatives
+#### Starting rule
+**The first rule/nonterminal you define is special**. This defines your *starting rule and symbol* as well as what is considered a valid input. When your starting rule is matched, the input is considered valid and the parse is done. **It is best practice to only have a single rule for your start symbol.** You can just have an intermediate nonterminal if you need to have alternatives. This is also done automatically if you do define more than one rule for your starting symbol.
 ```
 output = expr {};
 
@@ -75,22 +76,29 @@ expr
 ```
 
 ### Directives
-Directives are special statements that define extra data for the generated c++ code. All directives start with a `%` immediately followed by the directive name.  
+Directives are special statements that define extra data for the generated c++ code. All directives start with a `%` immediately followed by the directive name. Multiline directives values start and end with `%%` (see `%header`)
+
 Available directives:
 
-`%return`: This directive is required for every grammar, and can only be defined once. It declares the c++ datatype that is returned by the rule code blocks.
+`%return`: **This directive is required for every grammar**, and can only be defined once. It declares the c++ datatype that is returned by the rule code blocks.
 ```
 %return int
 # Or something else
 %return MyClass*
 ```
 
-`%include`: This directive creates an include statement at the top of the generated c++ code so that code blocks can use any extra data contained. This directive can be defined as many times as needed
-```
-%include <string>
-%include <memory>
+`%header`: This directive allows you to add arbitrary code to the top of the generated parser. This is primarily useful for adding `#include` directives or namespace declarations. This directive can be defined as many times as needed (but usually only once)
+```c++
+%header %%
+#include <string>
+#include <memory>
 #include <map>
-...
+
+using namespace std;
+
+// ... etc
+
+%%
 ```
 
 `%ignore`: This directive creates a hidden token type that is parsed and ignored by the scanner. This is primarily useful for creating comments in your language.
@@ -101,19 +109,20 @@ Available directives:
 %ignore "/\*((?!\*/)(.|\n))*?\*/"
 ```
 
-`%using`: This directive adds a `using namespace [xxx];` statement to the top of the parse table implementation for use in reduction functions.
+`%import`: this directive allows you to import the definitions of another gramar file into the current grammar. Imported files are defined globally, you do not need to import the same file into multiple subfiles. Paths are relative to the current file. Can be specified multiple times. Files are processed as a queue, and imported files are not processed until after the current file finishes. This is not typically an issue, but **be wary of defining terminals in multiple files as import order can change precedence.**
 ```
-%using std
+%import terminals.hm
+%import folder/otherGrammar.hm
 ```
 
 ### Code blocks
-A code block __must__ be defined for every rule. This code block contains a c++ function that is executed whenever its rule is matched. This function's return type is defined by the `%return` directive and is the same for every function. In your code, you can access the data for each of the symbols in the rule. They can accessed in one of two ways: via the index of the symbol `$0`, or the symbol name `$name`. However, you can only reference them by name if the symbol does not appear more than once in the rule. When you reference a terminal, you are given a `std::string`, if you reference a nonterminal, you are given evaluated value of the nonterminal determined by your `%return` type.
-```
-$return int
+A code block can be defined for every rule. This code block contains a c++ function that is executed whenever its rule is matched. This function's return type is defined by the `%return` directive and is the same for every function. In your code, you can access the data for each of the symbols in the rule. They can accessed in one of two ways: via the index of the symbol `$0`, or the symbol name `$name`. However, you can only reference them by name if the symbol does not appear more than once in the rule. When you reference a terminal, you are given a `std::string`, if you reference a nonterminal, you are given evaluated value of the nonterminal determined by your `%return` type.
+```c++
+%return int
 
 expr = expr PLUS INT
 {
-    // INT is a terminal, therefore we need to parse it, reference it by name
+    // INT is a terminal, therefore we need to parse it, here we reference it by name
     int val = std::stoi( $INT );
     // This expression evaluates as whatever the LHS is plus the new int
     // This value is what will be used whenever this expr is evaluated later
@@ -121,5 +130,24 @@ expr = expr PLUS INT
     return $0 + val;
 };
 ```
+
+**If you do not define a code block for your rule,** a default one will be generated of the form
+```c++
+{
+    return $0;
+}
+```
+This is useful for simple pass-through nonterminals
+
+```c++
+x = a b
+  {
+    // do some processing...
+    return $a;
+  }
+  | a // simply return a
+  ;
+```
+
 
 See `calculator.hm` for a more complete example.

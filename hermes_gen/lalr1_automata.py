@@ -80,20 +80,19 @@ class AnnotRule:
         """
         return self.rule.symbols[self.parseIndex]
 
-    def getNewLA(self, g: Grammar) -> set[Symbol]:
+    def getNewLA(self) -> set[Symbol]:
         """
         Returns the lookahead for closure rules generated from this rule
         Uses set of symbols that can be collapsed after the next symbol to be
         consumed (i.e. every symbol from idx + 1 up to and including
         the first that can't be null)
-        :param g: The grammar
         :return: The lookahead
         """
 
         out = set()
         for i in range(self.parseIndex + 1, len(self.rule.symbols)):
             symbol = self.rule.symbols[i]
-            out.update(symbol.first)
+            out.update(symbol.first - {Symbol.EMPTY_SYMBOL})
             if not symbol.nullable:
                 return out
 
@@ -257,7 +256,7 @@ class LALR1Automata:
                     # the next symbol is a terminal, skip
                     continue
 
-                newLookAhead = annotRule.getNewLA(self.grammar)
+                newLookAhead = annotRule.getNewLA()
 
                 for rule in self.ruleLookup[nextSym]:
                     if node.addRule(rule, 0, newLookAhead.copy()):

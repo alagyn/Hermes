@@ -47,8 +47,8 @@ class TestBuildgrammar(unittest.TestCase):
         close_curly = Symbol.get('close_curly')
 
         EXP_RULES = [
-            Rule(0, program, [stmt], "return values[0]->nt();", 0, 0),
-            Rule(1, stmt, [name, equ, integer, semicolon], "return 0;", 0, 0),
+            Rule(0, program, [stmt], "return values[0]->nt();", "", 0, 0),
+            Rule(1, stmt, [name, equ, integer, semicolon], "return 0;", "", 0, 0),
             Rule(
                 2,
                 stmt, [open_curly, integer, close_curly],
@@ -60,10 +60,12 @@ class TestBuildgrammar(unittest.TestCase):
                 "        asdf;\n"
                 "    }\n"
                 "    return std::atoi(values[1]->t());",
+                "",
                 0,
                 0
             ),
-            Rule(3, stmt, [], "return 0;", 0, 0)
+            Rule(3, stmt, [], "return 0;", "", 0, 0),
+            Rule(4, stmt, [semicolon], "", "", 0, 0)
         ]
 
         self.assertEqual(len(EXP_RULES), len(g.rules), 'Len of rules not equal')

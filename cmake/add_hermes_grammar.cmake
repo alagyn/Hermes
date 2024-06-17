@@ -1,6 +1,6 @@
 
 function(add_hermes_grammar)
-    set(options DEBUG)
+    set(options DEBUG STRICT)
     set(single_args TARGET GRAMMAR DESC_FILE)
     set(multivalue_args)
 
@@ -36,6 +36,12 @@ function(add_hermes_grammar)
         endif()
     endif()
 
+    set(STRICT_MODE "")
+
+    if(${ARGS_STRICT})
+        set(STRICT_MODE, "--strict")
+    endif()
+
     # Private generated include files
     set(PRIVATE_INC ${CMAKE_CURRENT_BINARY_DIR}/hidden)
     # Public generated include files
@@ -58,6 +64,7 @@ function(add_hermes_grammar)
                 --loader ${LOADER_HEADER_FILE}
                 --impl ${LOADER_IMPL_FILE}
                 --automata "${DESC_FILE}"
+                ${STRICT_MODE}
                 ${GRAMMAR}
         VERBATIM
         DEPENDS ${GRAMMAR} ${PY_FILES}

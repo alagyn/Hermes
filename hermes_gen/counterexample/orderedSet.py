@@ -5,9 +5,7 @@ T = TypeVar("T")
 
 class OrderedSet1(Generic[T]):
     """
-    Generic set that remembers the order items were added
-    Keeps things deterministic when you have a relatively small
-    number of items to keep track of
+    Just a normal set
     """
 
     def __init__(self) -> None:
@@ -32,6 +30,19 @@ class OrderedSet1(Generic[T]):
 
     def __iter__(self) -> Iterator[T]:
         return iter(self._items)
+
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, set) and not isinstance(o, OrderedSet1):
+            return False
+
+        if len(self) != len(o):
+            return False
+
+        for x in self._items:
+            if x not in o:
+                return False
+
+        return True
 
 
 class OrderedSet2(Generic[T]):
@@ -65,5 +76,30 @@ class OrderedSet2(Generic[T]):
     def __iter__(self) -> Iterator[T]:
         return iter(self._items)
 
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, set) and not isinstance(o, OrderedSet2):
+            return False
 
-OrderedSet = OrderedSet1
+        if len(self) != len(o):
+            return False
+
+        for x in self._items:
+            if x not in o:
+                return False
+
+        return True
+
+    def __repr__(self) -> str:
+        out = "{"
+        first = True
+        for x in self:
+            if not first:
+                out += ", "
+
+            out += repr(x)
+            first = False
+
+        return out + "}"
+
+
+OrderedSet = OrderedSet2

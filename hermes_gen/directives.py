@@ -1,5 +1,5 @@
 class Directive:
-    include = "include"
+    header = "header"
     return_ = "return"
     ignore = "ignore"
-    using = 'using'
+    import_ = "import"

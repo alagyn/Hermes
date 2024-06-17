@@ -1,7 +1,13 @@
 %return int
 
+# multiline directive
+%header %%
+#include <string>
+
+using namespace std;
+%%
+
 # Char declarations
-semicolon = ";";
 open_curly = "{";
 close_curly = "}";
 open_paren = "\(";
@@ -40,3 +46,5 @@ stmt
     }
     | EMPTY { return 0; } # this is another comment
     ;
+
+%import imported.hm

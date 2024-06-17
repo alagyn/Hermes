@@ -185,3 +185,29 @@ class TestFirstAndFollow(unittest.TestCase):
         # yapf: enable
 
         self._check(EXP_FIRST, EXP_FOLLOW)
+
+    def test_6_epsilon2(self):
+        testFile = utils.getTestFilename("epsilon2.hm")
+        g = parse_grammar(testFile)
+
+        # yapf: disable
+        EXP_FIRST = {
+            "A": {"A"},
+            "IF": {"IF"},
+            "ELSE": {"ELSE"},
+
+            "s": {"IF"},
+            "ifs": {"IF"},
+            "if_": {"IF"},
+            "else_": {"ELSE", EMPTY}
+        }
+
+        EXP_FOLLOW = {
+            "s": {END},
+            "ifs": {END},
+            "if_": {END, "IF"},
+            "else_": {END, "IF"}
+        }
+        # yapf: enable
+
+        self._check(EXP_FIRST, EXP_FOLLOW)
