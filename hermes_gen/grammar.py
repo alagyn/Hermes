@@ -1,4 +1,4 @@
-from typing import List, Dict, Set, Tuple, Iterable, Optional
+from typing import List, Dict, Set, Tuple, Iterable, Optional, Deque
 from collections import deque, defaultdict
 import re
 import os
@@ -102,7 +102,7 @@ class Rule:
         return str(self)
 
     def __str__(self) -> str:
-        return f'Rule {self.id} @line {self.lineNum}: {self.nonterm} = {" ".join([str(x) for x in self.symbols])}'
+        return f'Rule {self.id} [{self.nonterm} = {" ".join([str(x) for x in self.symbols])}]'
 
     def compare(self, other) -> int:
         if not isinstance(other, Rule):
@@ -157,7 +157,7 @@ class _RuleDef:
         self.codeLine = codeLine
 
     def __str__(self) -> str:
-        return f'Rule {self.id} @line {self.lineNum}: {self.nonterm} = {" ".join([str(x) for x in self.symbols])}'
+        return f'Rule {self.id} {self.file}:{self.lineNum}: {self.nonterm} = {" ".join([str(x) for x in self.symbols])}'
 
 
 NAME_CHARS = set('abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
@@ -166,83 +166,14 @@ H_ARG_RE = re.compile(r'(?P<cmd>\$|@)((?P<idx>\d+)|(?P<name>\w+))')
 
 class Grammar:
 
-    def err(self, msg: str):
-        print(msg, file=sys.stderr)
-        self.error = True
-
-    def warn(self, msg: str):
-        print(msg, file=sys.stderr)
-
-    def __init__(
-        self,
-        terminals: List[Tuple[str, str]],
-        ruleDefs: List[_RuleDef],
-        nulls: Set[str],
-        directives: Dict[str, List[str]]
-    ) -> None:
+    def __init__(self, terminals: List[Symbol], rules: List[Rule], directives: Dict[str, List[str]]) -> None:
         # List of terminals, in order as defined
-        self._terminals: List[Symbol] = [Symbol(x[0], x[1], False) for x in terminals]
-        self._terminalNames: Set[str] = {x[0]
+        self._terminals = terminals
+        self._terminalNames: Set[str] = {x.name
                                          for x in terminals}
 
         # List of each rule
-        self.rules: List[Rule] = []
-        self.error = False
-
-        try:
-            temp = directives[Directive.default]
-            if len(temp) > 1:
-                self.err(f"Cannot define more than one %default directive")
-
-            if len(temp) > 0:
-                defaultCode = temp[0]
-            else:
-                defaultCode = DEFAULT_CODE
-        except KeyError:
-            defaultCode = DEFAULT_CODE
-
-        try:
-            temp = directives[Directive.empty]
-            if len(temp) > 1:
-                self.err(f"Cannot define more than one %empty directive")
-            if len(temp) > 0:
-                defaultEmpty = temp[0]
-            else:
-                defaultEmpty = None
-        except KeyError:
-            defaultEmpty = None
-
-        # construct real rules from definitions
-        for rule in ruleDefs:
-            if rule.code is None:
-                if len(rule.symbols) == 0:
-                    if defaultEmpty is None:
-                        self.err(
-                            f"{rule.file}:{rule.lineNum} EMPTY action undefined. Add a code block or %empty directive"
-                        )
-                        rule.code = ""
-                    else:
-                        rule.code = defaultEmpty
-                else:
-                    rule.code = defaultCode
-            # Replace all arg substitutions
-            rule.code = H_ARG_RE.sub(lambda m: self._preprocessRule(rule, m), rule.code)
-
-            try:
-                lhs = Symbol.get(rule.nonterm)
-            except KeyError:
-                lhs = Symbol(rule.nonterm, "", rule.nonterm in nulls)
-
-            rhs = []
-            for symbol in rule.symbols:
-                # At this point, every terminal has been defined, assume any
-                # new symbols are nonterminals (also we error checked this in parse_grammar)
-                try:
-                    s = Symbol.get(symbol)
-                except KeyError:
-                    s = Symbol(symbol, "", symbol in nulls)
-                rhs.append(s)
-            self.rules.append(Rule(rule.id, lhs, rhs, rule.code, rule.file, rule.lineNum, rule.codeLine))
+        self.rules = rules
 
         # Set the start symbol to the first rule
         self.startSymbol = self.rules[0].nonterm
@@ -250,47 +181,6 @@ class Grammar:
         self.directives = directives
 
         self._gen_first_and_follow()
-
-    def _preprocessRule(self, rule: _RuleDef, m: re.Match) -> str:
-        """
-        Preprocess rule, replacing $ and @ directives
-        """
-        name = m.group('name')
-        if name is not None:
-            try:
-                count = rule.symbols.count(name)
-                if count > 1:
-                    raise HermesError(
-                        f"{rule.file}:{rule.lineNum} Cannot substitue symbol '${name}', symbol is repeated in rule, use index instead, {rule}"
-                    )
-                elif count == 0:
-                    raise HermesError(
-                        f"{rule.file}:{rule.lineNum} Cannot substitute symbol '${name}', symbol not in rule, {rule}"
-                    )
-
-                sIdx = rule.symbols.index(name)
-            except ValueError:
-                raise HermesError(
-                    f"{rule.file}:{rule.lineNum} Invalid code substitution, symbol '{name}' not found, {rule}"
-                ) from None
-        else:
-            sIdx = int(m.group('idx'))
-            try:
-                name = rule.symbols[sIdx]
-            except IndexError:
-                raise HermesError(
-                    f'{rule.file}:{rule.lineNum} Invalid code substitution, index {sIdx} out of bounds, {rule}'
-                ) from None
-
-        # Have to invert the index because the stack items will be reversed
-        sIdx = len(rule.symbols) - sIdx - 1
-
-        cmd = m.group("cmd")
-        if cmd == "$":
-            func = "t()" if name in self._terminalNames else "nt()"
-        else:
-            func = "loc"
-        return f'{ARG_VECTOR}[{sIdx}]->{func}'
 
     def _gen_first_and_follow(self):
         for symbol in Symbol.all():
@@ -421,15 +311,30 @@ class _Reader:
                 nextChar = self.get()
 
 
+class _TerminalDef:
+
+    def __init__(self, name: str, regex: str, loc: str) -> None:
+        self.name = name
+        self.regex = regex
+        self.loc = loc
+
+
+class _DirectiveValue:
+
+    def __init__(self, value: str, location: str) -> None:
+        self.value = value
+        self.location = location
+
+
 class _GrammarFileParser:
 
     def __init__(self, rootfile: str) -> None:
         self.terminalNames: Set[str] = set()
-        self.terminals: List[Tuple[str, str]] = []
+        self.terminalDefs: List[_TerminalDef] = []
         self.ruleDefs: List[_RuleDef] = []
         self.nonterminals: Set[str] = set()
         self.nulls: Set[str] = set()
-        self.directives: Dict[str, List[str]] = defaultdict(list)
+        self.directives: Dict[str, List[_DirectiveValue]] = defaultdict(list)
 
         self.rootfile = rootfile
         self.fileQueue = deque([rootfile])
@@ -438,13 +343,22 @@ class _GrammarFileParser:
 
         self.f: _Reader = None  # type: ignore
 
-    def err(self, msg: str):
-        print(self.f, msg, file=sys.stderr)
-        print(self.f, msg)
+    def err(self, msg: str, loc: Optional[str] = None):
+        if loc is None:
+            fullMsg = f'{self.f} {msg}'
+        else:
+            fullMsg = f'{loc} {msg}'
+
+        print(f"\033[1;31m{fullMsg}\033[0m", file=sys.stderr)
         self.error = True
 
-    def warn(self, msg: str):
-        print(self.f, msg, file=sys.stderr)
+    def warn(self, msg: str, loc: Optional[str] = None):
+        if loc is None:
+            fullMsg = f'{self.f} {msg}'
+        else:
+            fullMsg = f'{loc} {msg}'
+
+        print(f'\033[1;33m{fullMsg}\033[0m', file=sys.stderr)
 
     def parse(self) -> Grammar:
         Symbol.reset()
@@ -453,42 +367,35 @@ class _GrammarFileParser:
             filename = self.fileQueue.popleft()
             self._parseFile(filename)
 
-        for rule in self.ruleDefs:
-            for symbol in rule.symbols:
-                if symbol not in self.terminalNames and symbol not in self.nonterminals and symbol != ERROR:
-                    self.err(
-                        f"{self.rootfile} Missing terminal/nonterminal definitions for symbol: '{symbol}', rule: {rule}"
-                    )
+        try:
+            temp = self.directives[Directive.default]
+            if len(temp) > 1:
+                for x in temp[1:]:
+                    self.err(f"Cannot define more than one %default directive", x.location)
 
-            if rule.nonterm in self.terminals:
-                self.err(f'{self.rootfile} Symbol defined as both a terminal and nonterminal: "{rule.nonterm}"')
+            if len(temp) > 0:
+                defaultCode = temp[0].value
+            else:
+                defaultCode = DEFAULT_CODE
+        except KeyError:
+            defaultCode = DEFAULT_CODE
 
-        # TODO check for unused terminals/nonterminals
-        # TODO check for bad/unused directives
+        try:
+            temp = self.directives[Directive.empty]
+            if len(temp) > 1:
+                for x in temp[1:]:
+                    self.err(f"Cannot define more than one %empty directive", x.location)
+            if len(temp) > 0:
+                defaultEmpty = temp[0].value
+            else:
+                defaultEmpty = None
+        except KeyError:
+            defaultEmpty = None
 
-        if Directive.return_ not in self.directives:
-            self.err(f"{self.rootfile} Missing {Directive.return_} directive")
-        if len(self.directives[Directive.return_]) > 1:
-            self.err(f'{self.rootfile} More than one {Directive.return_} directive provided')
+        outRules: List[Rule] = []
 
-        if Directive.ignore in self.directives:
-            processedIgnores = []
-            for ignore in self.directives[Directive.ignore]:
-                if len(ignore) <= 2:
-                    self.err(f"Invalid %ignore, regex cannot be empty")
-                if ignore[0] not in "\"'" or ignore[0] != ignore[-1] or ignore[-2] == "\\":
-                    self.err(f"Invalid %ignore, regex must be quoted")
-                quoteType = ignore[0]
-                # Strip quotes
-                regex = ignore[1:-1]
-                # Replace escaped quotes
-                processedIgnores.append(regex.replace(f"\\{quoteType}", quoteType))
-            # Replace the ignores list
-            self.directives[Directive.ignore] = processedIgnores
-
-        for d in self.directives:
-            if d not in ALL_DIRECTIVES:
-                self.warn(f"Unused directive %{d}")
+        # define every terminal symbol
+        outTerminals: List[Symbol] = [Symbol(x.name, x.regex, False) for x in self.terminalDefs]
 
         startSymbol = self.ruleDefs[0].nonterm
         needsNewStart = False
@@ -506,7 +413,156 @@ class _GrammarFileParser:
                 *self.ruleDefs
             ]
 
-        return Grammar(self.terminals, self.ruleDefs, self.nulls, self.directives)
+        usedTerminals: Set[Symbol] = set()
+
+        rulesForSymbol: Dict[Symbol, List[Tuple[Rule, _RuleDef]]] = defaultdict(list)
+
+        for ruleDef in self.ruleDefs:
+            # define/get the nonterm symbol
+            try:
+                lhs = Symbol.get(ruleDef.nonterm)
+            except KeyError:
+                lhs = Symbol(ruleDef.nonterm, "", ruleDef.nonterm in self.nulls)
+
+            loc = f'{ruleDef.file}:{ruleDef.lineNum}'
+
+            if lhs.isTerminal:
+                self.err(f"Cannot have terminal on LHS of rule", loc)
+                continue
+
+            rhs: List[Symbol] = []
+            for symbol in ruleDef.symbols:
+                if symbol not in self.terminalNames and symbol not in self.nonterminals and symbol != ERROR:
+                    self.err(f"Missing terminal/nonterminal definitions for symbol: '{symbol}', rule: {ruleDef}", loc)
+                else:
+                    # At this point, every terminal has been defined, assume any
+                    # new symbols are nonterminals
+                    try:
+                        s = Symbol.get(symbol)
+                    except KeyError:
+                        s = Symbol(symbol, "", symbol in self.nulls)
+
+                    rhs.append(s)
+                    if s.isTerminal:
+                        usedTerminals.add(s)
+
+            if ruleDef.code is None:
+                if len(ruleDef.symbols) == 0:
+                    if defaultEmpty is None:
+                        self.err(f"EMPTY action undefined. Add a code block or %empty directive", loc)
+                        ruleDef.code = ""
+                    else:
+                        ruleDef.code = defaultEmpty
+                else:
+                    ruleDef.code = defaultCode
+            # Replace all arg substitutions
+            ruleDef.code = H_ARG_RE.sub(lambda m: self._preprocessRule(ruleDef, m), ruleDef.code)
+
+            # construct real rules from definitions
+            newRule = Rule(ruleDef.id, lhs, rhs, ruleDef.code, ruleDef.file, ruleDef.lineNum, ruleDef.codeLine)
+            outRules.append(newRule)
+            rulesForSymbol[lhs].append((newRule, ruleDef))
+
+        # end for rule
+
+        for t in outTerminals:
+            if t not in usedTerminals:
+                self.warn(f'Unused Terminal: {t} = {t.regex}')
+
+        # find unused nonterminals
+        ruleQueue: Deque[Rule] = deque()
+        ruleQueue.append(outRules[0])
+
+        usedNonterms: Set[Symbol] = {outRules[0].nonterm}
+        # set of symbols that have been seen but maybe not processed yet
+        seenNonterms: Set[Symbol] = set()
+        while len(ruleQueue) > 0:
+            curRule = ruleQueue.popleft()
+            usedNonterms.add(curRule.nonterm)
+            for symbol in curRule.symbols:
+                if not symbol.isTerminal and symbol not in seenNonterms:
+                    seenNonterms.add(symbol)
+                    for r in rulesForSymbol[symbol]:
+                        ruleQueue.append(r[0])
+
+        for nonterm, ruleList in rulesForSymbol.items():
+            if nonterm not in usedNonterms:
+                for rule, ruleDef in ruleList:
+                    self.warn(f"Unreachable rule: {rule}", f'{ruleDef.file}:{ruleDef.lineNum}')
+
+        try:
+            returns = self.directives[Directive.return_]
+            if len(returns) > 1:
+                for x in returns:
+                    self.err(f'More than one {Directive.return_} directive provided', x.location)
+        except KeyError:
+            self.err(f"{self.rootfile} Missing {Directive.return_} directive")
+
+        if Directive.ignore in self.directives:
+            for ignore in self.directives[Directive.ignore]:
+                regex = ignore.value
+                if len(regex) <= 2:
+                    self.err(f"Invalid %ignore, regex cannot be empty")
+                if regex[0] not in "\"'" or regex[0] != regex[-1] or regex[-2] == "\\":
+                    self.err(f"Invalid %ignore, regex must be quoted")
+                quoteType = regex[0]
+                # Strip quotes
+                regex = regex[1:-1]
+                # Replace escaped quotes and set the value
+                ignore.value = regex.replace(f"\\{quoteType}", quoteType)
+        # end if ignore in directives
+
+        outDirectives: Dict[str, List[str]] = {
+            d: [v.value for v in vList]
+            for d, vList in self.directives.items()
+        }
+
+        for d in self.directives:
+            if d not in ALL_DIRECTIVES:
+                self.warn(f"Unused directive %{d}")
+
+        return Grammar(outTerminals, outRules, outDirectives)
+
+    def _preprocessRule(self, rule: _RuleDef, m: re.Match) -> str:
+        """
+        Preprocess rule, replacing $ and @ directives
+        """
+        name = m.group('name')
+        if name is not None:
+            try:
+                count = rule.symbols.count(name)
+                if count > 1:
+                    raise HermesError(
+                        f"{rule.file}:{rule.lineNum} Cannot substitue symbol '${name}', symbol is repeated in rule, use index instead, {rule}"
+                    )
+                elif count == 0:
+                    raise HermesError(
+                        f"{rule.file}:{rule.lineNum} Cannot substitute symbol '${name}', symbol not in rule, {rule}"
+                    )
+
+                sIdx = rule.symbols.index(name)
+            except ValueError:
+                raise HermesError(
+                    f"{rule.file}:{rule.lineNum} Invalid code substitution, symbol '{name}' not found, {rule}"
+                ) from None
+        else:
+            sIdx = int(m.group('idx'))
+            try:
+                name = rule.symbols[sIdx]
+            except IndexError:
+                raise HermesError(
+                    f'{rule.file}:{rule.lineNum} Invalid code substitution, index {sIdx} out of bounds, {rule}'
+                ) from None
+
+        # Have to invert the index because the stack items will be reversed
+        sIdx = len(rule.symbols) - sIdx - 1
+
+        cmd = m.group("cmd")
+        if cmd == "$":
+            func = "t()" if name in self.terminalNames else "nt()"
+        else:
+            func = "loc"
+        return f'{ARG_VECTOR}[{sIdx}]->{func}'
 
     def _parseFile(self, filename: str):
         self.f = _Reader(filename)
@@ -517,19 +573,20 @@ class _GrammarFileParser:
             nextChar = self.f.get()
             if len(nextChar) == 0:
                 # EOF
-                break  # TODO?
+                break
 
             if nextChar in ' \t\n':
                 continue
 
             if nextChar == '%':
+                loc = str(self.f)
                 key, val = self.parse_directive()
 
                 if key == Directive.import_:
                     self.fileQueue.append(os.path.join(dirname, val))
 
                 else:
-                    self.directives[key].append(val)
+                    self.directives[key].append(_DirectiveValue(val, loc))
 
                 continue
 
@@ -540,6 +597,8 @@ class _GrammarFileParser:
 
             if nextChar not in NAME_CHARS:
                 self.err(f"Invalid character '{nextChar}', expected name")
+
+            lhsStartloc = str(self.f)
 
             # Parse LHS of rule
             lhs = nextChar
@@ -603,7 +662,7 @@ class _GrammarFileParser:
                     self.err(f"Duplicate terminal definition '{lhs}'")
                 regex = self.parse_terminal(nextChar)
                 self.terminalNames.add(lhs)
-                self.terminals.append((lhs, regex))
+                self.terminalDefs.append(_TerminalDef(lhs, regex, lhsStartloc))
                 continue
 
             self.nonterminals.add(lhs)
@@ -729,6 +788,7 @@ class _GrammarFileParser:
             while True:
                 nextChar = self.f.get()
                 if len(nextChar) == 0:
+                    self.err("Unexpected EOF, expected symbol, code block, |, or ;")
                     raise HermesError(f"Unexpected EOF")
 
                 if nextChar == '{':
@@ -836,6 +896,6 @@ class _GrammarFileParser:
 def parse_grammar(filename: str) -> Grammar:
     parser = _GrammarFileParser(filename)
     g = parser.parse()
-    if parser.error or g.error:
+    if parser.error:
         raise HermesError("Parse Error")
     return g

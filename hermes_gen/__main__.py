@@ -48,7 +48,7 @@ def main():
 
     try:
         grammar = parse_grammar(grammar_file)
-    except Exception as err:
+    except HermesError as err:
         print("Cannot parse grammar:", err, file=sys.stderr)
         exit(1)
 
