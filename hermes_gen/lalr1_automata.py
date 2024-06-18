@@ -92,7 +92,7 @@ class AnnotRule:
         out = set()
         for i in range(self.parseIndex + 1, len(self.rule.symbols)):
             symbol = self.rule.symbols[i]
-            out.update(symbol.first - {Symbol.EMPTY_SYMBOL})
+            out.update(symbol.first - {Symbol.EMPTY})
             if not symbol.nullable:
                 return out
 
@@ -208,7 +208,7 @@ class LALR1Automata:
 
         # Add all the rules for the start symbol to the start node
         for rule in self.ruleLookup[g.startSymbol]:
-            self.start.addRule(rule, 0, {Symbol.END_SYMBOL})
+            self.start.addRule(rule, 0, {Symbol.END})
 
         # Make the closure for the start node
         self.makeClosure(self.start)

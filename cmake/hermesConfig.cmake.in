@@ -15,7 +15,7 @@ cmake_path(
 )
 
 function(add_hermes_grammar)
-    set(options DEBUG STRICT)
+    set(options DEBUG STRICT LOCAL_LINK)
     set(single_args TARGET GRAMMAR DESC_FILE GRAMMAR_DIR)
     set(multivalue_args)
 
@@ -66,9 +66,13 @@ function(add_hermes_grammar)
     endif()
 
     set(STRICT_MODE "")
-
     if(${ARGS_STRICT})
-        set(STRICT_MODE, "--strict")
+        set(STRICT_MODE "--strict")
+    endif()
+
+    set(HERMES_TARGET "hermes::hermes")
+    if(${ARGS_LOCAL_LINK})
+        set(HERMES_TARGET "hermes")
     endif()
 
     # Private generated include files

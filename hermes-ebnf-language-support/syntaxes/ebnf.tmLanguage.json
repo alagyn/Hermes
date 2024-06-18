@@ -33,7 +33,7 @@
     "repository": {
         "keywords": {
             "name": "keyword.ebnf",
-            "match": "EMPTY|=|\\||;"
+            "match": "(EMPTY)|(=)|(\\|)|(ERROR)|;"
         },
         "terminals": {
             "name": "entity.name.class.ebnf",

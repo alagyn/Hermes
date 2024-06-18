@@ -4,6 +4,7 @@ from hermes_gen.__main__ import parse_grammar
 from hermes_gen.grammar import Rule, Symbol
 from .utils import getTestFilename
 from hermes_gen.directives import Directive
+from hermes_gen.consts import ERROR, END
 
 
 class TestBuildgrammar(unittest.TestCase):
@@ -24,7 +25,8 @@ class TestBuildgrammar(unittest.TestCase):
             'name': "[a-zA-Z][a-zA-Z0-9_]*",
             'integer': '[1-9][0-9]*',
             "quote": '"',
-            "__EOF__": ""
+            ERROR: "",
+            END: ""
         }
 
         numTerminals = 0

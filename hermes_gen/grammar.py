@@ -2,12 +2,12 @@ from typing import List, Dict, Set, Tuple, Iterable, Optional
 from collections import deque, defaultdict
 import re
 import os
+import sys
 
 from hermes_gen.errors import HermesError
-from hermes_gen.consts import ARG_VECTOR, EMPTY, END, START
-from hermes_gen.directives import Directive
+from hermes_gen.consts import ARG_VECTOR, EMPTY, END, START, ERROR
+from hermes_gen.directives import Directive, ALL_DIRECTIVES
 
-_EMPTY_STR = "EMPTY"
 DEFAULT_CODE = "return $0;"
 
 
@@ -15,16 +15,19 @@ class Symbol:
     _ID_GEN = 0
     _SYMBOL_MAP: Dict[str, 'Symbol'] = {}
 
-    EMPTY_SYMBOL: 'Symbol' = None  # type: ignore
-    END_SYMBOL: 'Symbol' = None  # type: ignore
+    EMPTY: 'Symbol' = None  # type: ignore
+    END: 'Symbol' = None  # type: ignore
+    ERROR: 'Symbol' = None  # type: ignore
 
     @classmethod
     def reset(cls):
         cls._ID_GEN = 0
         cls._SYMBOL_MAP = {}
-        cls.EMPTY_SYMBOL = Symbol(EMPTY, "", False)
-        cls.END_SYMBOL = Symbol(END, "", False)
-        cls.END_SYMBOL.isTerminal = True
+        cls.EMPTY = Symbol(EMPTY, "", False)
+        cls.END = Symbol(END, "", False)
+        cls.ERROR = Symbol(ERROR, "", False)
+        cls.ERROR.isTerminal = True
+        cls.END.isTerminal = True
 
     @classmethod
     def get(cls, name: str) -> 'Symbol':
@@ -163,6 +166,13 @@ H_ARG_RE = re.compile(r'(?P<cmd>\$|@)((?P<idx>\d+)|(?P<name>\w+))')
 
 class Grammar:
 
+    def err(self, msg: str):
+        print(msg, file=sys.stderr)
+        self.error = True
+
+    def warn(self, msg: str):
+        print(msg, file=sys.stderr)
+
     def __init__(
         self,
         terminals: List[Tuple[str, str]],
@@ -177,12 +187,14 @@ class Grammar:
 
         # List of each rule
         self.rules: List[Rule] = []
+        self.error = False
 
         try:
             temp = directives[Directive.default]
             if len(temp) > 1:
-                raise HermesError(f"Cannot define more than one %default directive")
-            if len(temp) == 1:
+                self.err(f"Cannot define more than one %default directive")
+
+            if len(temp) > 0:
                 defaultCode = temp[0]
             else:
                 defaultCode = DEFAULT_CODE
@@ -192,8 +204,8 @@ class Grammar:
         try:
             temp = directives[Directive.empty]
             if len(temp) > 1:
-                raise HermesError(f"Cannot define more than one %empty directive")
-            if len(temp) == 1:
+                self.err(f"Cannot define more than one %empty directive")
+            if len(temp) > 0:
                 defaultEmpty = temp[0]
             else:
                 defaultEmpty = None
@@ -205,9 +217,10 @@ class Grammar:
             if rule.code is None:
                 if len(rule.symbols) == 0:
                     if defaultEmpty is None:
-                        raise HermesError(
+                        self.err(
                             f"{rule.file}:{rule.lineNum} EMPTY action undefined. Add a code block or %empty directive"
                         )
+                        rule.code = ""
                     else:
                         rule.code = defaultEmpty
                 else:
@@ -283,7 +296,7 @@ class Grammar:
         for symbol in Symbol.all():
             # Initialize the first set to contain nulls
             if symbol.nullable:
-                symbol.first.add(Symbol.EMPTY_SYMBOL)
+                symbol.first.add(Symbol.EMPTY)
             # Initialize the first set to contain the terminals
             if symbol.isTerminal:
                 symbol.first.add(symbol)
@@ -302,7 +315,7 @@ class Grammar:
                         break
 
                 if nullable:
-                    curSet.add(Symbol.EMPTY_SYMBOL)
+                    curSet.add(Symbol.EMPTY)
 
                 if curSet > rule.nonterm.first:
                     rule.nonterm.first = curSet
@@ -310,7 +323,7 @@ class Grammar:
             # End for rule
         # End while changed
 
-        self.startSymbol.follow.add(Symbol.END_SYMBOL)
+        self.startSymbol.follow.add(Symbol.END)
 
         changed = True
         while changed:
@@ -322,7 +335,7 @@ class Grammar:
                 # Iterate backwards to keep track of when the next symbol can be empty
                 for i in reversed(range(len(rule.symbols))):
                     curSymbol = rule.symbols[i]
-                    if curSymbol == Symbol.EMPTY_SYMBOL:
+                    if curSymbol == Symbol.EMPTY:
                         break
 
                     if lastEmpty:
@@ -331,10 +344,10 @@ class Grammar:
                         if new > right:
                             curSymbol.follow = new
                             changed = True
-                        lastEmpty = Symbol.EMPTY_SYMBOL in curSymbol.first
+                        lastEmpty = Symbol.EMPTY in curSymbol.first
                     if i > 0:
                         prior = rule.symbols[i - 1]
-                        curFirst = curSymbol.first.difference({Symbol.EMPTY_SYMBOL})
+                        curFirst = curSymbol.first.difference({Symbol.EMPTY})
                         priorFollow = prior.follow
                         new = priorFollow.union(curFirst)
                         if new > priorFollow:
@@ -421,6 +434,18 @@ class _GrammarFileParser:
         self.rootfile = rootfile
         self.fileQueue = deque([rootfile])
 
+        self.error = False
+
+        self.f: _Reader = None  # type: ignore
+
+    def err(self, msg: str):
+        print(self.f, msg, file=sys.stderr)
+        print(self.f, msg)
+        self.error = True
+
+    def warn(self, msg: str):
+        print(self.f, msg, file=sys.stderr)
+
     def parse(self) -> Grammar:
         Symbol.reset()
 
@@ -430,31 +455,29 @@ class _GrammarFileParser:
 
         for rule in self.ruleDefs:
             for symbol in rule.symbols:
-                if symbol not in self.terminalNames and symbol not in self.nonterminals:
-                    raise HermesError(
+                if symbol not in self.terminalNames and symbol not in self.nonterminals and symbol != ERROR:
+                    self.err(
                         f"{self.rootfile} Missing terminal/nonterminal definitions for symbol: '{symbol}', rule: {rule}"
                     )
 
             if rule.nonterm in self.terminals:
-                raise HermesError(
-                    f'{self.rootfile} Symbol defined as both a terminal and nonterminal: "{rule.nonterm}"'
-                )
+                self.err(f'{self.rootfile} Symbol defined as both a terminal and nonterminal: "{rule.nonterm}"')
 
         # TODO check for unused terminals/nonterminals
         # TODO check for bad/unused directives
 
         if Directive.return_ not in self.directives:
-            raise HermesError(f"{self.rootfile} Missing {Directive.return_} directive")
+            self.err(f"{self.rootfile} Missing {Directive.return_} directive")
         if len(self.directives[Directive.return_]) > 1:
-            raise HermesError(f'{self.rootfile} More than one {Directive.return_} directive provided')
+            self.err(f'{self.rootfile} More than one {Directive.return_} directive provided')
 
         if Directive.ignore in self.directives:
             processedIgnores = []
             for ignore in self.directives[Directive.ignore]:
                 if len(ignore) <= 2:
-                    raise HermesError(f"Invalid %ignore, regex cannot be empty")
+                    self.err(f"Invalid %ignore, regex cannot be empty")
                 if ignore[0] not in "\"'" or ignore[0] != ignore[-1] or ignore[-2] == "\\":
-                    raise HermesError(f"Invalid %ignore, regex must be quoted")
+                    self.err(f"Invalid %ignore, regex must be quoted")
                 quoteType = ignore[0]
                 # Strip quotes
                 regex = ignore[1:-1]
@@ -462,6 +485,10 @@ class _GrammarFileParser:
                 processedIgnores.append(regex.replace(f"\\{quoteType}", quoteType))
             # Replace the ignores list
             self.directives[Directive.ignore] = processedIgnores
+
+        for d in self.directives:
+            if d not in ALL_DIRECTIVES:
+                self.warn(f"Unused directive %{d}")
 
         startSymbol = self.ruleDefs[0].nonterm
         needsNewStart = False
@@ -475,19 +502,19 @@ class _GrammarFileParser:
             # condense this into a single production for the start symbol
             # like: __START__ = [start symbol]
             self.ruleDefs = [
-                _RuleDef(len(self.ruleDefs), "__START__", [startSymbol, END], "return $0;", "HERMES_GENERATED", 0, 0),
+                _RuleDef(len(self.ruleDefs), START, [startSymbol, END], "return $0;", "HERMES_GENERATED", 0, 0),
                 *self.ruleDefs
             ]
 
         return Grammar(self.terminals, self.ruleDefs, self.nulls, self.directives)
 
     def _parseFile(self, filename: str):
-        f = _Reader(filename)
+        self.f = _Reader(filename)
 
         dirname = os.path.split(filename)[0]
 
         while True:
-            nextChar = f.get()
+            nextChar = self.f.get()
             if len(nextChar) == 0:
                 # EOF
                 break  # TODO?
@@ -496,7 +523,7 @@ class _GrammarFileParser:
                 continue
 
             if nextChar == '%':
-                key, val = parse_directive(f)
+                key, val = self.parse_directive()
 
                 if key == Directive.import_:
                     self.fileQueue.append(os.path.join(dirname, val))
@@ -508,52 +535,53 @@ class _GrammarFileParser:
 
             # Skip comments
             if nextChar == '#':
-                f.skipComment()
+                self.f.skipComment()
                 continue
 
             if nextChar not in NAME_CHARS:
-                raise HermesError(f"{f} Invalid character '{nextChar}', expected name")
+                self.err(f"Invalid character '{nextChar}', expected name")
 
             # Parse LHS of rule
             lhs = nextChar
             while True:
-                nextChar = f.get()
+                nextChar = self.f.get()
                 if len(nextChar) == 0:
-                    raise HermesError(f"{f} Unexpected EOF")
+                    self.err(f"Unexpected EOF, expected '='")
+                    return
 
                 if nextChar in ' \t\n':
                     break
 
                 if nextChar not in NAME_CHARS:
-                    raise HermesError(f"{f} Invalid character '{nextChar}'")
+                    self.err(f"Invalid character '{nextChar}'")
 
                 lhs += nextChar
 
-            if lhs == _EMPTY_STR:
-                raise HermesError(f'{f} LHS cannot be EMPTY')
+            if lhs in {EMPTY, START, END, ERROR}:
+                self.err(f'LHS cannot be {lhs}')
 
             # Find equals
             while True:
-                nextChar = f.get()
+                nextChar = self.f.get()
                 if len(nextChar) == 0:
-                    raise HermesError(f"{f} Unexpected EOF")
+                    self.err(f"Unexpected EOF, expexted '='")
 
                 if nextChar == '=':
                     break
 
                 if nextChar == '#':
-                    f.skipComment()
+                    self.f.skipComment()
                     continue
 
                 if nextChar not in ' \t\n':
-                    raise HermesError(f"{f} Invalid character '{nextChar}', expected '='")
+                    self.err(f"Invalid character '{nextChar}', expected '='")
 
             # Find first char
             isTerminal = False
             while True:
-                nextChar = f.get()
+                nextChar = self.f.get()
                 if len(nextChar) == 0:
-                    raise HermesError(f'{f} Unexpected EOF')
+                    self.err(f'Unexpected EOF, expected terminal or symbol list')
 
                 if nextChar in ' \t\n':
                     continue
@@ -562,247 +590,252 @@ class _GrammarFileParser:
                     isTerminal = True
                     break
 
-                if nextChar in NAME_CHARS:
-                    # Else it is a nonTerminal, unget the last char
-                    f.unget()
-                    break
-
                 if nextChar == '#':
-                    f.skipComment()
+                    self.f.skipComment()
                     continue
 
-                raise HermesError(f"{f} Invalid character '{nextChar}', expected terminal or symbol list")
+                # Else it is a nonTerminal, unget the last char
+                self.f.unget()
+                break
 
             if isTerminal:
                 if lhs in self.terminalNames:
-                    raise HermesError(f"{f} Duplicate terminal definition '{lhs}'")
-                regex = parse_terminal(f, nextChar)
+                    self.err(f"Duplicate terminal definition '{lhs}'")
+                regex = self.parse_terminal(nextChar)
                 self.terminalNames.add(lhs)
                 self.terminals.append((lhs, regex))
                 continue
 
             self.nonterminals.add(lhs)
-            if parse_rules(f, lhs, self.ruleDefs):
+            if self.parse_rules(lhs):
                 self.nulls.add(lhs)
 
+    def parse_directive(self) -> Tuple[str, str]:
+        key = ''
+        value = ''
+        hitNewline = False
+        while True:
+            nextChar = self.f.get()
+            if len(nextChar) == 0:
+                self.err(f'Invalid directive, unexpected EOF')
 
-def parse_directive(f: _Reader) -> Tuple[str, str]:
-    key = ''
-    value = ''
-    hitNewline = False
-    while True:
-        nextChar = f.get()
-        if len(nextChar) == 0:
-            raise HermesError(f'{f} Invalid directive, unexpected EOF')
-
-        if len(key) == 0:
-            if nextChar not in NAME_CHARS:
-                raise HermesError(f"{f} Invalid directive, expected directive name")
-            key += nextChar
-            continue
-
-        if nextChar in " \t":
-            break
-
-        if nextChar == '\n':
-            hitNewline = True
-            break
-
-        if nextChar not in NAME_CHARS:
-            raise HermesError(f"{f} Invalid character '{nextChar}' in directive name")
-
-        key += nextChar
-
-    # Short circuit for empty value
-    if hitNewline:
-        return key, value
-
-    bracketed = False
-
-    # Read the value
-    while True:
-        nextChar = f.get()
-        if nextChar == '':
-            if not bracketed:
-                break
-            else:
-                raise HermesError(f"{f} Unclosed %% in directive")
-
-        if len(value) == 0:
-            # Skip leading whitespace
-            if nextChar in {" ", "\t"}:
+            if len(key) == 0:
+                if nextChar not in NAME_CHARS:
+                    self.err(f"Invalid directive, expected directive name")
+                key += nextChar
                 continue
-            if nextChar == '%':
-                nextChar = f.get()
+
+            if nextChar in " \t":
+                break
+
+            if nextChar == '\n':
+                hitNewline = True
+                break
+
+            if nextChar not in NAME_CHARS:
+                self.err(f"Invalid character '{nextChar}' in directive name")
+
+            key += nextChar
+
+        # Short circuit for empty value
+        if hitNewline:
+            return key, value
+
+        bracketed = False
+
+        # Read the value
+        while True:
+            nextChar = self.f.get()
+            if nextChar == '':
+                if not bracketed:
+                    break
+                else:
+                    self.err(f"Unexpected EOF, Unclosed %% in directive")
+                    raise HermesError("Unexpected EOF")
+
+            if len(value) == 0:
+                # Skip leading whitespace
+                if nextChar in {" ", "\t"}:
+                    continue
                 if nextChar == '%':
-                    bracketed = True
-                    # skip opening %
-                    nextChar = f.get()
+                    nextChar = self.f.get()
+                    if nextChar == '%':
+                        bracketed = True
+                        # skip opening %
+                        nextChar = self.f.get()
+                    else:
+                        value += '%'
+                        self.f.unget()
+                        continue
+
+            if bracketed and nextChar == '%':
+                nextChar = self.f.get()
+                if nextChar == '%':
+                    break
                 else:
                     value += '%'
-                    f.unget()
+                    self.f.unget()
                     continue
-
-        if bracketed and nextChar == '%':
-            nextChar = f.get()
-            if nextChar == '%':
-                break
+            elif bracketed or nextChar != "\n":
+                value += nextChar
             else:
-                value += '%'
-                f.unget()
-                continue
-        elif bracketed or nextChar != "\n":
-            value += nextChar
-        else:
-            break
-
-    return key, value.strip()
-
-
-def parse_terminal(f: _Reader, quoteType: str) -> str:
-    out = []
-
-    while True:
-        nextChar = f.get()
-        if len(nextChar) == 0:
-            raise HermesError(f'{f} Unexpected EOF')
-
-        if nextChar == quoteType:
-            if len(out) == 0:
-                raise HermesError(f"{f} Empty terminal regex")
-            # check for escaped quote
-            if out[-1] != '\\':
                 break
-            # Else it is escaped, replace the backslash with the quote
-            out[-1] = nextChar
-            continue
 
-        out.append(nextChar)
+        return key, value.strip()
 
-    while True:
-        nextChar = f.get()
-        if nextChar == ';':
-            break
-        if nextChar not in ' \t\n':
-            raise HermesError(f"{f} Invalid character '{nextChar}', expected ';'")
-
-    return "".join(out)
-
-
-def parse_rules(f: _Reader, lhs: str, rules: List[_RuleDef]) -> bool:
-    """
-    Parse and add rules to the list, returns true if one of the rules is EMPTY
-    """
-    isNull = False
-    while True:
-        curStrSymbolList: List[str] = []
-        curSymbol = ''
-        curCode = ''
-        startingLine = f.lineNum
-
-        # set to -1 if not code block
-        curCodeStart = 0
+    def parse_terminal(self, quoteType: str) -> str:
+        out = []
 
         while True:
-            nextChar = f.get()
+            nextChar = self.f.get()
             if len(nextChar) == 0:
-                raise HermesError(f"{f} Unexpected EOF")
+                self.err(f'Unexpected EOF, expected closing quote')
 
-            if nextChar == '{':
-                if len(curSymbol) > 0:
-                    curStrSymbolList.append(curSymbol)
-                    curSymbol = ''
-                break
-
-            if nextChar in NAME_CHARS:
-                curSymbol += nextChar
+            if nextChar == quoteType:
+                if len(out) == 0:
+                    self.err(f"Empty terminal regex")
+                # check for escaped quote
+                if out[-1] != '\\':
+                    break
+                # Else it is escaped, replace the backslash with the quote
+                out[-1] = nextChar
                 continue
 
-            if nextChar in ' \t\n':
-                if len(curSymbol) > 0:
-                    curStrSymbolList.append(curSymbol)
-                    curSymbol = ''
-                continue
+            out.append(nextChar)
 
-            if nextChar == '#':
-                f.skipComment()
-                continue
-
-            if nextChar in '|;':
-                curCodeStart = -1
-                if len(curSymbol) > 0:
-                    curStrSymbolList.append(curSymbol)
-                    curSymbol = ''
+        while True:
+            nextChar = self.f.get()
+            if nextChar == ';':
                 break
+            if nextChar not in ' \t\n':
+                raise HermesError(f"Invalid character '{nextChar}', expected ';'")
 
-            raise HermesError(f"{f} Invalid char '{nextChar}' in rule definition, expected symbol or code block")
+        return "".join(out)
 
-        # Check for null
-        newNull = False
-        for symbol in curStrSymbolList:
-            if symbol == _EMPTY_STR:
-                isNull = True
-                newNull = True
-                if len(curStrSymbolList) > 1:
-                    raise HermesError(f"{f} EMPTY cannot be used in a rule with other symbols")
-                break
+    def parse_rules(self, lhs: str) -> bool:
+        """
+        Parse and add rules to the list, returns true if one of the rules is EMPTY
+        """
+        isNull = False
+        while True:
+            curStrSymbolList: List[str] = []
+            curSymbol = ''
+            curCode = ''
+            startingLine = self.f.lineNum
 
-        # Do this after to not potentially bork the iteration
-        if newNull:
-            curStrSymbolList = []
+            # set to -1 if not code block
+            curCodeStart = 0
 
-        if curCodeStart >= 0:
             while True:
-                nextChar = f.get()
-                if nextChar not in ' \t\n':
-                    f.unget()
+                nextChar = self.f.get()
+                if len(nextChar) == 0:
+                    raise HermesError(f"Unexpected EOF")
+
+                if nextChar == '{':
+                    if len(curSymbol) > 0:
+                        curStrSymbolList.append(curSymbol)
+                        curSymbol = ''
                     break
 
-            curCodeStart = f.lineNum
+                if nextChar in NAME_CHARS:
+                    curSymbol += nextChar
+                    continue
 
-            numOpenBrackets = 1
+                if nextChar in ' \t\n':
+                    if len(curSymbol) > 0:
+                        curStrSymbolList.append(curSymbol)
+                        curSymbol = ''
+                    continue
 
-            while True:
-                nextChar = f.get()
-                if nextChar == '{':
-                    numOpenBrackets += 1
-                elif nextChar == '}':
-                    numOpenBrackets -= 1
-                    if numOpenBrackets == 0:
+                if nextChar == '#':
+                    self.f.skipComment()
+                    continue
+
+                if nextChar in '|;':
+                    curCodeStart = -1
+                    if len(curSymbol) > 0:
+                        curStrSymbolList.append(curSymbol)
+                        curSymbol = ''
+                    break
+
+                self.err(f"Invalid char '{nextChar}' in rule definition, expected symbol or code block")
+                break
+
+            if len(curStrSymbolList) == 0:
+                self.warn("Empty rule, prefer using EMPTY to specify such rules")
+
+            # Check for null
+            newNull = False
+            for symbol in curStrSymbolList:
+                if symbol == EMPTY:
+                    isNull = True
+                    newNull = True
+                    if len(curStrSymbolList) > 1:
+                        self.err(f"EMPTY cannot be used in a rule with other symbols")
+                    break
+
+            # Do this after to not potentially bork the iteration
+            if newNull:
+                curStrSymbolList = []
+
+            if curCodeStart >= 0:
+                while True:
+                    nextChar = self.f.get()
+                    if nextChar not in ' \t\n':
+                        self.f.unget()
                         break
-                curCode += nextChar
-            curCode = curCode.strip()
-        else:
-            curCode = None
-            curCodeStart = 0
-            # unget so the next bit of code can grab the | or ;
-            f.unget()
 
-        nextID = len(rules)
-        rules.append(_RuleDef(nextID, lhs, curStrSymbolList, curCode, f.filename, startingLine, curCodeStart))
+                curCodeStart = self.f.lineNum
 
-        hitSemi = False
-        while True:
-            nextChar = f.get()
-            if nextChar in ' \t\n':
-                continue
-            if nextChar == '|':
+                numOpenBrackets = 1
+
+                while True:
+                    nextChar = self.f.get()
+                    if nextChar == '{':
+                        numOpenBrackets += 1
+                    elif nextChar == '}':
+                        numOpenBrackets -= 1
+                        if numOpenBrackets == 0:
+                            break
+                    curCode += nextChar
+                curCode = curCode.strip()
+            else:
+                curCode = None
+                curCodeStart = 0
+                # unget so the next bit of code can grab the | or ;
+                self.f.unget()
+
+            nextID = len(self.ruleDefs)
+            self.ruleDefs.append(
+                _RuleDef(nextID, lhs, curStrSymbolList, curCode, self.f.filename, startingLine, curCodeStart)
+            )
+
+            hitSemi = False
+            while True:
+                nextChar = self.f.get()
+                if nextChar in ' \t\n':
+                    continue
+                if nextChar == '|':
+                    break
+                if nextChar == ';':
+                    hitSemi = True
+                    break
+                if nextChar == '#':
+                    self.f.skipComment()
+                    continue
+
+                self.err(f"Invalid char '{nextChar}', expected ';' or '|'")
                 break
-            if nextChar == ';':
-                hitSemi = True
+
+            if hitSemi:
                 break
-            if nextChar == '#':
-                f.skipComment()
-                continue
 
-            raise HermesError(f"{f} Invalid char '{nextChar}', expected ';' or '|'")
-
-        if hitSemi:
-            break
-
-    return isNull
+        return isNull
 
 
 def parse_grammar(filename: str) -> Grammar:
     parser = _GrammarFileParser(filename)
-    return parser.parse()
+    g = parser.parse()
+    if parser.error or g.error:
+        raise HermesError("Parse Error")
+    return g

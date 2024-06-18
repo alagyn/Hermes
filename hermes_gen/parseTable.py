@@ -52,7 +52,7 @@ class ParseTable:
         self.nonterminals: List[Symbol] = []
 
         for x in Symbol.all():
-            if x not in {automata.grammar.startSymbol, Symbol.EMPTY_SYMBOL, Symbol.END_SYMBOL}:
+            if x not in {automata.grammar.startSymbol, Symbol.EMPTY, Symbol.END, Symbol.ERROR}:
                 if x.isTerminal:
                     self.terminals.append(x)
                 else:
@@ -66,7 +66,8 @@ class ParseTable:
 
         self.symbolList.extend(self.nonterminals)
         self.symbolList.extend(self.terminals)
-        self.symbolList.append(Symbol.END_SYMBOL)
+        self.symbolList.append(Symbol.ERROR)
+        self.symbolList.append(Symbol.END)
 
         self.symbolIDs: Dict[Symbol, int] = {
             x: idx - 1
@@ -82,7 +83,7 @@ class ParseTable:
             for rule in node.rules:
                 if rule.indexAtEnd():
                     for terminal in rule.lookAhead:
-                        if terminal == Symbol.EMPTY_SYMBOL:
+                        if terminal == Symbol.EMPTY:
                             continue
                         termID = self.symbolIDs[terminal]
                         curActionTuple = curRow[termID]

@@ -38,21 +38,21 @@ class TestLALRClosure(unittest.TestCase):
         r2 = rule(3, X, [a, X])
 
         n0 = Node(0)
-        n0.addRule(r0, 0, {Symbol.END_SYMBOL})
-        n0.addRule(r1, 1, {Symbol.END_SYMBOL})
-        n0.addRule(r2, 0, {a, Symbol.END_SYMBOL})
+        n0.addRule(r0, 0, {Symbol.END})
+        n0.addRule(r1, 1, {Symbol.END})
+        n0.addRule(r2, 0, {a, Symbol.END})
 
         n1 = Node(1)
-        n1.addRule(r0, 0, {a, Symbol.END_SYMBOL})
+        n1.addRule(r0, 0, {a, Symbol.END})
         n1.addRule(r1, 1, {b})
         n1.addRule(r2, 0, {a, b})
 
         n0.combine(n1)
 
         expNode = Node(2)
-        expNode.addRule(r0, 0, {a, Symbol.END_SYMBOL})
-        expNode.addRule(r1, 1, {b, Symbol.END_SYMBOL})
-        expNode.addRule(r2, 0, {a, b, Symbol.END_SYMBOL})
+        expNode.addRule(r0, 0, {a, Symbol.END})
+        expNode.addRule(r1, 1, {b, Symbol.END})
+        expNode.addRule(r2, 0, {a, b, Symbol.END})
 
         self.assertEqual(expNode, n0)
 
@@ -74,32 +74,32 @@ class TestLALRClosure(unittest.TestCase):
         r3 = rule(4, X, [b])
 
         n0 = Node(0)
-        n0.addRule(r0, 0, {Symbol.END_SYMBOL})
-        n0.addRule(r1, 0, {Symbol.END_SYMBOL})
+        n0.addRule(r0, 0, {Symbol.END})
+        n0.addRule(r1, 0, {Symbol.END})
         n0.addRule(r2, 0, {a, b})
         n0.addRule(r3, 0, {a, b})
 
         n1 = Node(1)
-        n1.addRule(r0, 1, {Symbol.END_SYMBOL})
+        n1.addRule(r0, 1, {Symbol.END})
 
         n2 = Node(2)
-        n2.addRule(r1, 1, {Symbol.END_SYMBOL})
-        n2.addRule(r2, 0, {Symbol.END_SYMBOL})
-        n2.addRule(r3, 0, {Symbol.END_SYMBOL})
+        n2.addRule(r1, 1, {Symbol.END})
+        n2.addRule(r2, 0, {Symbol.END})
+        n2.addRule(r3, 0, {Symbol.END})
 
         n36 = Node(3)
-        n36.addRule(r2, 1, {a, b, Symbol.END_SYMBOL})
-        n36.addRule(r2, 0, {a, b, Symbol.END_SYMBOL})
-        n36.addRule(r3, 0, {a, b, Symbol.END_SYMBOL})
+        n36.addRule(r2, 1, {a, b, Symbol.END})
+        n36.addRule(r2, 0, {a, b, Symbol.END})
+        n36.addRule(r3, 0, {a, b, Symbol.END})
 
         n5 = Node(4)
-        n5.addRule(r1, 2, {Symbol.END_SYMBOL})
+        n5.addRule(r1, 2, {Symbol.END})
 
         n47 = Node(5)
-        n47.addRule(r3, 1, {a, b, Symbol.END_SYMBOL})
+        n47.addRule(r3, 1, {a, b, Symbol.END})
 
         n89 = Node(6)
-        n89.addRule(r2, 2, {a, b, Symbol.END_SYMBOL})
+        n89.addRule(r2, 2, {a, b, Symbol.END})
 
         EXP_NODES = [n0, n1, n2, n36, n47, n5, n89]
 
@@ -126,44 +126,44 @@ class TestLALRClosure(unittest.TestCase):
         r5 = Rule(5, T, [_id], "", "", 0, 0)
 
         n0 = Node(0)
-        n0.addRule(r1, 0, {Symbol.END_SYMBOL})
-        n0.addRule(r2, 0, {plus, Symbol.END_SYMBOL})
-        n0.addRule(r3, 0, {plus, Symbol.END_SYMBOL})
-        n0.addRule(r4, 0, {plus, Symbol.END_SYMBOL})
-        n0.addRule(r5, 0, {plus, Symbol.END_SYMBOL})
+        n0.addRule(r1, 0, {Symbol.END})
+        n0.addRule(r2, 0, {plus, Symbol.END})
+        n0.addRule(r3, 0, {plus, Symbol.END})
+        n0.addRule(r4, 0, {plus, Symbol.END})
+        n0.addRule(r5, 0, {plus, Symbol.END})
 
         n1 = Node(1)
-        n1.addRule(r1, 1, {Symbol.END_SYMBOL})
-        n1.addRule(r2, 1, {plus, Symbol.END_SYMBOL})
+        n1.addRule(r1, 1, {Symbol.END})
+        n1.addRule(r2, 1, {plus, Symbol.END})
 
         n2 = Node(2)
-        n2.addRule(r3, 1, {plus, close_p, Symbol.END_SYMBOL})
+        n2.addRule(r3, 1, {plus, close_p, Symbol.END})
 
         n3 = Node(3)
-        n3.addRule(r4, 1, {plus, close_p, Symbol.END_SYMBOL})
-        n3.addRule(r5, 1, {plus, close_p, Symbol.END_SYMBOL})
+        n3.addRule(r4, 1, {plus, close_p, Symbol.END})
+        n3.addRule(r5, 1, {plus, close_p, Symbol.END})
 
         n4 = Node(4)
-        n4.addRule(r2, 2, {plus, close_p, Symbol.END_SYMBOL})
-        n4.addRule(r4, 0, {plus, close_p, Symbol.END_SYMBOL})
-        n4.addRule(r5, 0, {plus, close_p, Symbol.END_SYMBOL})
+        n4.addRule(r2, 2, {plus, close_p, Symbol.END})
+        n4.addRule(r4, 0, {plus, close_p, Symbol.END})
+        n4.addRule(r5, 0, {plus, close_p, Symbol.END})
 
         n5 = Node(5)
-        n5.addRule(r4, 2, {plus, close_p, Symbol.END_SYMBOL})
+        n5.addRule(r4, 2, {plus, close_p, Symbol.END})
         n5.addRule(r2, 0, {plus, close_p})
         n5.addRule(r3, 0, {plus, close_p})
         n5.addRule(r4, 0, {plus, close_p})
         n5.addRule(r5, 0, {plus, close_p})
 
         n6 = Node(6)
-        n6.addRule(r2, 3, {plus, close_p, Symbol.END_SYMBOL})
+        n6.addRule(r2, 3, {plus, close_p, Symbol.END})
 
         n7 = Node(7)
-        n7.addRule(r4, 3, {plus, close_p, Symbol.END_SYMBOL})
+        n7.addRule(r4, 3, {plus, close_p, Symbol.END})
         n7.addRule(r2, 1, {plus, close_p})
 
         n8 = Node(8)
-        n8.addRule(r4, 4, {plus, close_p, Symbol.END_SYMBOL})
+        n8.addRule(r4, 4, {plus, close_p, Symbol.END})
 
         EXP_NODES = [n0, n1, n2, n3, n4, n5, n6, n7, n8]
 
@@ -206,20 +206,20 @@ class TestLALRClosure(unittest.TestCase):
         r3 = rule(3, B, [])
 
         n0 = Node(0)
-        n0.addRule(r0, 0, {Symbol.END_SYMBOL})
-        n0.addRule(r1, 0, {Symbol.END_SYMBOL})
+        n0.addRule(r0, 0, {Symbol.END})
+        n0.addRule(r1, 0, {Symbol.END})
         n0.addRule(r2, 0, {a, b})
         n0.addRule(r3, 0, {a, b})
 
         n1 = Node(1)
-        n1.addRule(r0, 1, {Symbol.END_SYMBOL})
+        n1.addRule(r0, 1, {Symbol.END})
 
         n2 = Node(2)
-        n2.addRule(r1, 1, {Symbol.END_SYMBOL})
+        n2.addRule(r1, 1, {Symbol.END})
         n2.addRule(r2, 1, {a, b})
 
         n3 = Node(3)
-        n3.addRule(r1, 2, {Symbol.END_SYMBOL})
+        n3.addRule(r1, 2, {Symbol.END})
 
         n4 = Node(4)
         n4.addRule(r2, 2, {a, b})
@@ -258,10 +258,10 @@ class TestLALRClosure(unittest.TestCase):
         r5 = rule(5, X, [a])
         r6 = rule(6, Y, [a, a, b])
 
-        la = {Symbol.END_SYMBOL, a}
+        la = {Symbol.END, a}
 
         n0 = Node(0)
-        n0.addRule(r0, 0, {Symbol.END_SYMBOL})
+        n0.addRule(r0, 0, {Symbol.END})
         n0.addRule(r1, 0, la)
         n0.addRule(r2, 0, la)
         n0.addRule(r3, 0, la)
@@ -270,7 +270,7 @@ class TestLALRClosure(unittest.TestCase):
         n0.addRule(r6, 0, la)
 
         n1 = Node(1)
-        n1.addRule(r0, 1, {Symbol.END_SYMBOL})
+        n1.addRule(r0, 1, {Symbol.END})
         n1.addRule(r2, 1, la)
         n1.addRule(r3, 0, la)
         n1.addRule(r4, 0, la)
@@ -291,7 +291,7 @@ class TestLALRClosure(unittest.TestCase):
         n5.addRule(r6, 1, la)
 
         n6 = Node(6)
-        n6.addRule(r0, 2, {Symbol.END_SYMBOL})
+        n6.addRule(r0, 2, {Symbol.END})
 
         n7 = Node(7)
         n7.addRule(r2, 2, la)
@@ -345,8 +345,8 @@ class TestLALRClosure(unittest.TestCase):
         r4 = rule(4, else_, [ELSE, A])
         r5 = rule(5, else_, [])
 
-        laEnd = {Symbol.END_SYMBOL}
-        laIF = {Symbol.END_SYMBOL, IF}
+        laEnd = {Symbol.END}
+        laIF = {Symbol.END, IF}
 
         n0 = Node(0)
         n0.addRule(r0, 0, laEnd)

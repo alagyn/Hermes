@@ -21,7 +21,7 @@ int main(int argc, char** argv)
     }
 
     // REPL
-    while(true)
+    while(cin.good())
     {
         char str[256];
         std::cout << "> ";
@@ -31,14 +31,22 @@ int main(int argc, char** argv)
 
         try
         {
+            bool error = false;
             // parse the input
-            int out = parser->parse(input);
-            // print the result
-            cout << "Result: " << out << "\n";
+            int out = parser->parse(input, error);
+            if(!error)
+            {
+                // print the result
+                cout << "Result: " << out << "\n";
+            }
+            else
+            {
+                cout << "Error\n";
+            }
         }
-        catch(const HermesError& err)
+        catch(const std::exception& err)
         {
-            cout << "Error: " << err.what() << "\n";
+            cout << err.what() << "\n";
         }
     }
 

@@ -37,15 +37,13 @@ public:
     New(std::shared_ptr<std::istream> handle,
         const Terminal* terminals,
         size_t numTerminals,
-        unsigned symbolEOF,
-        unsigned symbolIGNORE);
+        size_t numSymbols);
 
     Scanner(
         std::shared_ptr<std::istream> handle,
         const Terminal* terminals,
         size_t numTerminals,
-        unsigned symbolEOF,
-        unsigned symbolIGNORE
+        size_t numSymbols
     );
 
     ParseToken nextToken();

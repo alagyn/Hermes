@@ -45,7 +45,8 @@ class TestParseTable(unittest.TestCase):
             Symbol.get("plus"),
             Symbol.get("open_p"),
             Symbol.get("close_p"),
-            Symbol.END_SYMBOL
+            Symbol.ERROR,
+            Symbol.END
         ]
 
         for x, y in zip(symbols, table.symbolList):
@@ -59,17 +60,17 @@ class TestParseTable(unittest.TestCase):
 
         # yapf: disable
         EXP_TABLE: TableType = [
-            #  E     T     id    +     (     )     $
-            #-----------------------------------------
-            [G(1), G(2), S(3), E   , E   , E   , E   ],
-            [E   , E   , E   , S(4), E   , E   , R(0)],
-            [E   , E   , E   , R(2), E   , R(2), R(2)],
-            [E   , E   , E   , R(4), S(5), R(4), R(4)],
-            [E   , G(6), S(3), E   , E   , E   , E   ],
-            [G(7), G(2), S(3), E   , E   , E   , E   ],
-            [E   , E   , E   , R(1), E   , R(1), R(1)],
-            [E   , E   , E   , S(4), E   , S(8), E   ],
-            [E   , E   , E   , R(3), E   , R(3), R(3)]
+            #  E     T     id    +     (     )   ERR   $
+            #----------------------------------------------
+            [G(1), G(2), S(3), E   , E   , E   , E   , E   ],
+            [E   , E   , E   , S(4), E   , E   , E   , R(0)],
+            [E   , E   , E   , R(2), E   , R(2), E   , R(2)],
+            [E   , E   , E   , R(4), S(5), R(4), E   , R(4)],
+            [E   , G(6), S(3), E   , E   , E   , E   , E   ],
+            [G(7), G(2), S(3), E   , E   , E   , E   , E   ],
+            [E   , E   , E   , R(1), E   , R(1), E   , R(1)],
+            [E   , E   , E   , S(4), E   , S(8), E   , E   ],
+            [E   , E   , E   , R(3), E   , R(3), E   , R(3)]
         ]
         # yapf: enable
 
@@ -83,13 +84,13 @@ class TestParseTable(unittest.TestCase):
 
         # yapf: disable
         EXP_TABLE: TableType = [
-            #  A     B     b     a     $
-            #-----------------------------
-            [G(1), G(2), R(3), R(3), E   ],
-            [E   , E   , E   , E   , R(0)],
-            [E   , E   , S(3), S(4), E   ],
-            [E   , E   , E   , E   , R(1)],
-            [E   , E   , R(2), R(2), E   ]
+            #  A     B     b     a   ERR   $
+            #-----------------------------------
+            [G(1), G(2), R(3), R(3), E   , E   ],
+            [E   , E   , E   , E   , E   , R(0)],
+            [E   , E   , S(3), S(4), E   , E   ],
+            [E   , E   , E   , E   , E   , R(1)],
+            [E   , E   , R(2), R(2), E   , E   ]
         ]
         # yapf: enable
 
@@ -103,16 +104,16 @@ class TestParseTable(unittest.TestCase):
 
         # yapf: disable
         EXP_TABLE = [
-            #else, if  , ifs ,  A   , ELSE, IF  , $
-            [E   , G(2), G(1),  E   , E   , S(3), E   ],
-            [E   , E   , E   ,  E   , E   , E   , R(0)],
-            [E   , G(2), G(4),  E   , E   , S(3), R(2)],
-            [E   , E   , E   ,  S(5), E   , E   , E   ],
-            [E   , E   , E   ,  E   , E   , E   , R(1)],
-            [G(6), E   , E   ,  E   , S(7), R(5), R(5)],
-            [E   , E   , E   ,  E   , E   , R(3), R(3)],
-            [E   , E   , E   ,  S(8), E   , E   , E   ],
-            [E   , E   , E   ,  E   , E   , R(4), R(4)]
+            #else, if  , ifs ,  A   , ELSE, IF  , ERR , $
+            [E   , G(2), G(1),  E   , E   , S(3), E   , E   ],
+            [E   , E   , E   ,  E   , E   , E   , E   , R(0)],
+            [E   , G(2), G(4),  E   , E   , S(3), E   , R(2)],
+            [E   , E   , E   ,  S(5), E   , E   , E   , E   ],
+            [E   , E   , E   ,  E   , E   , E   , E   , R(1)],
+            [G(6), E   , E   ,  E   , S(7), R(5), E   , R(5)],
+            [E   , E   , E   ,  E   , E   , R(3), E   , R(3)],
+            [E   , E   , E   ,  S(8), E   , E   , E   , E   ],
+            [E   , E   , E   ,  E   , E   , R(4), E   , R(4)]
         ]
         # yapf: enable
 

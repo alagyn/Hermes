@@ -66,6 +66,9 @@ include(add_hermes_grammar)
 add_hermes_grammar(
     TARGET calc
     GRAMMAR grammars/calculator.hm
+    #DEBUG
+    LOCAL_LINK
+    DESC_FILE temp.txt
 )
 
 target_link_libraries(calculator

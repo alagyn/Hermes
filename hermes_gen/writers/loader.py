@@ -43,7 +43,7 @@ def writeLoader(headerFilename: str, implFilename: str, parseTableFilename: str,
             "       SYMBOL_LOOKUP.data(),",
             "       TERMINALS.data(),",
             "       TERMINALS.size(),",
-            "       Symbol::__EOF__, Symbol::__IGNORE__",
+            "       SYMBOL_LOOKUP.size()",
             "    );",
             f"    return std::make_shared<Parser<{returnType}>>(grammar);"
             "}",

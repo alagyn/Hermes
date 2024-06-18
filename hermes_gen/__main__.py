@@ -3,6 +3,7 @@ from typing import List, TextIO
 from argparse import ArgumentParser
 
 import os
+import sys
 
 from hermes_gen.grammar import parse_grammar
 from hermes_gen.lalr1_automata import LALR1Automata, writeDescription
@@ -42,19 +43,19 @@ def main():
     color: bool = not args.no_color
 
     if not os.path.exists(grammar_file):
-        print("Cannot open grammar file:", grammar_file)
+        print("Cannot open grammar file:", grammar_file, file=sys.stderr)
         exit(1)
 
     try:
         grammar = parse_grammar(grammar_file)
     except Exception as err:
-        print("Cannot parse grammar:", err)
+        print("Cannot parse grammar:", err, file=sys.stderr)
         exit(1)
 
     try:
         lalr = LALR1Automata(grammar)
     except HermesError as err:
-        print("Unable to compute LALR(1) Automata:", err)
+        print("Unable to compute LALR(1) Automata:", err, file=sys.stderr)
         exit(1)
 
     if len(args.automata) > 0:
@@ -63,7 +64,7 @@ def main():
     try:
         parseTable = ParseTable(lalr)
     except HermesError as err:
-        print("Unable to generate parse table:", err)
+        print("Unable to generate parse table:", err, file=sys.stderr)
         exit(1)
 
     if len(parseTable.conflicts) > 0:
@@ -76,16 +77,16 @@ def main():
                         print(ce.prettyPrint(color))
                         print("")
                     except Exception as err:
-                        print("Error generating counterexample for:")
-                        print(conflict)
-                        print("Error:", err)
+                        print("Error generating counterexample for:", file=sys.stderr)
+                        print(conflict, file=sys.stderr)
+                        print("Error:", err, file=sys.stderr)
             else:
                 for conflict in parseTable.conflicts:
-                    print(conflict)
-                    print("")
+                    print(conflict, file=sys.stderr)
+                    print("", file=sys.stderr)
 
         if strict:
-            print("Strict mode enabled and conflicts found, refusing to generate parser")
+            print("Strict mode enabled and conflicts found, refusing to generate parser", file=sys.stderr)
             exit(2)
 
     tableFile: str = args.table
@@ -102,7 +103,7 @@ def main():
         table.writeParseTable(tableFile, grammar_file, grammar, parseTable)
     if len(loaderImplFile) > 0 or len(loaderHeaderFile) > 0:
         if len(loaderHeaderFile) == 0 or len(loaderImplFile) == 0:
-            print("Please specify both -l and -i")
+            print("Please specify both -l and -i", file=sys.stderr)
             exit(1)
         loader.writeLoader(loaderHeaderFile, loaderImplFile, tableFile, name, grammar)
 

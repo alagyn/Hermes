@@ -54,6 +54,12 @@
             "configurePreset": "default",
             "configuration": "Release",
             "targets": ["hermes"]
+        },
+        {
+            "name": "calc",
+            "configurePreset": "VSCode",
+            "configuration": "Debug",
+            "targets": ["calculator"]
         }
     ],
     

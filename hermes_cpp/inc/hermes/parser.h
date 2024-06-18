@@ -17,7 +17,7 @@ public:
     {
     }
 
-    HermesReturn parse(std::shared_ptr<std::istream> input);
+    HermesReturn parse(std::shared_ptr<std::istream> input, bool& errored);
 
 private:
     const std::shared_ptr<Grammar<HermesReturn>> grammar;

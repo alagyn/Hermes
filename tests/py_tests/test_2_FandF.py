@@ -3,7 +3,7 @@ from typing import Dict, Set
 
 from . import utils
 from hermes_gen.grammar import parse_grammar, Symbol
-from hermes_gen.consts import EMPTY, END, START
+from hermes_gen.consts import EMPTY, END, START, ERROR
 
 
 def _convert(d: Dict[str, Set[str]]) -> Dict[Symbol, Set[Symbol]]:
@@ -30,7 +30,7 @@ class TestFirstAndFollow(unittest.TestCase):
         seenFollow = 0
 
         for val in Symbol._SYMBOL_MAP.values():
-            if val in {Symbol.EMPTY_SYMBOL, Symbol.END_SYMBOL}:
+            if val in {Symbol.EMPTY, Symbol.END}:
                 continue
 
             self.assertTrue(val in expectedFirst, f'{val} not in expected FIRST dict')
@@ -71,7 +71,8 @@ class TestFirstAndFollow(unittest.TestCase):
             'star': {'star'},
             'open_p': {'open_p'},
             'close_p': {'close_p'},
-            'int': {'int'}
+            'int': {'int'},
+            ERROR: {ERROR}
         }
 
         EXP_FOLLOW = {
@@ -101,7 +102,8 @@ class TestFirstAndFollow(unittest.TestCase):
             'star': {'star'},
             'open_p': {'open_p'},
             'close_p': {'close_p'},
-            'int': {'int'}
+            'int': {'int'},
+            ERROR: {ERROR}
         }
 
         EXP_FOLLOW = {
@@ -127,7 +129,8 @@ class TestFirstAndFollow(unittest.TestCase):
             "close_p": {"close_p"},
             'P': {"id"},
             'E': {"id"},
-            "T": {"id"}
+            "T": {"id"},
+            ERROR: {ERROR}
         }
 
         EXP_FOLLOW = {
@@ -148,7 +151,8 @@ class TestFirstAndFollow(unittest.TestCase):
             "b": {"b"},
             "S": {"b", "a", EMPTY},
             "A": {"b", "a", EMPTY},
-            "B": {"a", EMPTY}
+            "B": {"a", EMPTY},
+            ERROR: {ERROR}
         }
 
         EXP_FOLLOW = {
@@ -166,17 +170,18 @@ class TestFirstAndFollow(unittest.TestCase):
 
         # yapf: disable
         EXP_FIRST = {
-            "__START__": {"a"},
+            START: {"a"},
             "a": {"a"},
             "b": {"b"},
             "S": {"a"},
             "T": {"a"},
             "X": {"a"},
-            "Y": {"a"}
+            "Y": {"a"},
+            ERROR: {ERROR}
         }
 
         EXP_FOLLOW = {
-            "__START__": {END},
+            START: {END},
             "S": {END, "a"},
             "T": {END, "a"},
             "X": {END, "a"},
@@ -199,7 +204,9 @@ class TestFirstAndFollow(unittest.TestCase):
             "s": {"IF"},
             "ifs": {"IF"},
             "if_": {"IF"},
-            "else_": {"ELSE", EMPTY}
+            "else_": {"ELSE", EMPTY},
+
+            ERROR: {ERROR}
         }
 
         EXP_FOLLOW = {

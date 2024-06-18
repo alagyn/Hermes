@@ -15,17 +15,10 @@ std::shared_ptr<Scanner> Scanner::New(
     std::shared_ptr<std::istream> handle,
     const Terminal* terminals,
     size_t numTerminals,
-    unsigned symbolEOF,
-    unsigned symbolIGNORE
+    size_t numSymbols
 )
 {
-    return std::make_shared<Scanner>(
-        handle,
-        terminals,
-        numTerminals,
-        symbolEOF,
-        symbolIGNORE
-    );
+    return std::make_shared<Scanner>(handle, terminals, numTerminals, numSymbols);
 }
 
 char Scanner::get()
@@ -76,8 +69,7 @@ Scanner::Scanner(
     std::shared_ptr<std::istream> handle,
     const Terminal* terminals,
     size_t numTerminals,
-    unsigned symbolEOF,
-    unsigned symbolIGNORE
+    size_t numSymbols
 )
     : handle(handle)
     , lineNum(1)
@@ -85,8 +77,8 @@ Scanner::Scanner(
     , lastLineLength(0)
     , terminals(terminals)
     , numTerminals(numTerminals)
-    , symbolEOF(symbolEOF)
-    , symbolIGNORE(symbolIGNORE)
+    , symbolEOF(numSymbols - 2)
+    , symbolIGNORE(numSymbols - 1)
 {
 }
 
@@ -109,6 +101,7 @@ ParseToken Scanner::_nextToken()
     if(handle->eof())
     {
         out.symbol = symbolEOF;
+        out.text = "__EOF__";
         return out;
     }
 
