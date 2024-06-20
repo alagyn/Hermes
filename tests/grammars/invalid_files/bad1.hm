@@ -1,0 +1,12 @@
+
+X = "X"
+
+program = X;
+
+program;
+
+X = y;
+
+y = a b |
+
+y = a v;

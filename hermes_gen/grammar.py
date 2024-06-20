@@ -254,8 +254,9 @@ class _Reader:
     Lets us pass these numbers by reference
     """
 
-    def __init__(self, filename: str) -> None:
+    def __init__(self, filename: str, rootdir: Optional[str]) -> None:
         self.filename = filename
+        self.printFilename = filename if rootdir is None else os.path.relpath(filename, rootdir)
         self.io = open(filename, mode='r')
         self.lineNum = 1
         self.charNum = 0
@@ -269,7 +270,7 @@ class _Reader:
             pass
 
     def __str__(self) -> str:
-        return f'{self.filename}:{self.lineNum}:{self.charNum}'
+        return f'{self.printFilename}:{self.lineNum}:{self.charNum}'
 
     def get(self) -> str:
         out = self.io.read(1)
@@ -572,7 +573,7 @@ class _GrammarFileParser:
         return f'{ARG_VECTOR}[{sIdx}]->{func}'
 
     def _parseFile(self, filename: str):
-        self.f = _Reader(filename)
+        self.f = _Reader(filename, self.rootFileDir)
 
         dirname = os.path.split(filename)[0]
 
@@ -613,7 +614,7 @@ class _GrammarFileParser:
                 nextChar = self.f.get()
                 if len(nextChar) == 0:
                     self.err(f"Unexpected EOF, expected '='")
-                    return
+                    raise HermesError("Unexpected EOF")
 
                 if nextChar in ' \t\n':
                     break
@@ -631,6 +632,7 @@ class _GrammarFileParser:
                 nextChar = self.f.get()
                 if len(nextChar) == 0:
                     self.err(f"Unexpected EOF, expexted '='")
+                    raise HermesError("Unexpected EOF")
 
                 if nextChar == '=':
                     break
@@ -648,6 +650,7 @@ class _GrammarFileParser:
                 nextChar = self.f.get()
                 if len(nextChar) == 0:
                     self.err(f'Unexpected EOF, expected terminal or symbol list')
+                    raise HermesError("Unexpected EOF")
 
                 if nextChar in ' \t\n':
                     continue
@@ -684,6 +687,7 @@ class _GrammarFileParser:
             nextChar = self.f.get()
             if len(nextChar) == 0:
                 self.err(f'Invalid directive, unexpected EOF')
+                raise HermesError("Unexpected EOF")
 
             if len(key) == 0:
                 if nextChar not in NAME_CHARS:
@@ -756,6 +760,7 @@ class _GrammarFileParser:
             nextChar = self.f.get()
             if len(nextChar) == 0:
                 self.err(f'Unexpected EOF, expected closing quote')
+                raise HermesError("Unexpected EOF")
 
             if nextChar == quoteType:
                 if len(out) == 0:
@@ -774,7 +779,9 @@ class _GrammarFileParser:
             if nextChar == ';':
                 break
             if nextChar not in ' \t\n':
-                raise HermesError(f"Invalid character '{nextChar}', expected ';'")
+                self.err(f"Invalid character '{nextChar}', expected ';'")
+                self.f.unget()
+                break
 
         return "".join(out)
 
@@ -826,7 +833,7 @@ class _GrammarFileParser:
                     break
 
                 self.err(f"Invalid char '{nextChar}' in rule definition, expected symbol or code block")
-                break
+                return False
 
             if len(curStrSymbolList) == 0:
                 self.warn("Empty rule, prefer using EMPTY to specify such rules")
