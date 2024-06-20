@@ -20,12 +20,18 @@ set(PY_FILES
     ${HERMES_GEN_ROOT}/directives.py
     ${HERMES_GEN_ROOT}/errors.py
     ${HERMES_GEN_ROOT}/grammar.py
+    ${HERMES_GEN_ROOT}/hermes_logs.py
     ${HERMES_GEN_ROOT}/lalr1_automata.py
     ${HERMES_GEN_ROOT}/parseTable.py
     ${HERMES_GEN_ROOT}/counterexample/configurations.py
+    ${HERMES_GEN_ROOT}/counterexample/conflict.py
     ${HERMES_GEN_ROOT}/counterexample/costs.py
     ${HERMES_GEN_ROOT}/counterexample/counterexample.py
+    ${HERMES_GEN_ROOT}/counterexample/counterexampleGen.py
+    ${HERMES_GEN_ROOT}/counterexample/derivation.py
+    ${HERMES_GEN_ROOT}/counterexample/orderedSet.py
     ${HERMES_GEN_ROOT}/counterexample/stateItem.py
+    ${HERMES_GEN_ROOT}/counterexample/utils.py
     ${HERMES_GEN_ROOT}/writers/hermesHeader.py
     ${HERMES_GEN_ROOT}/writers/loader.py
     ${HERMES_GEN_ROOT}/writers/table.py
@@ -104,6 +110,7 @@ install(
     FILES 
     "${CMAKE_CURRENT_BINARY_DIR}/hermesConfig.cmake" 
     "${CMAKE_CURRENT_BINARY_DIR}/cmake/hermesConfigVersion.cmake"
+    "${CMAKE_SOURCE_DIR}/cmake/add_hermes_grammar.cmake"
     DESTINATION cmake
 )
 

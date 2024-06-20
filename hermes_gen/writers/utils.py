@@ -9,11 +9,11 @@ def writeUserHeader(f: TextIO, grammar: Grammar):
         f.write("// Begin user directed headers\n")
 
         for header in headers:
-            f.write("// ----------------------")
+            f.write("// ----------------------\n")
             for line in header.splitlines():
                 f.write(line.strip())
                 f.write("\n")
-            f.write("// ----------------------")
+            f.write("// ----------------------\n")
 
         f.write('// End user directed headers\n\n')
 

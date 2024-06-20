@@ -1,4 +1,3 @@
-
 function(add_hermes_grammar)
     set(options DEBUG STRICT LOCAL_LINK)
     set(single_args TARGET GRAMMAR DESC_FILE GRAMMAR_DIR)
@@ -60,7 +59,6 @@ function(add_hermes_grammar)
     if(${ARGS_LOCAL_LINK})
         set(HERMES_TARGET "hermes")
     endif()
-
 
     # Private generated include files
     set(PRIVATE_INC ${CMAKE_CURRENT_BINARY_DIR}/hidden)

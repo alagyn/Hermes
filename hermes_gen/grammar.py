@@ -875,7 +875,7 @@ class _GrammarFileParser:
                 curCode = curCode.strip()
             else:
                 curCode = None
-                curCodeStart = 0
+                curCodeStart = startingLine
                 # unget so the next bit of code can grab the | or ;
                 self.f.unget()
 
