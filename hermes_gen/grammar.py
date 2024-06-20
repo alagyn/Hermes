@@ -7,6 +7,7 @@ import sys
 from hermes_gen.errors import HermesError
 from hermes_gen.consts import ARG_VECTOR, EMPTY, END, START, ERROR
 from hermes_gen.directives import Directive, ALL_DIRECTIVES
+from hermes_gen import hermes_logs
 
 DEFAULT_CODE = "return $0;"
 
@@ -337,6 +338,7 @@ class _GrammarFileParser:
         self.directives: Dict[str, List[_DirectiveValue]] = defaultdict(list)
 
         self.rootfile = rootfile
+        self.rootFileDir = os.path.dirname(rootfile)
         self.fileQueue = deque([rootfile])
 
         self.error = False
@@ -349,7 +351,7 @@ class _GrammarFileParser:
         else:
             fullMsg = f'{loc} {msg}'
 
-        print(f"\033[1;31m{fullMsg}\033[0m", file=sys.stderr)
+        hermes_logs.err(fullMsg)
         self.error = True
 
     def warn(self, msg: str, loc: Optional[str] = None):
@@ -358,7 +360,7 @@ class _GrammarFileParser:
         else:
             fullMsg = f'{loc} {msg}'
 
-        print(f'\033[1;33m{fullMsg}\033[0m', file=sys.stderr)
+        hermes_logs.warn(fullMsg)
 
     def parse(self) -> Grammar:
         Symbol.reset()
@@ -409,9 +411,14 @@ class _GrammarFileParser:
             # condense this into a single production for the start symbol
             # like: __START__ = [start symbol]
             self.ruleDefs = [
-                _RuleDef(len(self.ruleDefs), START, [startSymbol, END], "return $0;", "HERMES_GENERATED", 0, 0),
+                _RuleDef(len(self.ruleDefs), START, [startSymbol], "return $0;", "HERMES_GENERATED", 0, 0),
                 *self.ruleDefs
             ]
+            self.warn(
+                f"More than one rule using the starting symbol {startSymbol}.\n\t"
+                f"Generating starting rule of the form [{START} = {startSymbol}] {{ return $0; }}",
+                f'{self.rootfile}'
+            )
 
         usedTerminals: Set[Symbol] = set()
 

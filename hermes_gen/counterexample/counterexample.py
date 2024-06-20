@@ -23,22 +23,14 @@ class CounterExample:
     def prettyExample2(self) -> str:
         return self.d2.prettyPrint()
 
-    def example1(self) -> str:
-        return str(self.d1)
+    def example1(self, color: bool) -> str:
+        return self.d1.prettyTree(color)
 
-    def example2(self) -> str:
-        return str(self.d2)
+    def example2(self, color: bool) -> str:
+        return self.d2.prettyTree(color)
 
     def prettyPrint(self, color: bool) -> str:
-        if color:
-            y = "\033[1;33m"
-            off = "\033[0m"
-        else:
-            y = ""
-            off = ""
-        message = [
-            f'{y}Warning: conflict detected in {self.c.node}{off}',
-        ]
+        message = []
 
         message.append(f"  Conflict Type: {'Shift-Reduce' if self.isShiftReduce else 'Reduce-Reduce'}")
 
@@ -67,14 +59,15 @@ class CounterExample:
                 message.append("  Derivation using reduction:")
             else:
                 message.append("  Derivation using reduction 1:")
-            message.append(f'    {self.example1()}')
+            #message.append(str(self.d1))
+            message.append(self.example1(color))
 
             if self.isShiftReduce:
                 message.append("  Derivation using shift:")
             else:
                 message.append("  Derivation using reduction 2:")
-
-            message.append(f'    {self.example2()}')
+            #message.append(str(self.d2))
+            message.append(self.example2(color))
         else:
             message.append("  No Unifying example found")
 
@@ -84,7 +77,7 @@ class CounterExample:
                 message.append("  Example using reduction 1:")
             message.append(f'    {self.prettyExample1()}')
             message.append("  Derivation:")
-            message.append(f'    {self.example1()}')
+            message.append(self.example1(color))
 
             message.append("")
 
@@ -94,5 +87,5 @@ class CounterExample:
                 message.append("  Example using reduction 2:")
             message.append(f'    {self.prettyExample2()}')
             message.append("  Derivation:")
-            message.append(f'    {self.example2()}')
+            message.append(self.example2(color))
         return "\n".join(message)

@@ -9,11 +9,10 @@ from hermes_gen.grammar import parse_grammar
 from hermes_gen.lalr1_automata import LALR1Automata, writeDescription
 from hermes_gen.parseTable import ParseTable
 from hermes_gen.counterexample.counterexampleGen import CounterExampleGen
-
 from hermes_gen.errors import HermesError
 from hermes_gen.directives import Directive
-
 from hermes_gen.writers import loader, table
+from hermes_gen import hermes_logs
 
 
 def main():
@@ -40,22 +39,25 @@ def main():
     genExamples: bool = not args.no_examples
     strict: bool = args.strict
     hideConflicts: bool = args.hide_conflicts
-    color: bool = not args.no_color
+
+    colors: bool = not args.no_color
+
+    hermes_logs.enableColors(colors)
 
     if not os.path.exists(grammar_file):
-        print("Cannot open grammar file:", grammar_file, file=sys.stderr)
+        hermes_logs.err("Cannot open grammar file:", grammar_file)
         exit(1)
 
     try:
         grammar = parse_grammar(grammar_file)
     except HermesError as err:
-        print("Cannot parse grammar:", err, file=sys.stderr)
+        hermes_logs.err("Cannot parse grammar:", str(err))
         exit(1)
 
     try:
         lalr = LALR1Automata(grammar)
     except HermesError as err:
-        print("Unable to compute LALR(1) Automata:", err, file=sys.stderr)
+        hermes_logs.err("Unable to compute LALR(1) Automata:", str(err))
         exit(1)
 
     if len(args.automata) > 0:
@@ -64,7 +66,7 @@ def main():
     try:
         parseTable = ParseTable(lalr)
     except HermesError as err:
-        print("Unable to generate parse table:", err, file=sys.stderr)
+        hermes_logs.err("Unable to generate parse table:", str(err))
         exit(1)
 
     if len(parseTable.conflicts) > 0:
@@ -72,21 +74,23 @@ def main():
             if genExamples:
                 ceGen = CounterExampleGen(lalr)
                 for conflict in parseTable.conflicts:
-                    try:
-                        ce = ceGen.generate_counterexample(conflict)
-                        print(ce.prettyPrint(color))
-                        print("")
-                    except Exception as err:
-                        print("Error generating counterexample for:", file=sys.stderr)
-                        print(conflict, file=sys.stderr)
-                        print("Error:", err, file=sys.stderr)
+                    ce = ceGen.generate_counterexample(conflict)
+                    msg = ce.prettyPrint(colors)
+                    if strict:
+                        hermes_logs.err(f'Conflict detected in {conflict.node}')
+                    else:
+                        hermes_logs.warn(f'Conflict detected in {conflict.node}')
+
+                    hermes_logs.info(msg + "\n")
             else:
                 for conflict in parseTable.conflicts:
-                    print(conflict, file=sys.stderr)
-                    print("", file=sys.stderr)
+                    if strict:
+                        hermes_logs.err(str(conflict) + "\n")
+                    else:
+                        hermes_logs.warn(str(conflict) + "\n")
 
         if strict:
-            print("Strict mode enabled and conflicts found, refusing to generate parser", file=sys.stderr)
+            hermes_logs.err("Strict mode enabled and conflicts found, refusing to generate parser")
             exit(2)
 
     tableFile: str = args.table
@@ -103,7 +107,7 @@ def main():
         table.writeParseTable(tableFile, grammar_file, grammar, parseTable)
     if len(loaderImplFile) > 0 or len(loaderHeaderFile) > 0:
         if len(loaderHeaderFile) == 0 or len(loaderImplFile) == 0:
-            print("Please specify both -l and -i", file=sys.stderr)
+            hermes_logs.err("Please specify both -l and -i")
             exit(1)
         loader.writeLoader(loaderHeaderFile, loaderImplFile, tableFile, name, grammar)
 
