@@ -31,8 +31,7 @@ def writeLoader(headerFilename: str, implFilename: str, parseTableFilename: str,
             f"#include <hermes/{name}_grammar.h>",
             f"#include <hermes/internal/grammar.h>",
             "namespace hermes {",
-            # force template to instantiate
-            f"template class Parser<{returnType}>;"
+            f"template class Parser<{returnType}>;",  # force template to instantiate
             f"std::shared_ptr<Parser<{returnType}>> load_{name}()",
             "{",
             f"    auto grammar =  Grammar<{returnType}>::New(",

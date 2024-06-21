@@ -1,5 +1,5 @@
 function(add_hermes_grammar)
-    set(options DEBUG STRICT LOCAL_LINK)
+    set(options DEBUG STRICT)
     set(single_args TARGET GRAMMAR DESC_FILE GRAMMAR_DIR)
     set(multivalue_args)
 
@@ -55,8 +55,9 @@ function(add_hermes_grammar)
         set(STRICT_MODE "--strict")
     endif()
 
-    set(HERMES_TARGET "hermes::hermes")
-    if(${ARGS_LOCAL_LINK})
+    if(TARGET hermes::hermes)
+        set(HERMES_TARGET "hermes::hermes")
+    else()
         set(HERMES_TARGET "hermes")
     endif()
 
@@ -75,7 +76,7 @@ function(add_hermes_grammar)
     add_custom_command(
         OUTPUT ${OUTPUTS}
         WORKING_DIRECTORY ${HERMES_ROOT}
-        COMMENT "Generating parser for ${TARGET}"
+        COMMENT "Generating parser for ${ARGS_TARGET}"
         COMMAND
             ${Python3_EXECUTABLE} -m hermes_gen
                 --name ${ARGS_TARGET}
@@ -107,7 +108,7 @@ function(add_hermes_grammar)
         PRIVATE
             ${PRIVATE_INC}
     )
-    
+
     target_link_libraries(${ARGS_TARGET}
         PUBLIC
             ${HERMES_TARGET}

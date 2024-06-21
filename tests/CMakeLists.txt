@@ -67,7 +67,6 @@ add_hermes_grammar(
     TARGET calc
     GRAMMAR grammars/calculator.hm
     #DEBUG
-    LOCAL_LINK
     #DESC_FILE temp.txt
 )
 
