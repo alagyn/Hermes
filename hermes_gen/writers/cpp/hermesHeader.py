@@ -1,5 +1,6 @@
-from typing import List, TextIO
+from typing import TextIO
 from datetime import datetime
+
 
 def writeHermesHeader(f: TextIO):
     header = ("/*******\n"

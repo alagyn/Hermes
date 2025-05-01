@@ -20,6 +20,8 @@ class AnnotRule:
         """
         self.rule = rule
         self.parseIndex = parseIndex
+        if self.parseIndex > len(self.rule.symbols):
+            raise RuntimeError(f"DEV: Parse index is > than len(symbols), {self.rule=} {self.parseIndex=}")
         self.lookAhead = lookAhead
 
     def __str__(self) -> str:

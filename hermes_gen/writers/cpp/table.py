@@ -1,6 +1,6 @@
 import re
 
-from hermes_gen.writers.hermesHeader import writeHermesHeader
+from hermes_gen.writers.cpp.hermesHeader import writeHermesHeader
 from hermes_gen.grammar import Grammar
 from hermes_gen.directives import Directive
 from hermes_gen.parseTable import ParseTable, Action

@@ -11,7 +11,7 @@ from hermes_gen.parseTable import ParseTable
 from hermes_gen.counterexample.counterexampleGen import CounterExampleGen
 from hermes_gen.errors import HermesError
 from hermes_gen.directives import Directive
-from hermes_gen.writers import loader, table
+import hermes_gen.writers.cpp.generate as cppGen
 from hermes_gen import hermes_logs
 
 
@@ -19,19 +19,22 @@ def main():
     parser = ArgumentParser()
     parser.add_argument("grammar_file")
     parser.add_argument("-n", "--name", help="The grammar name", default="")
-    parser.add_argument("-t", '--table', help="The table filename", default="")
     parser.add_argument(
         "-a",
         "--automata",
         default="",
         help="Write a full description of the generated automata to the specified file",
     )
-    parser.add_argument("-l", "--loader", help="The loader header filename", default="")
-    parser.add_argument("-i", "--impl", help="The loader implementation filename", default="")
     parser.add_argument("--no-examples", help="Disable counterexample generation for conflicts", action="store_true")
     parser.add_argument("-s", "--strict", help="Return an error if an unresolved conflict occurs", action="store_true")
     parser.add_argument("--hide-conflicts", help="Do not print out conflict warnings", action="store_true")
     parser.add_argument("--no-color", help="Disable terminal colors", action="store_true")
+
+    subparsers = parser.add_subparsers(help="Generate modes")
+    cppArgs = subparsers.add_parser("cpp")
+    pyArgs = subparsers.add_parser("python")
+
+    cppGen.getArguments(cppArgs)
 
     args = parser.parse_args()
 
@@ -92,24 +95,6 @@ def main():
         if strict:
             hermes_logs.err("Strict mode enabled and conflicts found, refusing to generate parser")
             exit(2)
-
-    tableFile: str = args.table
-    loaderHeaderFile: str = args.loader
-    loaderImplFile: str = args.impl
-    name: str = args.name
-
-    for file in [tableFile, loaderHeaderFile, loaderImplFile]:
-        if len(file) > 0:
-            folder, _ = os.path.split(file)
-            os.makedirs(folder, exist_ok=True)
-
-    if len(tableFile) > 0:
-        table.writeParseTable(tableFile, grammar_file, grammar, parseTable)
-    if len(loaderImplFile) > 0 or len(loaderHeaderFile) > 0:
-        if len(loaderHeaderFile) == 0 or len(loaderImplFile) == 0:
-            hermes_logs.err("Please specify both -l and -i")
-            exit(1)
-        loader.writeLoader(loaderHeaderFile, loaderImplFile, tableFile, name, grammar)
 
 
 if __name__ == '__main__':
