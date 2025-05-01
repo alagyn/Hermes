@@ -36,7 +36,6 @@ class TestCounterExample(unittest.TestCase):
         Y = Symbol.get("Y")
         a = Symbol.get("a")
         b = Symbol.get("b")
-        EOF = Symbol.get("__EOF__")
 
         conflict = table.conflicts[0]
 
@@ -73,8 +72,7 @@ class TestCounterExample(unittest.TestCase):
                         D(a)
                     ])
                 ]),
-            ]),
-            D(EOF)]
+            ])]
             )
         )
 
@@ -86,8 +84,7 @@ class TestCounterExample(unittest.TestCase):
                         D(a), DOT, D(a), D(b)
                     ])
                 ])
-            ]),
-            D(EOF)
+            ])
         ])
         )
 
@@ -96,8 +93,8 @@ class TestCounterExample(unittest.TestCase):
         self._checkDeriv(EXP_DERIV1, ce.d1)
         self._checkDeriv(EXP_DERIV2, ce.d2)
 
-        self.assertEqual("a • a __EOF__", ce.prettyExample1())
-        self.assertEqual("a • a b __EOF__", ce.prettyExample2())
+        self.assertEqual("a • a", ce.prettyExample1())
+        self.assertEqual("a • a b", ce.prettyExample2())
 
     def test_1_Amb_SR(self):
         # polyglot: paper-ex.cup
