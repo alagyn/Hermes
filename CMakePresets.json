@@ -7,6 +7,10 @@
             "binaryDir": "${sourceDir}/build",
             
             "cacheVariables": {
+                "HERMES_PYTHON": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
                 "HERMES_TESTS": {
                     "type": "BOOL",
                     "value": "ON"

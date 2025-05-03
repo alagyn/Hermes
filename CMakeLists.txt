@@ -2,16 +2,32 @@ cmake_minimum_required(VERSION 3.26)
 
 project(hermes)
 
-find_package(Python3 
-    REQUIRED 
-        COMPONENTS Interpreter
-)
+option(HERMES_PYTHON "Enable Hermes python bindings" OFF)
+option(HERMES_TESTS "Enable Hermes Test builds" OFF)
 
 set(HERMES_VERSION 1.1.0)
 
 set(HERMES_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(HERMES_GEN_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/hermes_gen)
 set(HERMES_CPP_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/hermes_cpp)
+
+
+if(HERMES_PYTHON)
+    if(${MSVC})
+        set(PY_COMPONENTS Interpreter Development)
+    else()
+        set(PY_COMPONENTS Interpreter Development.Module)
+    endif()
+else()
+    set(PY_COMPONENTS Interpreter)
+endif()
+
+find_package(Python3 
+    REQUIRED 
+        COMPONENTS ${PY_COMPONENTS}
+)
+
+add_subdirectory(third-party)
 
 set(PY_FILES
     ${HERMES_GEN_ROOT}/__main__.py
@@ -36,6 +52,7 @@ set(PY_FILES
     ${HERMES_GEN_ROOT}/writers/loader.py
     ${HERMES_GEN_ROOT}/writers/table.py
     ${HERMES_GEN_ROOT}/writers/utils.py
+    ${HERMES_GEN_ROOT}/writers/pybind.py
 )
 
 add_library(hermes)
@@ -45,7 +62,6 @@ target_include_directories(hermes
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/hermes_cpp/inc>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-
 
 target_sources(hermes
     PRIVATE
@@ -67,7 +83,25 @@ target_sources(hermes
             ${HERMES_CPP_ROOT}/inc/hermes/internal/regex/match.h
 )
 
-option(HERMES_TESTS "Enable Hermes Test builds" OFF)
+set_target_properties(hermes
+    PROPERTIES
+    INTERPROCEDURAL_OPTIMIZATION ON
+    VISIBILITY_INLINES_HIDDEN ON
+    CXX_STANDARD 17
+)
+
+if(HERMES_PYTHON)
+    add_library(hermes_pybind
+        ${HERMES_CPP_ROOT}/src/bind-hermes-py.cpp
+    )
+
+    target_link_libraries(hermes_pybind
+        PRIVATE
+            Python3::Module
+            pybind11::headers
+            hermes
+    )
+endif()
 
 install(
     TARGETS
@@ -114,10 +148,6 @@ install(
     DESTINATION cmake
 )
 
-
-if(${HERMES_TESTS})
-    add_subdirectory(third-party)
-    enable_testing()
-    list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/third-party/Catch2/extras)
+if(HERMES_TESTS)
     add_subdirectory(tests)
 endif()

@@ -1,5 +1,5 @@
 function(add_hermes_grammar)
-    set(options DEBUG STRICT)
+    set(options DEBUG STRICT PYTHON)
     set(single_args TARGET GRAMMAR DESC_FILE GRAMMAR_DIR)
     set(multivalue_args)
 
@@ -69,8 +69,14 @@ function(add_hermes_grammar)
     set(GRAMMAR_FILE ${PRIVATE_INC}/hermes/${ARGS_TARGET}_grammar.h)
     set(LOADER_HEADER_FILE ${PUBLIC_INC}/hermes/${ARGS_TARGET}_loader.h)
     set(LOADER_IMPL_FILE ${PRIVATE_INC}/hermes/${ARGS_TARGET}_loader.cpp)
+    set(PYBIND_IMPL_FILE ${PRIVATE_INC}/hermes/${ARGS_TARGET}_pybind.cpp)
 
     set(OUTPUTS ${GRAMMAR_FILE} ${LOADER_HEADER_FILE} ${LOADER_IMPL_FILE})
+
+    if(ARGS_PYTHON)
+        set(PYBIND_ARGS --pybind ${PYBIND_IMPL_FILE})
+        set(OUTPUTS ${OUTPUTS} ${PYBIND_IMPL_FILE})
+    endif()
 
     # Custom command to generate the header
     add_custom_command(
@@ -82,6 +88,7 @@ function(add_hermes_grammar)
                 --name ${ARGS_TARGET}
                 --table ${GRAMMAR_FILE}
                 --loader ${LOADER_HEADER_FILE}
+                ${PYBIND_ARGS}
                 --impl ${LOADER_IMPL_FILE}
                 --automata "${DESC_FILE}"
                 ${GRAMMAR}
@@ -98,6 +105,31 @@ function(add_hermes_grammar)
     add_library(${ARGS_TARGET}
         ${LOADER_IMPL_FILE}
     )
+
+    if(ARGS_PYTHON)
+        Python3_add_library(${ARGS_TARGET}_python
+            ${PYBIND_IMPL_FILE}
+        )
+        set_target_properties(${ARGS_TARGET}
+            PROPERTIES
+            INTERPROCEDURAL_OPTIMIZATION ON
+            VISIBILITY_INLINES_HIDDEN ON
+            CXX_STANDARD 17
+        )
+        set_target_properties(${ARGS_TARGET}_python
+            PROPERTIES
+            INTERPROCEDURAL_OPTIMIZATION ON
+            VISIBILITY_INLINES_HIDDEN ON
+            CXX_STANDARD 17
+            # TODO handle multiple grammars...
+            OUTPUT_NAME hermes
+        )
+        target_link_libraries(${ARGS_TARGET}_python
+            PRIVATE
+                pybind11::headers
+                ${ARGS_TARGET}
+        )
+    endif()
 
     # Add dependency on parse_table
     add_dependencies(${ARGS_TARGET} ${ARGS_TARGET}_grammar)
