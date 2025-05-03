@@ -80,12 +80,12 @@ function(add_hermes_grammar)
         COMMAND
             ${Python3_EXECUTABLE} -m hermes_gen
                 --name ${ARGS_TARGET}
+                --automata "${DESC_FILE}"
                 ${GRAMMAR}
                 cpp
                 --table ${GRAMMAR_FILE}
                 --loader ${LOADER_HEADER_FILE}
                 --impl ${LOADER_IMPL_FILE}
-                --automata "${DESC_FILE}"
         VERBATIM
         DEPENDS ${GRAMMAR} ${PY_FILES} ${GRAMMAR_FILES}
     )

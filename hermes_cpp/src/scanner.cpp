@@ -120,7 +120,9 @@ ParseToken Scanner::_nextToken()
     bool foundPartial = false;
     while(!handle->eof())
     {
+        // Attempt to read, returns garbage if EOF
         char nextChar = get();
+        // Check EOF
         if(handle->eof())
         {
             // If we are at EOF and we have found a match

@@ -12,6 +12,7 @@ from hermes_gen.counterexample.counterexampleGen import CounterExampleGen
 from hermes_gen.errors import HermesError
 from hermes_gen.directives import Directive
 import hermes_gen.writers.cpp.generate as cppGen
+import hermes_gen.writers.python.generate as pyGen
 from hermes_gen import hermes_logs
 
 
@@ -30,11 +31,12 @@ def main():
     parser.add_argument("--hide-conflicts", help="Do not print out conflict warnings", action="store_true")
     parser.add_argument("--no-color", help="Disable terminal colors", action="store_true")
 
-    subparsers = parser.add_subparsers(help="Generate modes")
+    subparsers = parser.add_subparsers(help="Generate modes", dest="mode")
     cppArgs = subparsers.add_parser("cpp")
     pyArgs = subparsers.add_parser("python")
 
     cppGen.getArguments(cppArgs)
+    pyGen.getArguments(pyArgs)
 
     args = parser.parse_args()
 
@@ -95,6 +97,11 @@ def main():
         if strict:
             hermes_logs.err("Strict mode enabled and conflicts found, refusing to generate parser")
             exit(2)
+
+    if args.mode == "cpp":
+        cppGen.generate(grammar, parseTable, args)
+    elif args.mode == "python":
+        pyGen.generate(grammar, parseTable, args)
 
 
 if __name__ == '__main__':

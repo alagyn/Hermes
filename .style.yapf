@@ -283,7 +283,7 @@ space_between_ending_comma_and_closing_bracket=true
 space_inside_brackets=false
 
 # Split before arguments
-split_all_comma_separated_values=false
+split_all_comma_separated_values=true
 
 # Split before arguments, but do not split all subexpressions recursively
 # (unless needed).

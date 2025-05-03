@@ -1,11 +1,9 @@
 from typing import List, Dict, Set, Tuple, Iterable, Optional, Deque
 from collections import deque, defaultdict
-import re
 import os
-import sys
 
 from hermes_gen.errors import HermesError
-from hermes_gen.consts import ARG_VECTOR, EMPTY, END, START, ERROR
+from hermes_gen.consts import EMPTY, END, START, ERROR
 from hermes_gen.directives import Directive, ALL_DIRECTIVES
 from hermes_gen import hermes_logs
 
@@ -14,7 +12,8 @@ DEFAULT_CODE = "return $0;"
 
 class Symbol:
     _ID_GEN = 0
-    _SYMBOL_MAP: Dict[str, 'Symbol'] = {}
+    _SYMBOL_MAP: Dict[str,
+                      'Symbol'] = {}
 
     EMPTY: 'Symbol' = None  # type: ignore
     END: 'Symbol' = None  # type: ignore
@@ -80,7 +79,14 @@ class Symbol:
 class Rule:
 
     def __init__(
-        self, id: int, nonterm: Symbol, symbols: List[Symbol], code: str, file: str, lineNum: int, codeLine: int
+        self,
+        id: int,
+        nonterm: Symbol,
+        symbols: List[Symbol],
+        code: str,
+        file: str,
+        lineNum: int,
+        codeLine: int
     ) -> None:
         self.id = id
         self.nonterm = nonterm
@@ -145,7 +151,14 @@ class Rule:
 class _RuleDef:
 
     def __init__(
-        self, id: int, nonterm: str, symbols: List[str], code: Optional[str], file: str, lineNum: int, codeLine: int
+        self,
+        id: int,
+        nonterm: str,
+        symbols: List[str],
+        code: Optional[str],
+        file: str,
+        lineNum: int,
+        codeLine: int
     ) -> None:
         # these are the same as in Rule
 
@@ -162,7 +175,6 @@ class _RuleDef:
 
 
 NAME_CHARS = set('abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
-H_ARG_RE = re.compile(r'(?P<cmd>\$|@)((?P<idx>\d+)|(?P<name>\w+))')
 
 
 class Grammar:
@@ -412,7 +424,13 @@ class _GrammarFileParser:
             # condense this into a single production for the start symbol
             # like: __START__ = [start symbol]
             self.ruleDefs = [
-                _RuleDef(len(self.ruleDefs), START, [startSymbol], "return $0;", "HERMES_GENERATED", 0, 0),
+                _RuleDef(len(self.ruleDefs),
+                         START,
+                         [startSymbol],
+                         "return $0;",
+                         "HERMES_GENERATED",
+                         0,
+                         0),
                 *self.ruleDefs
             ]
             self.warn(
@@ -463,8 +481,6 @@ class _GrammarFileParser:
                         ruleDef.code = defaultEmpty
                 else:
                     ruleDef.code = defaultCode
-            # Replace all arg substitutions
-            ruleDef.code = H_ARG_RE.sub(lambda m: self._preprocessRule(ruleDef, m), ruleDef.code)
 
             # construct real rules from definitions
             newRule = Rule(ruleDef.id, lhs, rhs, ruleDef.code, ruleDef.file, ruleDef.lineNum, ruleDef.codeLine)
@@ -520,57 +536,17 @@ class _GrammarFileParser:
                 ignore.value = regex.replace(f"\\{quoteType}", quoteType)
         # end if ignore in directives
 
-        outDirectives: Dict[str, List[str]] = {
-            d: [v.value for v in vList]
-            for d, vList in self.directives.items()
-        }
+        outDirectives: Dict[str,
+                            List[str]] = {
+                                d: [v.value for v in vList]
+                                for d, vList in self.directives.items()
+                            }
 
         for d in self.directives:
             if d not in ALL_DIRECTIVES:
                 self.warn(f"Unused directive %{d}")
 
         return Grammar(outTerminals, outRules, outDirectives)
-
-    def _preprocessRule(self, rule: _RuleDef, m: re.Match) -> str:
-        """
-        Preprocess rule, replacing $ and @ directives
-        """
-        name = m.group('name')
-        if name is not None:
-            try:
-                count = rule.symbols.count(name)
-                if count > 1:
-                    raise HermesError(
-                        f"{rule.file}:{rule.lineNum} Cannot substitue symbol '${name}', symbol is repeated in rule, use index instead, {rule}"
-                    )
-                elif count == 0:
-                    raise HermesError(
-                        f"{rule.file}:{rule.lineNum} Cannot substitute symbol '${name}', symbol not in rule, {rule}"
-                    )
-
-                sIdx = rule.symbols.index(name)
-            except ValueError:
-                raise HermesError(
-                    f"{rule.file}:{rule.lineNum} Invalid code substitution, symbol '{name}' not found, {rule}"
-                ) from None
-        else:
-            sIdx = int(m.group('idx'))
-            try:
-                name = rule.symbols[sIdx]
-            except IndexError:
-                raise HermesError(
-                    f'{rule.file}:{rule.lineNum} Invalid code substitution, index {sIdx} out of bounds, {rule}'
-                ) from None
-
-        # Have to invert the index because the stack items will be reversed
-        sIdx = len(rule.symbols) - sIdx - 1
-
-        cmd = m.group("cmd")
-        if cmd == "$":
-            func = "t()" if name in self.terminalNames else "nt()"
-        else:
-            func = "loc"
-        return f'{ARG_VECTOR}[{sIdx}]->{func}'
 
     def _parseFile(self, filename: str):
         self.f = _Reader(filename, self.rootFileDir)
@@ -624,7 +600,10 @@ class _GrammarFileParser:
 
                 lhs += nextChar
 
-            if lhs in {EMPTY, START, END, ERROR}:
+            if lhs in {EMPTY,
+                       START,
+                       END,
+                       ERROR}:
                 self.err(f'LHS cannot be {lhs}')
 
             # Find equals
@@ -725,7 +704,8 @@ class _GrammarFileParser:
 
             if len(value) == 0:
                 # Skip leading whitespace
-                if nextChar in {" ", "\t"}:
+                if nextChar in {" ",
+                                "\t"}:
                     continue
                 if nextChar == '%':
                     nextChar = self.f.get()
@@ -802,7 +782,7 @@ class _GrammarFileParser:
             while True:
                 nextChar = self.f.get()
                 if len(nextChar) == 0:
-                    self.err("Unexpected EOF, expected symbol, code block, |, or ;")
+                    self.err("Unexpected EOF, expected: {, |, or ;")
                     raise HermesError(f"Unexpected EOF")
 
                 if nextChar == '{':
@@ -901,7 +881,13 @@ class _GrammarFileParser:
 
             nextID = len(self.ruleDefs)
             self.ruleDefs.append(
-                _RuleDef(nextID, lhs, curStrSymbolList, curCode, self.f.filename, startingLine, curCodeStart)
+                _RuleDef(nextID,
+                         lhs,
+                         curStrSymbolList,
+                         curCode,
+                         self.f.filename,
+                         startingLine,
+                         curCodeStart)
             )
 
             hitSemi = False

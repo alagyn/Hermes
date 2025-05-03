@@ -4,13 +4,31 @@ from hermes_gen.writers.cpp.hermesHeader import writeHermesHeader
 from hermes_gen.grammar import Grammar
 from hermes_gen.directives import Directive
 from hermes_gen.parseTable import ParseTable, Action
-from hermes_gen.consts import ARG_VECTOR
 from .utils import writeUserHeader
+from hermes_gen.code_preproc import CodePreprocessor
+
+ARG_VECTOR = "values"
+
+
+class CPPPreproc(CodePreprocessor):
+
+    def _get(self, func: str, sIdx: int) -> str:
+        return f'{ARG_VECTOR}[{sIdx}]->{func}'
+
+    def _getTerminal(self, sIdx: int) -> str:
+        return self._get("t()", sIdx)
+
+    def _getNonterminal(self, sIdx: int) -> str:
+        return self._get("nt()", sIdx)
+
+    def _getLoc(self, sIdx: int) -> str:
+        return self._get("loc", sIdx)
+
 
 # TODO change parse table to a list of lists, since most columns are empty
 
 
-def writeParseTable(filename: str, grammarFile: str, grammar: Grammar, table: ParseTable):
+def writeParseTable(filename: str, grammar: Grammar, table: ParseTable):
     with open(filename, mode='w') as f:
         writeHermesHeader(f)
 
@@ -105,12 +123,15 @@ def writeParseTable(filename: str, grammarFile: str, grammar: Grammar, table: Pa
 
         f.write(f"using ReductionFunc = {returnType} (*)(std::vector<StackItemPtr>);\n")
 
+        preproc = CPPPreproc(grammar)
+
         for idx, rule in enumerate(grammar.rules):
+            code = preproc.preproc(rule)
             f.write(
                 f"{returnType} r{idx}(std::vector<StackItemPtr> {ARG_VECTOR})\n"
                 "{\n"
                 f'#line {rule.codeLine} "{rule.file}"\n'
-                f"    {rule.code}\n"
+                f"    {code}\n"
                 "}\n"
             )
 

@@ -13,7 +13,7 @@ def getArguments(parser: ArgumentParser):
     parser.add_argument("-t", '--table', help="The table filename", default="")
 
 
-def generate(grammar_file: str, grammar: Grammar, parseTable: ParseTable, args):
+def generate(grammar: Grammar, parseTable: ParseTable, args):
     tableFile: str = args.table
     loaderHeaderFile: str = args.loader
     loaderImplFile: str = args.impl
@@ -25,7 +25,7 @@ def generate(grammar_file: str, grammar: Grammar, parseTable: ParseTable, args):
             os.makedirs(folder, exist_ok=True)
 
     if len(tableFile) > 0:
-        table.writeParseTable(tableFile, grammar_file, grammar, parseTable)
+        table.writeParseTable(tableFile, grammar, parseTable)
     if len(loaderImplFile) > 0 or len(loaderHeaderFile) > 0:
         if len(loaderHeaderFile) == 0 or len(loaderImplFile) == 0:
             hermes_logs.err("Please specify both -l and -i")

@@ -1,0 +1,66 @@
+%return int
+%header %%
+
+%%
+
+# Ignore line comments
+%ignore "//[^\n]*\n?"
+# Ignore block comments
+# This regex is finicky to get right
+%ignore "/\*((?!\*/)(.|\n))*?\*/"
+
+# Declare our tokens
+INT = "[0-9]+";
+PLUS = "\+";
+MINUS = "-";
+STAR = "\*";
+SLASH = "/";
+OPEN_PAREN = "\(";
+CLOSE_PAREN = "\)";
+
+# This is the starting rule, it is usually best to only have one possible
+# way to produce your starting rule
+output = expr { return $0; };
+
+expr
+    = expr PLUS term
+    {
+        out = $0 + $2
+        print(f">> {$0} + {$2} = {out}")
+        return out
+    }
+    | expr MINUS term
+    {
+        out = $0 - $2
+        print(f">> ${0} - {$2} = {out}")
+        return out
+    }
+    | term { return $0; }
+    | ERROR
+    {
+        print("~" * @0.charStart + "^")
+        print(f"Invalid token at {@0.lineStart}:{@0.charStart}")
+        raise RuntimeError("Invalid token")
+    }
+    ;
+
+term
+    = term STAR factor
+    {
+        out = $0 * $2
+        print(f">> {$0} * {$2} = {out}")
+        return out
+    }
+    | term SLASH factor
+    {
+        out = $0 // $2
+        print(f">> {$0} / {$2} = {out}")
+        return out
+    }
+    | factor { return $0 }
+    ;
+
+factor
+    = INT { return int($0) }
+    | OPEN_PAREN expr CLOSE_PAREN { return $1 }
+    ;

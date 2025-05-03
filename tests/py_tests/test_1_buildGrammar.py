@@ -35,7 +35,9 @@ class TestBuildgrammar(unittest.TestCase):
                 numTerminals += 1
                 self.assertTrue(key in EXP_TERMS, f'Terminal "{key}" is not expected')
                 self.assertEqual(
-                    EXP_TERMS[key], val.regex, f'Terminal definition "{key}": "{val.regex}" is not expected'
+                    EXP_TERMS[key],
+                    val.regex,
+                    f'Terminal definition "{key}": "{val.regex}" is not expected'
                 )
 
         self.assertEqual(len(EXP_TERMS), numTerminals, 'Len of terminal definitions not equal')
@@ -50,8 +52,9 @@ class TestBuildgrammar(unittest.TestCase):
         close_curly = Symbol.get('close_curly')
         x = Symbol.get("x")
 
+        # yapf: disable
         EXP_RULES = [
-            Rule(0, program, [stmt], "return values[0]->nt();", "", 0, 0),
+            Rule(0, program, [stmt], "return $0;", "", 0, 0),
             Rule(1, stmt, [name, equ, integer, semicolon], "return 0;", "", 0, 0),
             Rule(
                 2,
@@ -63,8 +66,8 @@ class TestBuildgrammar(unittest.TestCase):
                 "{\n"
                 "    asdf;\n"
                 "}\n"
-                "std::cout << values[2]->loc.lineStart;\n"
-                "return std::atoi(values[1]->t());",
+                "std::cout << @0.lineStart;\n"
+                "return std::atoi($integer);",
                 "",
                 0,
                 0
@@ -73,6 +76,7 @@ class TestBuildgrammar(unittest.TestCase):
             Rule(4, x, [], "return -1;", "", 0, 0),
             Rule(5, stmt, [semicolon], "", "", 0, 0)
         ]
+        # yapf: enable
 
         self.assertEqual(len(EXP_RULES), len(g.rules), 'Len of rules not equal')
 

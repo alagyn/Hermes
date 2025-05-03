@@ -32,10 +32,10 @@ set(PY_FILES
     ${HERMES_GEN_ROOT}/counterexample/orderedSet.py
     ${HERMES_GEN_ROOT}/counterexample/stateItem.py
     ${HERMES_GEN_ROOT}/counterexample/utils.py
-    ${HERMES_GEN_ROOT}/writers/hermesHeader.py
-    ${HERMES_GEN_ROOT}/writers/loader.py
-    ${HERMES_GEN_ROOT}/writers/table.py
-    ${HERMES_GEN_ROOT}/writers/utils.py
+    ${HERMES_GEN_ROOT}/writers/cpp/hermesHeader.py
+    ${HERMES_GEN_ROOT}/writers/cpp/loader.py
+    ${HERMES_GEN_ROOT}/writers/cpp/table.py
+    ${HERMES_GEN_ROOT}/writers/cpp/utils.py
 )
 
 add_library(hermes)
