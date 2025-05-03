@@ -57,14 +57,14 @@ class TestBuildgrammar(unittest.TestCase):
                 2,
                 stmt, [open_curly, integer, close_curly],
                 "#this is a preprocessor thing\n"
-                "    //this is some code;\n"
-                '    //"this is an inner string";\n'
-                "    if(this is an inner block)\n"
-                "    {\n"
-                "        asdf;\n"
-                "    }\n"
-                "    std::cout << values[2]->loc.lineStart;\n"
-                "    return std::atoi(values[1]->t());",
+                "//this is some code;\n"
+                '//"this is an inner string";\n'
+                "if(this is an inner block)\n"
+                "{\n"
+                "    asdf;\n"
+                "}\n"
+                "std::cout << values[2]->loc.lineStart;\n"
+                "return std::atoi(values[1]->t());",
                 "",
                 0,
                 0

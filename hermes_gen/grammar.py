@@ -853,9 +853,17 @@ class _GrammarFileParser:
                 curStrSymbolList = []
 
             if curCodeStart >= 0:
+                # save the leading indentation before the first bit of code
+                # so we can remove it from every line
+                indentStr = ""
                 while True:
                     nextChar = self.f.get()
-                    if nextChar not in ' \t\n':
+                    # reset if newline
+                    if nextChar == "\n":
+                        indentStr = ""
+                    elif nextChar in " \t":
+                        indentStr += nextChar
+                    else:
                         self.f.unget()
                         break
 
@@ -872,7 +880,19 @@ class _GrammarFileParser:
                         if numOpenBrackets == 0:
                             break
                     curCode += nextChar
-                curCode = curCode.strip()
+                # strip leading indentation
+                codeLines = curCode.strip().splitlines()
+                for i in range(1, len(codeLines)):
+                    codeLine = codeLines[i]
+                    if codeLine.startswith(indentStr):
+                        codeLines[i] = codeLine[len(indentStr):]
+                    else:
+                        self.warn(
+                            "Inconsistent indentation, may break some language outputs",
+                            f'{self.f.filename}:{curCodeStart}'
+                        )
+
+                curCode = "\n".join(codeLines)
             else:
                 curCode = None
                 curCodeStart = startingLine
