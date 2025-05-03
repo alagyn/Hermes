@@ -1,6 +1,5 @@
-from typing import Dict, List, Tuple, Optional, Set
+from typing import Dict, List, Tuple
 from collections import deque
-import itertools
 
 from hermes_gen.grammar import Grammar, Rule, Symbol
 from hermes_gen.errors import HermesError

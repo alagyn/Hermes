@@ -2,7 +2,6 @@ from typing import List, Dict, Set, Tuple, Iterable, Optional, Deque
 from collections import deque, defaultdict
 import re
 import os
-import sys
 
 from hermes_gen.errors import HermesError
 from hermes_gen.consts import ARG_VECTOR, EMPTY, END, START, ERROR

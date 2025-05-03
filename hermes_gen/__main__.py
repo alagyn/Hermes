@@ -102,12 +102,12 @@ def main():
             os.makedirs(folder, exist_ok=True)
 
     if len(tableFile) > 0:
-        table.writeParseTable(tableFile, grammar_file, grammar, parseTable)
+        table.writeParseTable(tableFile, grammar, parseTable)
     if len(loaderImplFile) > 0 or len(loaderHeaderFile) > 0:
         if len(loaderHeaderFile) == 0 or len(loaderImplFile) == 0:
             hermes_logs.err("Please specify both -l and -i")
             exit(1)
-        loader.writeLoader(loaderHeaderFile, loaderImplFile, tableFile, name, grammar)
+        loader.writeLoader(loaderHeaderFile, loaderImplFile, name, grammar)
     if len(pybindFile) > 0:
         pybind.writePybindModule(pybindFile, grammar, name)
 

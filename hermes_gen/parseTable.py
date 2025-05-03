@@ -2,7 +2,6 @@ from typing import Optional, Dict, List
 
 from .lalr1_automata import AnnotRule, Node, LALR1Automata
 from .grammar import Symbol
-from .counterexample.counterexampleGen import CounterExampleGen, CounterExample
 from .counterexample.conflict import Conflict
 
 
