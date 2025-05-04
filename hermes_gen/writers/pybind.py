@@ -26,7 +26,7 @@ def writePybindModule(filename: str, grammar: Grammar, name: str):
         )
 
         f.write(
-            f"PYBIND11_MODULE(hermes, m)\n"
+            f"PYBIND11_MODULE(hermes_{name}, m)\n"
             "{\n"
             f"    init_hermes<{returnType}>(m);\n"
             f'    m.def("load_{name}", py_load_{name});\n'

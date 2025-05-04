@@ -114,6 +114,7 @@ function(add_hermes_grammar)
             PROPERTIES
             INTERPROCEDURAL_OPTIMIZATION ON
             VISIBILITY_INLINES_HIDDEN ON
+            CXX_VISIBILITY_PRESET hidden
             CXX_STANDARD 17
         )
         set_target_properties(${ARGS_TARGET}_python
@@ -121,8 +122,9 @@ function(add_hermes_grammar)
             INTERPROCEDURAL_OPTIMIZATION ON
             VISIBILITY_INLINES_HIDDEN ON
             CXX_STANDARD 17
+            CXX_VISIBILITY_PRESET hidden
             # TODO handle multiple grammars...
-            OUTPUT_NAME hermes
+            OUTPUT_NAME hermes_${ARGS_TARGET}
         )
         target_link_libraries(${ARGS_TARGET}_python
             PRIVATE

@@ -8,6 +8,56 @@ using namespace pybind11::literals;
 
 namespace hermes {
 
+constexpr size_t BUFF_SIZE = 1024;
+
+class ByteStream : public std::streambuf
+{
+public:
+    py::iterable stream;
+    py::iterator iter;
+    size_t readSize;
+    char* buffer;
+
+    ByteStream(py::iterable stream)
+        : stream(stream)
+        , iter(stream.begin())
+        , readSize(0)
+        , buffer(new char[BUFF_SIZE + 1])
+    {
+        buffer[BUFF_SIZE] = 0;
+        setg(buffer, buffer, buffer);
+    }
+
+    ~ByteStream()
+    {
+        delete buffer;
+    }
+
+    int underflow() override
+    {
+        // If we are at the end of the buffer
+        if(this->gptr() == this->egptr())
+        {
+            // read more data from python
+            for(readSize = 0; readSize < BUFF_SIZE; ++readSize, ++iter)
+            {
+                if(iter == py::iterator::sentinel())
+                {
+                    break;
+                }
+                auto temp = *iter;
+                // Doesn't like to cast to char for some reason?
+                buffer[readSize] = static_cast<char>(iter->cast<int>());
+            }
+            this->setg(buffer, buffer, buffer + readSize);
+        }
+
+        return this->gptr() == this->egptr()
+                   ? std::char_traits<char>::eof()
+                   : std::char_traits<char>::to_int_type(*this->gptr());
+    }
+};
+
 template<typename HermesReturn>
 class PyParser
 {
@@ -20,12 +70,17 @@ public:
     {
     }
 
-    py::tuple parse(py::capsule input)
+    py::tuple parse(py::iterable stream)
     {
-        auto stream = (std::shared_ptr<std::istream>*)input.get_pointer();
+        py::print(stream);
+        py::print(stream.get_type());
+        ByteStream bs(stream);
+        py::print("Making IS");
+        auto input = std::make_shared<std::istream>(&bs);
 
         bool error = false;
-        HermesReturn out = parser->parse(*stream, error);
+        py::print("Parsing");
+        HermesReturn out = parser->parse(input, error);
         return py::make_tuple(out, error);
     }
 };
@@ -60,7 +115,7 @@ template<typename HermesReturn>
 void init_hermes(py::module_& m)
 {
     py::class_<PyParser<HermesReturn>>(m, "Parser")
-        .def("parse", &PyParser<HermesReturn>::parse, "input_stream"_a);
+        .def("parse", &PyParser<HermesReturn>::parse, "stream"_a);
 
     m.def("load_input_file", loadInputFile, "filename"_a);
     m.def("load_input_bytes", loadInputBytes, "data"_a);
