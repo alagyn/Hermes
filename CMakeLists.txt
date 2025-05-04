@@ -101,6 +101,10 @@ if(HERMES_PYTHON)
             pybind11::headers
             hermes
     )
+
+    target_compile_definitions(hermes_pybind
+        PUBLIC PYBIND11_DETAILED_ERROR_MESSAGES
+    )
 endif()
 
 install(

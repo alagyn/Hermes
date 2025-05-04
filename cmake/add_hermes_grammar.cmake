@@ -11,7 +11,7 @@ function(add_hermes_grammar)
             cmake_path(ABSOLUTE_PATH ARGS_GRAMMAR
                 BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                 NORMALIZE
-                OUTPUT_VARIABLE GRAMMAR 
+                OUTPUT_VARIABLE GRAMMAR
             )
         else()
             set(GRAMMAR ${ARGS_GRAMMAR})
@@ -28,7 +28,7 @@ function(add_hermes_grammar)
             cmake_path(ABSOLUTE_PATH ARGS_DESC_FILE
                 BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                 NORMALIZE
-                OUTPUT_VARIABLE DESC_FILE 
+                OUTPUT_VARIABLE DESC_FILE
             )
         else()
             set(DESC_FILE ${ARGS_DESC_FILE})
@@ -70,43 +70,14 @@ function(add_hermes_grammar)
     set(LOADER_HEADER_FILE ${PUBLIC_INC}/hermes/${ARGS_TARGET}_loader.h)
     set(LOADER_IMPL_FILE ${PRIVATE_INC}/hermes/${ARGS_TARGET}_loader.cpp)
     set(PYBIND_IMPL_FILE ${PRIVATE_INC}/hermes/${ARGS_TARGET}_pybind.cpp)
+    set(PYTHON_STUBS_FILE ${CMAKE_CURRENT_BINARY_DIR}/hermes_${ARGS_TARGET}.pyi)
 
     set(OUTPUTS ${GRAMMAR_FILE} ${LOADER_HEADER_FILE} ${LOADER_IMPL_FILE})
 
     if(ARGS_PYTHON)
-        set(PYBIND_ARGS --pybind ${PYBIND_IMPL_FILE})
-        set(OUTPUTS ${OUTPUTS} ${PYBIND_IMPL_FILE})
-    endif()
+        set(PYBIND_ARGS --pybind ${PYBIND_IMPL_FILE} --python-stubs ${PYTHON_STUBS_FILE})
+        set(OUTPUTS ${OUTPUTS} ${PYBIND_IMPL_FILE} ${PYTHON_STUBS_FILE})
 
-    # Custom command to generate the header
-    add_custom_command(
-        OUTPUT ${OUTPUTS}
-        WORKING_DIRECTORY ${HERMES_ROOT}
-        COMMENT "Generating parser for ${ARGS_TARGET}"
-        COMMAND
-            ${Python3_EXECUTABLE} -m hermes_gen
-                --name ${ARGS_TARGET}
-                --table ${GRAMMAR_FILE}
-                --loader ${LOADER_HEADER_FILE}
-                ${PYBIND_ARGS}
-                --impl ${LOADER_IMPL_FILE}
-                --automata "${DESC_FILE}"
-                ${GRAMMAR}
-        VERBATIM
-        DEPENDS ${GRAMMAR} ${PY_FILES} ${GRAMMAR_FILES}
-    )
-
-    # Add target to generate parse table
-    add_custom_target(${ARGS_TARGET}_grammar
-        DEPENDS ${OUTPUTS} ${GRAMMAR} ${PY_FILES}
-    )
-
-    # Add library
-    add_library(${ARGS_TARGET}
-        ${LOADER_IMPL_FILE}
-    )
-
-    if(ARGS_PYTHON)
         Python3_add_library(${ARGS_TARGET}_python
             ${PYBIND_IMPL_FILE}
         )
@@ -131,7 +102,38 @@ function(add_hermes_grammar)
                 pybind11::headers
                 ${ARGS_TARGET}
         )
+
+        target_compile_definitions(${ARGS_TARGET}_python
+            PRIVATE PYBIND11_DETAILED_ERROR_MESSAGES
+            )
     endif()
+
+    # Add library
+    add_library(${ARGS_TARGET} ${LOADER_IMPL_FILE})
+
+    # Custom command to generate the header
+    add_custom_command(
+        OUTPUT ${OUTPUTS}
+        WORKING_DIRECTORY ${HERMES_ROOT}
+        COMMENT "Generating parser for ${ARGS_TARGET}"
+        COMMAND
+            ${Python3_EXECUTABLE} -m hermes_gen
+                --name ${ARGS_TARGET}
+                --table ${GRAMMAR_FILE}
+                --loader ${LOADER_HEADER_FILE}
+                ${PYBIND_ARGS}
+                --impl ${LOADER_IMPL_FILE}
+                --automata "${DESC_FILE}"
+                ${GRAMMAR}
+        VERBATIM
+        DEPENDS ${GRAMMAR} ${PY_FILES} ${GRAMMAR_FILES}
+    )
+
+    # Add target to generate parse table
+    add_custom_target(${ARGS_TARGET}_grammar
+        DEPENDS ${OUTPUTS} ${GRAMMAR} ${PY_FILES}
+    )
+
 
     # Add dependency on parse_table
     add_dependencies(${ARGS_TARGET} ${ARGS_TARGET}_grammar)
@@ -147,7 +149,7 @@ function(add_hermes_grammar)
         PUBLIC
             ${HERMES_TARGET}
     )
-    
+
     if(${ARGS_DEBUG})
         target_compile_definitions(${ARGS_TARGET}
             PRIVATE

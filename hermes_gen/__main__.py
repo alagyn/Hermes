@@ -25,6 +25,7 @@ def main():
     parser.add_argument("-l", "--loader", help="The loader header filename", default="")
     parser.add_argument("-i", "--impl", help="The loader implementation filename", default="")
     parser.add_argument("-p", "--pybind", help="The pybind loader filename", default="")
+    parser.add_argument("-ps", "--python-stubs", help="The python stub filename", default="")
     parser.add_argument("--no-examples", help="Disable counterexample generation for conflicts", action="store_true")
     parser.add_argument("-s", "--strict", help="Return an error if an unresolved conflict occurs", action="store_true")
     parser.add_argument("--hide-conflicts", help="Do not print out conflict warnings", action="store_true")
@@ -94,6 +95,7 @@ def main():
     loaderHeaderFile: str = args.loader
     loaderImplFile: str = args.impl
     pybindFile: str = args.pybind
+    pythonStubsfile: str = args.python_stubs
     name: str = args.name
 
     for file in [tableFile, loaderHeaderFile, loaderImplFile]:
@@ -110,6 +112,8 @@ def main():
         loader.writeLoader(loaderHeaderFile, loaderImplFile, name, grammar)
     if len(pybindFile) > 0:
         pybind.writePybindModule(pybindFile, grammar, name)
+    if len(pythonStubsfile) > 0:
+        pybind.writePythonStubs(pythonStubsfile, grammar, name)
 
 
 if __name__ == '__main__':
