@@ -4,7 +4,7 @@ from hermes_gen.directives import Directive
 from .utils import writeUserHeader
 
 
-def writeLoader(headerFilename: str, implFilename: str, parseTableFilename: str, name: str, grammar: Grammar):
+def writeLoader(headerFilename: str, implFilename: str, name: str, grammar: Grammar):
     returnType = grammar.directives[Directive.return_][0]
     with open(headerFilename, mode='w') as f:
         writeHermesHeader(f)

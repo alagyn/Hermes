@@ -1,17 +1,13 @@
-import re
-from typing import List, TextIO
 from argparse import ArgumentParser
 
 import os
-import sys
 
 from hermes_gen.grammar import parse_grammar
 from hermes_gen.lalr1_automata import LALR1Automata, writeDescription
 from hermes_gen.parseTable import ParseTable
 from hermes_gen.counterexample.counterexampleGen import CounterExampleGen
 from hermes_gen.errors import HermesError
-from hermes_gen.directives import Directive
-from hermes_gen.writers import loader, table
+from hermes_gen.writers import loader, table, pybind
 from hermes_gen import hermes_logs
 
 
@@ -28,6 +24,8 @@ def main():
     )
     parser.add_argument("-l", "--loader", help="The loader header filename", default="")
     parser.add_argument("-i", "--impl", help="The loader implementation filename", default="")
+    parser.add_argument("-p", "--pybind", help="The pybind loader filename", default="")
+    parser.add_argument("-ps", "--python-stubs", help="The python stub filename", default="")
     parser.add_argument("--no-examples", help="Disable counterexample generation for conflicts", action="store_true")
     parser.add_argument("-s", "--strict", help="Return an error if an unresolved conflict occurs", action="store_true")
     parser.add_argument("--hide-conflicts", help="Do not print out conflict warnings", action="store_true")
@@ -96,6 +94,8 @@ def main():
     tableFile: str = args.table
     loaderHeaderFile: str = args.loader
     loaderImplFile: str = args.impl
+    pybindFile: str = args.pybind
+    pythonStubsfile: str = args.python_stubs
     name: str = args.name
 
     for file in [tableFile, loaderHeaderFile, loaderImplFile]:
@@ -104,12 +104,16 @@ def main():
             os.makedirs(folder, exist_ok=True)
 
     if len(tableFile) > 0:
-        table.writeParseTable(tableFile, grammar_file, grammar, parseTable)
+        table.writeParseTable(tableFile, grammar, parseTable)
     if len(loaderImplFile) > 0 or len(loaderHeaderFile) > 0:
         if len(loaderHeaderFile) == 0 or len(loaderImplFile) == 0:
             hermes_logs.err("Please specify both -l and -i")
             exit(1)
-        loader.writeLoader(loaderHeaderFile, loaderImplFile, tableFile, name, grammar)
+        loader.writeLoader(loaderHeaderFile, loaderImplFile, name, grammar)
+    if len(pybindFile) > 0:
+        pybind.writePybindModule(pybindFile, grammar, name)
+    if len(pythonStubsfile) > 0:
+        pybind.writePythonStubs(pythonStubsfile, grammar, name)
 
 
 if __name__ == '__main__':

@@ -66,6 +66,7 @@ include(add_hermes_grammar)
 add_hermes_grammar(
     TARGET calc
     GRAMMAR grammars/calculator.hm
+    PYTHON
     #DEBUG
     #DESC_FILE temp.txt
 )

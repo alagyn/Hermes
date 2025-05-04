@@ -2,8 +2,9 @@
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
     "cmake.loadCompileCommands": true,
     "files.associations": {
-        "*.tcc": "cpp",
         ".style.yapf": "properties",
+        "*.docker": "dockerfile",
+        "*.tcc": "cpp",
         "algorithm": "cpp",
         "array": "cpp",
         "atomic": "cpp",
@@ -70,7 +71,15 @@
         "unordered_map": "cpp",
         "utility": "cpp",
         "variant": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "codecvt": "cpp",
+        "complex": "cpp",
+        "forward_list": "cpp",
+        "unordered_set": "cpp",
+        "ranges": "cpp",
+        "cinttypes": "cpp",
+        "typeindex": "cpp",
+        "valarray": "cpp"
     },
     "json.schemaDownload.enable": true,
     "python.analysis.exclude": [

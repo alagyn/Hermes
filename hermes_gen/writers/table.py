@@ -10,7 +10,7 @@ from .utils import writeUserHeader
 # TODO change parse table to a list of lists, since most columns are empty
 
 
-def writeParseTable(filename: str, grammarFile: str, grammar: Grammar, table: ParseTable):
+def writeParseTable(filename: str, grammar: Grammar, table: ParseTable):
     with open(filename, mode='w') as f:
         writeHermesHeader(f)
 
